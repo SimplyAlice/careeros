@@ -1,0 +1,41 @@
+# --- Environment / secrets -----------------------------------------------
+.env
+.env.local
+.env.*.local
+
+# --- Python -------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+dist/
+build/
+
+# --- Node / frontend (added starting Milestone 6) ----------------------
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# --- Docker --------------------------------------------------------------
+*.pid
+
+# --- Editors / OS -----------------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+
+# --- Terraform / Bicep local state (added starting Milestone 12) ----------
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# --- Logs ---------------------------------------------------------------
+*.log

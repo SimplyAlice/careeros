@@ -1,0 +1,13 @@
+# Automatically merged with docker-compose.yml by `docker compose up` — no
+# extra flag needed. Contains dev-only conveniences that have no place in
+# a production-shaped compose file: live code mounting and --reload.
+services:
+  api:
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/tests:/app/tests
+      - ./backend/alembic:/app/alembic
+    environment:
+      ENVIRONMENT: development
+      DEBUG: "true"
