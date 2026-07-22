@@ -35,11 +35,21 @@ class UUIDPrimaryKeyMixin:
 
 
 class CreatedAtMixin:
-    """Adds an immutable `created_at` timestamp, set by the database."""
+    """Adds an immutable `created_at` timestamp, set by the database.
+
+    Uses `clock_timestamp()`, not `now()`: Postgres's `now()` returns the
+    *transaction's* start time — constant for every statement in the same
+    transaction — while `clock_timestamp()` returns the actual wall-clock
+    time at statement execution. Since a single batch job-ingestion run
+    (Milestone 3) can insert many rows in one transaction, `now()` would
+    give them all an identical `created_at`, breaking the newest-first
+    ordering `SqlAlchemyJobRepository.list_jobs()` depends on — found by
+    actually running the pagination test against real Postgres.
+    """
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        server_default=func.now(),
+        server_default=func.clock_timestamp(),
         nullable=False,
     )
 
@@ -47,16 +57,13 @@ class CreatedAtMixin:
 class TimestampMixin(CreatedAtMixin):
     """Adds `created_at` and a `updated_at` maintained by the database on every update.
 
-    Using `server_default` / `server_onupdate` (database-side `now()`)
-    rather than Python-side `datetime.utcnow()` means the timestamp is
-    correct even for updates made outside the application (e.g. a manual
-    `UPDATE` during a migration or a support fix), and avoids clock-skew
-    issues between application servers.
+    Same `clock_timestamp()` reasoning as `CreatedAtMixin` applies to
+    `updated_at`'s `onupdate` value.
     """
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
+        server_default=func.clock_timestamp(),
+        onupdate=func.clock_timestamp(),
         nullable=False,
     )

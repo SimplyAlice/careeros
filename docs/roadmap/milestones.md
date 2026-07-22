@@ -8,7 +8,7 @@ to the next milestone until you've confirmed the current one works.
 | 0 | Foundations | This docs set | Complete |
 | 1 | Core backend skeleton | FastAPI + Postgres + JWT auth, running in Docker Compose, `/health` green, register/login working, first tests passing in CI | Complete |
 | 2 | Database schema | Full SQLAlchemy models + Alembic migrations for all v1 tables | Complete |
-| 3 | Job ingestion | Adzuna adapter pulling real jobs into `jobs`, dedup working, basic `/jobs` list endpoint | 3–4 days |
+| 3 | Job ingestion | Adzuna adapter pulling real jobs into `jobs`, dedup working, basic `/jobs` list endpoint | Complete |
 | 4 | AI scoring engine | `LLMProvider` abstraction + Anthropic adapter, `/matches` endpoint returns score + rationale for a real job | 4–5 days |
 | 5 | Resume/cover letter generation | Master profile input, AI-generated tailored resume + cover letter, versioned and PDF-rendered | 5–7 days |
 | 6 | React dashboard v1 | Auth flow, Job Matches page, Applications page, Resume Library — wired to real API | 5–7 days |

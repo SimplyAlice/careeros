@@ -84,6 +84,15 @@ class Settings(BaseSettings):
     # --- CORS ------------------------------------------------------------------
     backend_cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173"])
 
+    # --- Job sources (Milestone 3) --------------------------------------------
+    # Optional (default None) so an environment without real Adzuna
+    # credentials still starts up normally — the ingestion endpoint returns
+    # a clear 503 rather than the app failing at startup. Get free
+    # credentials at https://developer.adzuna.com.
+    adzuna_app_id: str | None = None
+    adzuna_app_key: str | None = None
+    adzuna_country: str = "us"
+
     # --- Logging -----------------------------------------------------------
     log_level: str = "INFO"
 

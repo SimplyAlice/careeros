@@ -5,7 +5,7 @@ against your profile, tailors resumes and cover letters, and assists with
 applications, while keeping a human in control of every irreversible action.
 
 ![Status](https://img.shields.io/badge/status-in%20development-yellow)
-![Milestone](https://img.shields.io/badge/milestone-2%20%2F%2014-blue)
+![Milestone](https://img.shields.io/badge/milestone-3%20%2F%2014-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
@@ -88,6 +88,8 @@ Then visit:
 - **API root**: `http://localhost:8000/` — basic service info
 - **Health check**: `http://localhost:8000/api/v1/health`
 - **Interactive API docs (Swagger)**: `http://localhost:8000/docs`
+- **List jobs**: `GET http://localhost:8000/api/v1/jobs`
+- **Ingest jobs**: `POST http://localhost:8000/api/v1/jobs/ingest` with body `{"query": "cloud engineer", "location": "Cape Town"}` — requires `ADZUNA_APP_ID`/`ADZUNA_APP_KEY` in `.env` (free at https://developer.adzuna.com); returns `503` if unset.
 
 ### Running backend tests locally (without Docker)
 
@@ -152,8 +154,9 @@ analytics.
 | 0 — Foundations & architecture | ✅ Complete |
 | 1 — Core backend skeleton | ✅ Complete |
 | 2 — Database schema | ✅ Complete |
-| 3 — Job ingestion | ⏳ Up next |
-| 4–14 | 📋 Planned |
+| 3 — Job ingestion | ✅ Complete |
+| 4 — AI scoring engine | ⏳ Up next |
+| 5–14 | 📋 Planned |
 
 ## Screenshots
 

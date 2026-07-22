@@ -70,7 +70,20 @@ async def db_session() -> AsyncGenerator[AsyncSession]:
     try:
         async with engine.connect() as connection:
             transaction = await connection.begin()
-            session_factory = async_sessionmaker(bind=connection, expire_on_commit=False)
+            # `join_transaction_mode="create_savepoint"` is required when a
+            # Session is bound to a Connection that already has an
+            # externally-managed transaction open (exactly our case here):
+            # without it, a flush failure inside `session.begin_nested()`
+            # (used by `SqlAlchemyJobRepository.create()` to catch
+            # duplicate-key errors per-row) deactivates the *outer*
+            # transaction instead of rolling back only to the SAVEPOINT —
+            # found by actually running the duplicate-handling test against
+            # real Postgres, not assumed.
+            session_factory = async_sessionmaker(
+                bind=connection,
+                expire_on_commit=False,
+                join_transaction_mode="create_savepoint",
+            )
             session = session_factory()
             try:
                 yield session
