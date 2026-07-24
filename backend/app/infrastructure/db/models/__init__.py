@@ -20,17 +20,27 @@ from __future__ import annotations
 
 from app.infrastructure.db.models.application import Application, ApplicationStatus
 from app.infrastructure.db.models.candidate_profile import CandidateProfile
+from app.infrastructure.db.models.education import Education
+from app.infrastructure.db.models.experience import Experience
 from app.infrastructure.db.models.job import Job
 from app.infrastructure.db.models.job_match import JobMatch
+from app.infrastructure.db.models.profile import Profile
 from app.infrastructure.db.models.resume import Resume
+from app.infrastructure.db.models.resume_metadata import ResumeMetadata
+from app.infrastructure.db.models.skill import Skill
 from app.infrastructure.db.models.user import User
 
 __all__ = [
     "Application",
     "ApplicationStatus",
     "CandidateProfile",
+    "Education",
+    "Experience",
     "Job",
     "JobMatch",
+    "Profile",
     "Resume",
+    "ResumeMetadata",
+    "Skill",
     "User",
 ]

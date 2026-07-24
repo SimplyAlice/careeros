@@ -18,9 +18,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.jobs.ingestion_service import JobIngestionService
 from app.application.jobs.ports import JobRepository, JobSourceAdapter
+from app.application.profile.ports import ProfileRepository
+from app.application.profile.profile_service import ProfileService
 from app.core.config import Settings, get_settings
 from app.infrastructure.cache.redis import get_redis_client
 from app.infrastructure.db.repositories.job_repository import SqlAlchemyJobRepository
+from app.infrastructure.db.repositories.profile_repository import SqlAlchemyProfileRepository
 from app.infrastructure.db.session import get_db_session
 from app.infrastructure.job_sources.adzuna import AdzunaJobSourceAdapter
 
@@ -46,6 +49,16 @@ def get_job_ingestion_service(
     return JobIngestionService(source_adapter=source_adapter, repository=repository)
 
 
+def get_profile_repository(session: Annotated[AsyncSession, Depends(get_db_session)]) -> ProfileRepository:
+    return SqlAlchemyProfileRepository(session)
+
+
+def get_profile_service(
+    repository: Annotated[ProfileRepository, Depends(get_profile_repository)],
+) -> ProfileService:
+    return ProfileService(repository)
+
+
 __all__ = [
     "Settings",
     "get_settings",
@@ -54,4 +67,6 @@ __all__ = [
     "get_job_source_adapter",
     "get_job_repository",
     "get_job_ingestion_service",
+    "get_profile_repository",
+    "get_profile_service",
 ]

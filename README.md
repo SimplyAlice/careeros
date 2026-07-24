@@ -5,7 +5,7 @@ against your profile, tailors resumes and cover letters, and assists with
 applications, while keeping a human in control of every irreversible action.
 
 ![Status](https://img.shields.io/badge/status-in%20development-yellow)
-![Milestone](https://img.shields.io/badge/milestone-3%20%2F%2014-blue)
+![Milestone](https://img.shields.io/badge/milestone-4%20%2F%2014-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
@@ -69,11 +69,12 @@ trade-offs: [`docs/portfolio/tech-stack.md`](docs/portfolio/tech-stack.md).
 
 ## Setup Instructions
 
-> Milestone 1 (core backend skeleton) is complete: FastAPI + PostgreSQL +
-> Redis run together via one Docker Compose command. There are no business
-> features yet — no jobs, no AI, no auth — just the production-shaped
-> foundation everything else is built on. The frontend hasn't been started
-> (planned for Milestone 6).
+> Milestones 1–4 are complete: FastAPI + PostgreSQL + Redis, job ingestion
+> from Adzuna, and profile management all run together via one Docker
+> Compose command. There's still no auth — CareerOS supports exactly one
+> local profile until JWT auth lands (see
+> `docs/adr/0012-profile-management.md`). The frontend hasn't been started
+> (planned for Milestone 7).
 
 ```bash
 git clone https://github.com/<your-username>/careeros.git
@@ -90,6 +91,7 @@ Then visit:
 - **Interactive API docs (Swagger)**: `http://localhost:8000/docs`
 - **List jobs**: `GET http://localhost:8000/api/v1/jobs`
 - **Ingest jobs**: `POST http://localhost:8000/api/v1/jobs/ingest` with body `{"query": "cloud engineer", "location": "Cape Town"}` — requires `ADZUNA_APP_ID`/`ADZUNA_APP_KEY` in `.env` (free at https://developer.adzuna.com); returns `503` if unset.
+- **Profile**: `GET`/`POST`/`PATCH http://localhost:8000/api/v1/profile` — a single local profile (no auth yet, see `docs/adr/0012-profile-management.md`); `POST` returns `409` if one already exists, `GET`/`PATCH` return `404` if none exists yet.
 
 ### Running backend tests locally (without Docker)
 
@@ -155,8 +157,9 @@ analytics.
 | 1 — Core backend skeleton | ✅ Complete |
 | 2 — Database schema | ✅ Complete |
 | 3 — Job ingestion | ✅ Complete |
-| 4 — AI scoring engine | ⏳ Up next |
-| 5–14 | 📋 Planned |
+| 4 — Profile management | ✅ Complete |
+| 5 — AI scoring engine | ⏳ Up next |
+| 6–14 | 📋 Planned |
 
 ## Screenshots
 
