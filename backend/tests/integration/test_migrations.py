@@ -139,6 +139,38 @@ async def test_migration_creates_working_profiles_singleton_constraint(
 
 
 @pytest.mark.asyncio
+async def test_migration_adds_profile_scoring_columns_to_job_matches(
+    migration_test_database_url: str,
+) -> None:
+    """Milestone 5's `980eb04284d4` migration alters an existing table
+    (`job_matches`, from Milestone 2) rather than creating a new one —
+    proves `profile_id`/`matched_skills`/`missing_skills` exist and
+    `user_id` is now nullable, matching `docs/adr/0013-score-against-profile-not-user.md`.
+    """
+    result = _run_alembic("upgrade", "head", database_url=migration_test_database_url)
+    assert result.returncode == 0, result.stderr
+
+    conn = await asyncpg.connect(
+        migration_test_database_url.replace("postgresql+asyncpg://", "postgresql://")
+    )
+    try:
+        columns = {
+            row["column_name"]: row["is_nullable"]
+            for row in await conn.fetch(
+                "SELECT column_name, is_nullable FROM information_schema.columns "
+                "WHERE table_name = 'job_matches'"
+            )
+        }
+    finally:
+        await conn.close()
+
+    assert columns["profile_id"] == "YES"
+    assert columns["matched_skills"] == "NO"
+    assert columns["missing_skills"] == "NO"
+    assert columns["user_id"] == "YES"  # relaxed from NOT NULL — no registration flow exists yet
+
+
+@pytest.mark.asyncio
 async def test_migration_downgrade_then_upgrade_again_succeeds(migration_test_database_url: str) -> None:
     """The real regression this test exists for: downgrading and
     re-upgrading must both succeed — this specifically caught a real bug

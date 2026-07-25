@@ -8,6 +8,8 @@ unique-constraint violation under the hood.
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,6 +30,9 @@ class SqlAlchemyJobRepository:
         stmt = select(Job).where(Job.source == source, Job.external_id == external_id)
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
+
+    async def get_by_id(self, *, job_id: UUID) -> Job | None:
+        return await self._session.get(Job, job_id)
 
     async def create(self, posting: NormalizedJobPosting) -> Job:
         # `begin_nested()` opens a SAVEPOINT; explicit commit/rollback on

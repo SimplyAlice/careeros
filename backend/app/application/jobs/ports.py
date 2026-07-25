@@ -16,6 +16,7 @@ unused surface area at this milestone.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol
+from uuid import UUID
 
 from app.domain.value_objects.job_posting import NormalizedJobPosting
 
@@ -42,6 +43,15 @@ class JobRepository(Protocol):
 
     async def get_by_source_and_external_id(self, *, source: str, external_id: str) -> Job | None:
         """Look up a job already ingested from this source, if any."""
+        ...
+
+    async def get_by_id(self, *, job_id: UUID) -> Job | None:
+        """Look up a single job by primary key.
+
+        Added in Milestone 5 for job scoring (`JobScoringService` needs to
+        load one specific job to score it) — a minimal, additive
+        extension to this port, not a redesign of it.
+        """
         ...
 
     async def create(self, posting: NormalizedJobPosting) -> Job:

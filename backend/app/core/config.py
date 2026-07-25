@@ -93,6 +93,15 @@ class Settings(BaseSettings):
     adzuna_app_key: str | None = None
     adzuna_country: str = "us"
 
+    # --- AI provider (Milestone 5) ----------------------------------------------
+    # Optional (default None), same reasoning as Adzuna above — the
+    # scoring endpoint returns a clear 503 rather than the app failing to
+    # start. Verify the current model identifier against
+    # https://docs.anthropic.com/en/docs/about-claude/models before
+    # deploying — model strings are versioned and change over time.
+    anthropic_api_key: str | None = None
+    anthropic_model: str = "claude-sonnet-4-5-20250929"
+
     # --- Logging -----------------------------------------------------------
     log_level: str = "INFO"
 

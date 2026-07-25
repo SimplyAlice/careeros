@@ -10,7 +10,7 @@ to the next milestone until you've confirmed the current one works.
 | 2 | Database schema | Full SQLAlchemy models + Alembic migrations for all v1 tables | Complete |
 | 3 | Job ingestion | Adzuna adapter pulling real jobs into `jobs`, dedup working, basic `/jobs` list endpoint | Complete |
 | 4 | Profile management | Single local profile (create/get/update), skills/experience/education/resume-metadata, full validation — see `docs/adr/0012-profile-management.md` | Complete |
-| 5 | AI scoring engine | `LLMProvider` abstraction + Anthropic adapter, `/matches` endpoint returns score + rationale for a real job, scored against the Milestone 4 profile | 4–5 days |
+| 5 | AI scoring engine | `LLMProvider` abstraction + Anthropic adapter, `/matches` endpoint returns score + rationale for a real job, scored against the Milestone 4 profile | Complete |
 | 6 | Resume/cover letter generation | AI-generated tailored resume + cover letter, versioned and PDF-rendered | 5–7 days |
 | 7 | React dashboard v1 | Auth flow, Job Matches page, Applications page, Resume Library — wired to real API | 5–7 days |
 | 8 | Assisted browser automation | Playwright adapter for one portal (e.g. Greenhouse-hosted form), pre-fill + human-confirm gate | 5–7 days |

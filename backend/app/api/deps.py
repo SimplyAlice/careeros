@@ -20,8 +20,12 @@ from app.application.jobs.ingestion_service import JobIngestionService
 from app.application.jobs.ports import JobRepository, JobSourceAdapter
 from app.application.profile.ports import ProfileRepository
 from app.application.profile.profile_service import ProfileService
+from app.application.scoring.ports import JobMatchRepository, LLMProvider
+from app.application.scoring.scoring_service import JobScoringService
 from app.core.config import Settings, get_settings
+from app.infrastructure.ai_providers.anthropic_provider import AnthropicProvider
 from app.infrastructure.cache.redis import get_redis_client
+from app.infrastructure.db.repositories.job_match_repository import SqlAlchemyJobMatchRepository
 from app.infrastructure.db.repositories.job_repository import SqlAlchemyJobRepository
 from app.infrastructure.db.repositories.profile_repository import SqlAlchemyProfileRepository
 from app.infrastructure.db.session import get_db_session
@@ -59,6 +63,35 @@ def get_profile_service(
     return ProfileService(repository)
 
 
+def get_llm_provider(settings: Annotated[Settings, Depends(get_settings)]) -> LLMProvider:
+    """The active LLM provider.
+
+    A single `Depends()` chokepoint — the same pattern as
+    `get_job_source_adapter` — so adding an OpenAI/Gemini adapter later
+    (per `docs/adr/0005-ai-provider-abstraction.md`) changes this function
+    only.
+    """
+    return AnthropicProvider(settings)
+
+
+def get_job_match_repository(session: Annotated[AsyncSession, Depends(get_db_session)]) -> JobMatchRepository:
+    return SqlAlchemyJobMatchRepository(session)
+
+
+def get_job_scoring_service(
+    llm_provider: Annotated[LLMProvider, Depends(get_llm_provider)],
+    profile_repository: Annotated[ProfileRepository, Depends(get_profile_repository)],
+    job_repository: Annotated[JobRepository, Depends(get_job_repository)],
+    job_match_repository: Annotated[JobMatchRepository, Depends(get_job_match_repository)],
+) -> JobScoringService:
+    return JobScoringService(
+        llm_provider=llm_provider,
+        profile_repository=profile_repository,
+        job_repository=job_repository,
+        job_match_repository=job_match_repository,
+    )
+
+
 __all__ = [
     "Settings",
     "get_settings",
@@ -69,4 +102,7 @@ __all__ = [
     "get_job_ingestion_service",
     "get_profile_repository",
     "get_profile_service",
+    "get_llm_provider",
+    "get_job_match_repository",
+    "get_job_scoring_service",
 ]

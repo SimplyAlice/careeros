@@ -23,6 +23,7 @@ from app.infrastructure.db.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 if TYPE_CHECKING:
     from app.infrastructure.db.models.education import Education
     from app.infrastructure.db.models.experience import Experience
+    from app.infrastructure.db.models.job_match import JobMatch
     from app.infrastructure.db.models.resume_metadata import ResumeMetadata
     from app.infrastructure.db.models.skill import Skill
 
@@ -76,6 +77,14 @@ class Profile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         back_populates="profile", cascade="all, delete-orphan", lazy="selectin"
     )
     resumes: Mapped[list[ResumeMetadata]] = relationship(
+        back_populates="profile", cascade="all, delete-orphan", lazy="selectin"
+    )
+    # Added in Milestone 5 — see docs/adr/0013-score-against-profile-not-user.md.
+    # `cascade="all, delete-orphan"` mirrors the DB-level `ON DELETE
+    # CASCADE` on `job_matches.profile_id`: deleting the profile deletes
+    # its scoring history too, consistent with matches being a snapshot
+    # *about* a profile, not an independent record worth orphaning.
+    job_matches: Mapped[list[JobMatch]] = relationship(
         back_populates="profile", cascade="all, delete-orphan", lazy="selectin"
     )
 
