@@ -5,7 +5,7 @@ against your profile, tailors resumes and cover letters, and assists with
 applications, while keeping a human in control of every irreversible action.
 
 ![Status](https://img.shields.io/badge/status-in%20development-yellow)
-![Milestone](https://img.shields.io/badge/milestone-5%20%2F%2014-blue)
+![Milestone](https://img.shields.io/badge/milestone-6%20%2F%2014-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
@@ -69,10 +69,11 @@ trade-offs: [`docs/portfolio/tech-stack.md`](docs/portfolio/tech-stack.md).
 
 ## Setup Instructions
 
-> Milestones 1–5 are complete: FastAPI + PostgreSQL + Redis, job ingestion
-> from Adzuna, profile management, and AI-powered job scoring (Anthropic)
-> all run together via one Docker Compose command. There's still no auth —
-> CareerOS supports exactly one local profile until JWT auth lands (see
+> Milestones 1–6 are complete: FastAPI + PostgreSQL + Redis, job ingestion
+> from Adzuna, profile management, AI-powered job scoring, and AI-generated
+> resume/cover-letter PDFs (Anthropic) all run together via one Docker
+> Compose command. There's still no auth — CareerOS supports exactly one
+> local profile until JWT auth lands (see
 > `docs/adr/0012-profile-management.md`). The frontend hasn't been started
 > (planned for Milestone 7).
 
@@ -94,6 +95,10 @@ Then visit:
 - **Profile**: `GET`/`POST`/`PATCH http://localhost:8000/api/v1/profile` — a single local profile (no auth yet, see `docs/adr/0012-profile-management.md`); `POST` returns `409` if one already exists, `GET`/`PATCH` return `404` if none exists yet.
 - **Score a job**: `POST http://localhost:8000/api/v1/matches` with body `{"job_id": "<uuid>"}` — scores the profile against a job using Claude, requires `ANTHROPIC_API_KEY` in `.env` (get one at https://console.anthropic.com); returns `503` if unset, `502` if the model's response can't be parsed, `404` if the profile or job doesn't exist.
 - **List matches**: `GET http://localhost:8000/api/v1/matches`
+- **Generate a resume**: `POST http://localhost:8000/api/v1/resumes/generate` with body `{"job_id": "<uuid>"}` (or `{}` for a general resume) — requires `ANTHROPIC_API_KEY`; returns `502` if the model's response can't be parsed.
+- **List/download resumes**: `GET http://localhost:8000/api/v1/resumes` and `GET http://localhost:8000/api/v1/resumes/{id}/download`
+- **Generate a cover letter**: `POST http://localhost:8000/api/v1/cover-letters/generate` with body `{"job_id": "<uuid>"}` (required — cover letters are always job-specific)
+- **List/download cover letters**: `GET http://localhost:8000/api/v1/cover-letters` and `GET http://localhost:8000/api/v1/cover-letters/{id}/download`
 
 ### Running backend tests locally (without Docker)
 
@@ -161,8 +166,9 @@ analytics.
 | 3 — Job ingestion | ✅ Complete |
 | 4 — Profile management | ✅ Complete |
 | 5 — AI scoring engine | ✅ Complete |
-| 6 — Resume/cover letter generation | ⏳ Up next |
-| 7–14 | 📋 Planned |
+| 6 — Resume/cover letter generation | ✅ Complete |
+| 7 — React dashboard v1 | ⏳ Up next |
+| 8–14 | 📋 Planned |
 
 ## Screenshots
 

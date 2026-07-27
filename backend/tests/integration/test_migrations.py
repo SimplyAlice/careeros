@@ -104,6 +104,8 @@ async def test_migration_upgrade_creates_all_tables(migration_test_database_url:
         "experience",
         "education",
         "resume_metadata",
+        "generated_resumes",
+        "generated_cover_letters",
     }.issubset(tables)
 
 

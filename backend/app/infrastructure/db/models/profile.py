@@ -23,6 +23,8 @@ from app.infrastructure.db.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 if TYPE_CHECKING:
     from app.infrastructure.db.models.education import Education
     from app.infrastructure.db.models.experience import Experience
+    from app.infrastructure.db.models.generated_cover_letter import GeneratedCoverLetter
+    from app.infrastructure.db.models.generated_resume import GeneratedResume
     from app.infrastructure.db.models.job_match import JobMatch
     from app.infrastructure.db.models.resume_metadata import ResumeMetadata
     from app.infrastructure.db.models.skill import Skill
@@ -85,6 +87,13 @@ class Profile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # its scoring history too, consistent with matches being a snapshot
     # *about* a profile, not an independent record worth orphaning.
     job_matches: Mapped[list[JobMatch]] = relationship(
+        back_populates="profile", cascade="all, delete-orphan", lazy="selectin"
+    )
+    # Added in Milestone 6 — see docs/adr/0014-resume-cover-letter-generation.md.
+    generated_resumes: Mapped[list[GeneratedResume]] = relationship(
+        back_populates="profile", cascade="all, delete-orphan", lazy="selectin"
+    )
+    generated_cover_letters: Mapped[list[GeneratedCoverLetter]] = relationship(
         back_populates="profile", cascade="all, delete-orphan", lazy="selectin"
     )
 

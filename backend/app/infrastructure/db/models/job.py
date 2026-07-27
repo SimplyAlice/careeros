@@ -20,6 +20,8 @@ from app.infrastructure.db.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
     from app.infrastructure.db.models.application import Application
+    from app.infrastructure.db.models.generated_cover_letter import GeneratedCoverLetter
+    from app.infrastructure.db.models.generated_resume import GeneratedResume
     from app.infrastructure.db.models.job_match import JobMatch
 
 
@@ -52,6 +54,23 @@ class Job(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         lazy="selectin",
     )
     applications: Mapped[list[Application]] = relationship(
+        back_populates="job",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    # Added in Milestone 6 — see docs/adr/0014-resume-cover-letter-generation.md.
+    # No `delete-orphan` cascade: `generated_resumes.job_id` is nullable
+    # with `ON DELETE SET NULL` — a generated resume outlives the job it
+    # was tailored to (it's still a real, useful document), it just loses
+    # that optional link.
+    generated_resumes: Mapped[list[GeneratedResume]] = relationship(
+        back_populates="job",
+        lazy="selectin",
+    )
+    # Cover letters, unlike resumes, are always job-specific — deleting
+    # the job deletes them too, matching `ON DELETE CASCADE` on
+    # `generated_cover_letters.job_id`.
+    generated_cover_letters: Mapped[list[GeneratedCoverLetter]] = relationship(
         back_populates="job",
         cascade="all, delete-orphan",
         lazy="selectin",

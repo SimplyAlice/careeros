@@ -22,6 +22,8 @@ from app.infrastructure.db.models.application import Application, ApplicationSta
 from app.infrastructure.db.models.candidate_profile import CandidateProfile
 from app.infrastructure.db.models.education import Education
 from app.infrastructure.db.models.experience import Experience
+from app.infrastructure.db.models.generated_cover_letter import GeneratedCoverLetter
+from app.infrastructure.db.models.generated_resume import GeneratedResume
 from app.infrastructure.db.models.job import Job
 from app.infrastructure.db.models.job_match import JobMatch
 from app.infrastructure.db.models.profile import Profile
@@ -36,6 +38,8 @@ __all__ = [
     "CandidateProfile",
     "Education",
     "Experience",
+    "GeneratedCoverLetter",
+    "GeneratedResume",
     "Job",
     "JobMatch",
     "Profile",

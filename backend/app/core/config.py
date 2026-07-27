@@ -102,6 +102,15 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     anthropic_model: str = "claude-sonnet-4-5-20250929"
 
+    # --- Document storage (Milestone 6) -----------------------------------------
+    # Local disk directory for generated resume/cover-letter PDFs — an
+    # interim adapter ahead of Azure Blob Storage (see
+    # `docs/architecture/cloud-architecture.md`). Relative paths are
+    # resolved against the process's working directory (the container's
+    # `/app` in Docker); mount this as a volume in docker-compose.yml if
+    # generated documents need to survive a container restart.
+    generated_documents_dir: str = "generated_documents"
+
     # --- Logging -----------------------------------------------------------
     log_level: str = "INFO"
 

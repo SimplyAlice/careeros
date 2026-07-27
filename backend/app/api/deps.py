@@ -16,6 +16,14 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.documents.cover_letter_generation_service import CoverLetterGenerationService
+from app.application.documents.ports import (
+    FileStorage,
+    GeneratedCoverLetterRepository,
+    GeneratedResumeRepository,
+    PdfRenderer,
+)
+from app.application.documents.resume_generation_service import ResumeGenerationService
 from app.application.jobs.ingestion_service import JobIngestionService
 from app.application.jobs.ports import JobRepository, JobSourceAdapter
 from app.application.profile.ports import ProfileRepository
@@ -25,11 +33,17 @@ from app.application.scoring.scoring_service import JobScoringService
 from app.core.config import Settings, get_settings
 from app.infrastructure.ai_providers.anthropic_provider import AnthropicProvider
 from app.infrastructure.cache.redis import get_redis_client
+from app.infrastructure.db.repositories.generated_cover_letter_repository import (
+    SqlAlchemyGeneratedCoverLetterRepository,
+)
+from app.infrastructure.db.repositories.generated_resume_repository import SqlAlchemyGeneratedResumeRepository
 from app.infrastructure.db.repositories.job_match_repository import SqlAlchemyJobMatchRepository
 from app.infrastructure.db.repositories.job_repository import SqlAlchemyJobRepository
 from app.infrastructure.db.repositories.profile_repository import SqlAlchemyProfileRepository
 from app.infrastructure.db.session import get_db_session
 from app.infrastructure.job_sources.adzuna import AdzunaJobSourceAdapter
+from app.infrastructure.rendering.pdf_renderer import FpdfPdfRenderer
+from app.infrastructure.storage.local_storage import LocalFileStorage
 
 
 def get_job_source_adapter(settings: Annotated[Settings, Depends(get_settings)]) -> JobSourceAdapter:
@@ -92,6 +106,75 @@ def get_job_scoring_service(
     )
 
 
+def get_pdf_renderer() -> PdfRenderer:
+    """The active PDF renderer.
+
+    A single `Depends()` chokepoint, the same pattern as
+    `get_job_source_adapter`/`get_llm_provider` — swapping rendering
+    libraries later changes this function only.
+    """
+    return FpdfPdfRenderer()
+
+
+def get_file_storage(settings: Annotated[Settings, Depends(get_settings)]) -> FileStorage:
+    """The active file storage backend.
+
+    A single `Depends()` chokepoint — swapping `LocalFileStorage` for an
+    Azure Blob Storage adapter later (per
+    `docs/architecture/cloud-architecture.md`) changes this function
+    only.
+    """
+    return LocalFileStorage(settings.generated_documents_dir)
+
+
+def get_resume_repository(
+    session: Annotated[AsyncSession, Depends(get_db_session)]
+) -> GeneratedResumeRepository:
+    return SqlAlchemyGeneratedResumeRepository(session)
+
+
+def get_cover_letter_repository(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> GeneratedCoverLetterRepository:
+    return SqlAlchemyGeneratedCoverLetterRepository(session)
+
+
+def get_resume_generation_service(
+    llm_provider: Annotated[LLMProvider, Depends(get_llm_provider)],
+    pdf_renderer: Annotated[PdfRenderer, Depends(get_pdf_renderer)],
+    file_storage: Annotated[FileStorage, Depends(get_file_storage)],
+    profile_repository: Annotated[ProfileRepository, Depends(get_profile_repository)],
+    job_repository: Annotated[JobRepository, Depends(get_job_repository)],
+    resume_repository: Annotated[GeneratedResumeRepository, Depends(get_resume_repository)],
+) -> ResumeGenerationService:
+    return ResumeGenerationService(
+        llm_provider=llm_provider,
+        pdf_renderer=pdf_renderer,
+        file_storage=file_storage,
+        profile_repository=profile_repository,
+        job_repository=job_repository,
+        resume_repository=resume_repository,
+    )
+
+
+def get_cover_letter_generation_service(
+    llm_provider: Annotated[LLMProvider, Depends(get_llm_provider)],
+    pdf_renderer: Annotated[PdfRenderer, Depends(get_pdf_renderer)],
+    file_storage: Annotated[FileStorage, Depends(get_file_storage)],
+    profile_repository: Annotated[ProfileRepository, Depends(get_profile_repository)],
+    job_repository: Annotated[JobRepository, Depends(get_job_repository)],
+    cover_letter_repository: Annotated[GeneratedCoverLetterRepository, Depends(get_cover_letter_repository)],
+) -> CoverLetterGenerationService:
+    return CoverLetterGenerationService(
+        llm_provider=llm_provider,
+        pdf_renderer=pdf_renderer,
+        file_storage=file_storage,
+        profile_repository=profile_repository,
+        job_repository=job_repository,
+        cover_letter_repository=cover_letter_repository,
+    )
+
+
 __all__ = [
     "Settings",
     "get_settings",
@@ -105,4 +188,10 @@ __all__ = [
     "get_llm_provider",
     "get_job_match_repository",
     "get_job_scoring_service",
+    "get_pdf_renderer",
+    "get_file_storage",
+    "get_resume_repository",
+    "get_cover_letter_repository",
+    "get_resume_generation_service",
+    "get_cover_letter_generation_service",
 ]
