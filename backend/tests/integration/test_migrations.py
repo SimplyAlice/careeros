@@ -106,6 +106,7 @@ async def test_migration_upgrade_creates_all_tables(migration_test_database_url:
         "resume_metadata",
         "generated_resumes",
         "generated_cover_letters",
+        "refresh_tokens",
     }.issubset(tables)
 
 
@@ -170,6 +171,39 @@ async def test_migration_adds_profile_scoring_columns_to_job_matches(
     assert columns["matched_skills"] == "NO"
     assert columns["missing_skills"] == "NO"
     assert columns["user_id"] == "YES"  # relaxed from NOT NULL — no registration flow exists yet
+
+
+@pytest.mark.asyncio
+async def test_migration_adds_password_hash_and_refresh_tokens(migration_test_database_url: str) -> None:
+    """Milestone 7's `17a093ff69cc` migration adds `users.password_hash`
+    (safe as a direct NOT NULL add — no registration flow existed before
+    this milestone, so `users` has no real rows to backfill) and the new
+    `refresh_tokens` table. See `docs/adr/0015-authentication.md`.
+    """
+    result = _run_alembic("upgrade", "head", database_url=migration_test_database_url)
+    assert result.returncode == 0, result.stderr
+
+    conn = await asyncpg.connect(
+        migration_test_database_url.replace("postgresql+asyncpg://", "postgresql://")
+    )
+    try:
+        user_columns = {
+            row["column_name"]
+            for row in await conn.fetch(
+                "SELECT column_name FROM information_schema.columns WHERE table_name = 'users'"
+            )
+        }
+        refresh_token_columns = {
+            row["column_name"]
+            for row in await conn.fetch(
+                "SELECT column_name FROM information_schema.columns WHERE table_name = 'refresh_tokens'"
+            )
+        }
+    finally:
+        await conn.close()
+
+    assert "password_hash" in user_columns
+    assert {"user_id", "token_hash", "expires_at", "revoked_at"}.issubset(refresh_token_columns)
 
 
 @pytest.mark.asyncio

@@ -11,11 +11,14 @@ implements a dependency. Authentication dependencies (`get_current_user`,
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Annotated
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.auth.auth_service import AuthService
+from app.application.auth.ports import PasswordHasher, RefreshTokenRepository, TokenService, UserRepository
 from app.application.documents.cover_letter_generation_service import CoverLetterGenerationService
 from app.application.documents.ports import (
     FileStorage,
@@ -40,9 +43,13 @@ from app.infrastructure.db.repositories.generated_resume_repository import SqlAl
 from app.infrastructure.db.repositories.job_match_repository import SqlAlchemyJobMatchRepository
 from app.infrastructure.db.repositories.job_repository import SqlAlchemyJobRepository
 from app.infrastructure.db.repositories.profile_repository import SqlAlchemyProfileRepository
+from app.infrastructure.db.repositories.refresh_token_repository import SqlAlchemyRefreshTokenRepository
+from app.infrastructure.db.repositories.user_repository import SqlAlchemyUserRepository
 from app.infrastructure.db.session import get_db_session
 from app.infrastructure.job_sources.adzuna import AdzunaJobSourceAdapter
 from app.infrastructure.rendering.pdf_renderer import FpdfPdfRenderer
+from app.infrastructure.security.bcrypt_password_hasher import BcryptPasswordHasher
+from app.infrastructure.security.jwt_token_service import JwtTokenService
 from app.infrastructure.storage.local_storage import LocalFileStorage
 
 
@@ -175,6 +182,46 @@ def get_cover_letter_generation_service(
     )
 
 
+def get_user_repository(session: Annotated[AsyncSession, Depends(get_db_session)]) -> UserRepository:
+    return SqlAlchemyUserRepository(session)
+
+
+def get_refresh_token_repository(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> RefreshTokenRepository:
+    return SqlAlchemyRefreshTokenRepository(session)
+
+
+def get_password_hasher() -> PasswordHasher:
+    """The active password hasher.
+
+    A single `Depends()` chokepoint — swapping bcrypt for argon2id later
+    (both are named as acceptable choices in
+    `docs/architecture/security.md`) changes this function only.
+    """
+    return BcryptPasswordHasher()
+
+
+def get_token_service(settings: Annotated[Settings, Depends(get_settings)]) -> TokenService:
+    return JwtTokenService(settings)
+
+
+def get_auth_service(
+    user_repository: Annotated[UserRepository, Depends(get_user_repository)],
+    refresh_token_repository: Annotated[RefreshTokenRepository, Depends(get_refresh_token_repository)],
+    password_hasher: Annotated[PasswordHasher, Depends(get_password_hasher)],
+    token_service: Annotated[TokenService, Depends(get_token_service)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> AuthService:
+    return AuthService(
+        user_repository=user_repository,
+        refresh_token_repository=refresh_token_repository,
+        password_hasher=password_hasher,
+        token_service=token_service,
+        refresh_token_ttl=timedelta(days=settings.refresh_token_expire_days),
+    )
+
+
 __all__ = [
     "Settings",
     "get_settings",
@@ -194,4 +241,9 @@ __all__ = [
     "get_cover_letter_repository",
     "get_resume_generation_service",
     "get_cover_letter_generation_service",
+    "get_user_repository",
+    "get_refresh_token_repository",
+    "get_password_hasher",
+    "get_token_service",
+    "get_auth_service",
 ]

@@ -24,7 +24,13 @@ from app.infrastructure.db.models import (
 
 
 async def _make_user(session: AsyncSession, *, email: str | None = None) -> User:
-    user = User(email=email or f"{uuid.uuid4()}@example.com")
+    # `password_hash` is a placeholder here — this test module exercises
+    # relationships *involving* User (CandidateProfile, Resume, JobMatch,
+    # Application), not authentication itself (see
+    # `tests/unit/test_auth_service.py`/`tests/integration/test_auth_api.py`
+    # for real password hashing). Required since Milestone 7 added the
+    # column as NOT NULL.
+    user = User(email=email or f"{uuid.uuid4()}@example.com", password_hash="not-a-real-hash")
     session.add(user)
     await session.flush()
     return user

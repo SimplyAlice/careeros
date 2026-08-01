@@ -10,3 +10,5 @@ structlog==24.4.0
 httpx==0.28.1
 anthropic==0.42.0
 fpdf2==2.8.2
+bcrypt==4.2.1
+pyjwt==2.10.1

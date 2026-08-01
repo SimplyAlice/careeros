@@ -1,9 +1,9 @@
 """User model.
 
-Represents the CareerOS account owner. This milestone only defines the
-identity/timestamp shape of the table — password hashing and auth fields
-land when JWT authentication is implemented (a later milestone), per the
-Milestone 2 scope boundary (no auth yet).
+Represents the CareerOS account owner. Milestone 2 defined only the
+identity/timestamp shape; Milestone 7 adds `password_hash` — the field
+this table was always going to need for JWT authentication (see
+`docs/adr/0015-authentication.md`).
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from app.infrastructure.db.models.application import Application
     from app.infrastructure.db.models.candidate_profile import CandidateProfile
     from app.infrastructure.db.models.job_match import JobMatch
+    from app.infrastructure.db.models.refresh_token import RefreshToken
     from app.infrastructure.db.models.resume import Resume
 
 
@@ -29,6 +30,9 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "users"
 
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True, nullable=False)
+    # Bcrypt hashes are 60 characters; 255 leaves headroom for a future
+    # algorithm change (e.g. argon2id) without another migration.
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
     # `lazy="selectin"` on every relationship here (and throughout the
     # other models in this package) is a deliberate, project-wide default:
@@ -57,6 +61,12 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         lazy="selectin",
     )
     applications: Mapped[list[Application]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    # Added in Milestone 7 — see docs/adr/0015-authentication.md.
+    refresh_tokens: Mapped[list[RefreshToken]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
         lazy="selectin",

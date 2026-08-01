@@ -27,6 +27,7 @@ from app.infrastructure.db.models.generated_resume import GeneratedResume
 from app.infrastructure.db.models.job import Job
 from app.infrastructure.db.models.job_match import JobMatch
 from app.infrastructure.db.models.profile import Profile
+from app.infrastructure.db.models.refresh_token import RefreshToken
 from app.infrastructure.db.models.resume import Resume
 from app.infrastructure.db.models.resume_metadata import ResumeMetadata
 from app.infrastructure.db.models.skill import Skill
@@ -43,6 +44,7 @@ __all__ = [
     "Job",
     "JobMatch",
     "Profile",
+    "RefreshToken",
     "Resume",
     "ResumeMetadata",
     "Skill",

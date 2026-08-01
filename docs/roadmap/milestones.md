@@ -12,21 +12,25 @@ to the next milestone until you've confirmed the current one works.
 | 4 | Profile management | Single local profile (create/get/update), skills/experience/education/resume-metadata, full validation — see `docs/adr/0012-profile-management.md` | Complete |
 | 5 | AI scoring engine | `LLMProvider` abstraction + Anthropic adapter, `/matches` endpoint returns score + rationale for a real job, scored against the Milestone 4 profile | Complete |
 | 6 | Resume/cover letter generation | AI-generated tailored resume + cover letter, versioned and PDF-rendered | Complete |
-| 7 | React dashboard v1 | Auth flow, Job Matches page, Applications page, Resume Library — wired to real API | 5–7 days |
-| 8 | Assisted browser automation | Playwright adapter for one portal (e.g. Greenhouse-hosted form), pre-fill + human-confirm gate | 5–7 days |
-| 9 | Background workers & scheduling | Celery Beat scheduled ingestion/scoring, task retries, idempotency | 3–4 days |
-| 10 | Memory & dedup | Application-history-aware scoring context, duplicate-application prevention enforced end-to-end | 2–3 days |
-| 11 | Notifications | Email + Discord webhook notifications on key events | 2 days |
-| 12 | CI/CD | Full GitHub Actions pipeline: lint, type-check, test, build, push to ACR | 2–3 days |
-| 13 | Azure deployment | Bicep-provisioned infra, live staging environment, deploy-on-merge | 4–6 days |
-| 14 | Analytics dashboard + security/observability polish | Response/interview rate charts, rate limiting, audit logging review, RBAC pass, final README + demo video | 4–6 days |
+| 7 | Authentication (JWT) | Register/login/refresh/logout, bcrypt-hashed passwords, revocable refresh tokens, first protected endpoint — see `docs/adr/0015-authentication.md` | Complete |
+| 8 | React dashboard v1 | Job Matches page, Applications page, Resume Library — wired to real API and to the Milestone 7 auth flow | 5–7 days |
+| 9 | Assisted browser automation | Playwright adapter for one portal (e.g. Greenhouse-hosted form), pre-fill + human-confirm gate | 5–7 days |
+| 10 | Background workers & scheduling | Celery Beat scheduled ingestion/scoring, task retries, idempotency | 3–4 days |
+| 11 | Memory & dedup | Application-history-aware scoring context, duplicate-application prevention enforced end-to-end | 2–3 days |
+| 12 | Notifications | Email + Discord webhook notifications on key events | 2 days |
+| 13 | CI/CD | Full GitHub Actions pipeline: lint, type-check, test, build, push to ACR | 2–3 days |
+| 14 | Azure deployment + analytics + security/observability polish | Bicep-provisioned infra, live staging environment, analytics dashboard, rate limiting, audit logging review, RBAC pass, final README + demo video | 6–9 days |
 
-**Note on renumbering:** this milestone slot was originally planned for the
-AI scoring engine (see git history / earlier drafts of this table). Profile
-management was inserted ahead of it because the scoring engine needs a real
-profile to score against — everything from here on is shifted one slot
-later than originally sketched in Milestone 0. The total milestone count
-(15, numbered 0–14) is unchanged; scope was re-sequenced, not added to.
+**Note on renumbering (updated):** Milestone 4 (AI scoring engine's original
+slot) was reassigned to Profile Management earlier — see the prior version of
+this note. Separately, this milestone's original scope ("React dashboard v1,"
+bundling a frontend build with the auth flow) has been split: Milestone 7 is
+now Authentication (JWT) alone — a backend capability with no frontend
+dependency — and the React dashboard moves to Milestone 8, now that it has a
+real auth flow to wire up against. Milestones 9–13 shift one slot later than
+previously listed; Milestone 14 absorbs what were separately-listed Azure
+deployment and analytics/polish milestones into one, keeping the total count
+at 15 (0–14). See `docs/adr/0015-authentication.md` for the full reasoning.
 
 **Total estimate:** roughly 8–12 weeks at a steady part-time pace — intentionally realistic, not aspirational.
 

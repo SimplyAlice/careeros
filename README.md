@@ -5,7 +5,7 @@ against your profile, tailors resumes and cover letters, and assists with
 applications, while keeping a human in control of every irreversible action.
 
 ![Status](https://img.shields.io/badge/status-in%20development-yellow)
-![Milestone](https://img.shields.io/badge/milestone-6%20%2F%2014-blue)
+![Milestone](https://img.shields.io/badge/milestone-7%20%2F%2014-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
@@ -69,13 +69,15 @@ trade-offs: [`docs/portfolio/tech-stack.md`](docs/portfolio/tech-stack.md).
 
 ## Setup Instructions
 
-> Milestones 1–6 are complete: FastAPI + PostgreSQL + Redis, job ingestion
-> from Adzuna, profile management, AI-powered job scoring, and AI-generated
-> resume/cover-letter PDFs (Anthropic) all run together via one Docker
-> Compose command. There's still no auth — CareerOS supports exactly one
-> local profile until JWT auth lands (see
-> `docs/adr/0012-profile-management.md`). The frontend hasn't been started
-> (planned for Milestone 7).
+> Milestones 1–7 are complete: FastAPI + PostgreSQL + Redis, job ingestion
+> from Adzuna, profile management, AI-powered job scoring, AI-generated
+> resume/cover-letter PDFs, and JWT authentication all run together via one
+> Docker Compose command. Authentication is real (register/login/refresh/
+> logout, bcrypt-hashed passwords, revocable refresh tokens) but the rest of
+> the API (`profile`, `jobs`, `matches`, `resumes`, `cover-letters`) is not
+> yet scoped per-user — see `docs/adr/0015-authentication.md` for why that
+> reconciliation is deliberately its own future milestone. The frontend
+> hasn't been started (planned for Milestone 8).
 
 ```bash
 git clone https://github.com/<your-username>/careeros.git
@@ -99,6 +101,11 @@ Then visit:
 - **List/download resumes**: `GET http://localhost:8000/api/v1/resumes` and `GET http://localhost:8000/api/v1/resumes/{id}/download`
 - **Generate a cover letter**: `POST http://localhost:8000/api/v1/cover-letters/generate` with body `{"job_id": "<uuid>"}` (required — cover letters are always job-specific)
 - **List/download cover letters**: `GET http://localhost:8000/api/v1/cover-letters` and `GET http://localhost:8000/api/v1/cover-letters/{id}/download`
+- **Register**: `POST http://localhost:8000/api/v1/auth/register` with body `{"email": "you@example.com", "password": "Sup3rSecret"}` — password needs 8+ characters, at least one letter and one digit.
+- **Login**: `POST http://localhost:8000/api/v1/auth/login` — returns `{access_token, refresh_token, token_type}`.
+- **Refresh**: `POST http://localhost:8000/api/v1/auth/refresh` with body `{"refresh_token": "..."}` — rotates the refresh token; the old one becomes unusable.
+- **Logout**: `POST http://localhost:8000/api/v1/auth/logout` with body `{"refresh_token": "..."}` — revokes it.
+- **Current user**: `GET http://localhost:8000/api/v1/auth/me` with header `Authorization: Bearer <access_token>` — the first protected endpoint in the API.
 
 ### Running backend tests locally (without Docker)
 
@@ -167,8 +174,9 @@ analytics.
 | 4 — Profile management | ✅ Complete |
 | 5 — AI scoring engine | ✅ Complete |
 | 6 — Resume/cover letter generation | ✅ Complete |
-| 7 — React dashboard v1 | ⏳ Up next |
-| 8–14 | 📋 Planned |
+| 7 — Authentication (JWT) | ✅ Complete |
+| 8 — React dashboard v1 | ⏳ Up next |
+| 9–14 | 📋 Planned |
 
 ## Screenshots
 

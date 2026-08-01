@@ -67,10 +67,20 @@ class Settings(BaseSettings):
     debug: bool = False
 
     # --- Security ----------------------------------------------------------
-    # Placeholder for JWT implementation (Milestone 2+). Required now so the
-    # settings object fails fast in any environment that forgets to set it,
-    # rather than silently running with an insecure default.
-    secret_key: str = Field(..., description="Used for JWT signing in later milestones.")
+    # Required so the settings object fails fast in any environment that
+    # forgets to set it, rather than silently running with an insecure
+    # default. Used for JWT signing (Milestone 7,
+    # `app/infrastructure/security/jwt_token_service.py`) — this field
+    # existed as a placeholder since Milestone 1 for exactly this purpose.
+    secret_key: str = Field(..., description="Used for JWT signing.")
+    # Short-lived by design (ADR-0008, Milestone 0): limits the exposure
+    # window if an access token is intercepted.
+    access_token_expire_minutes: int = 15
+    # The refresh token is the only long-lived credential, and it's
+    # revocable (see `docs/adr/0015-authentication.md`) — a longer TTL is
+    # acceptable because a compromised one can be invalidated without a
+    # password reset.
+    refresh_token_expire_days: int = 30
 
     # --- Database ------------------------------------------------------------
     database_url: str = Field(
