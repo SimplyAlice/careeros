@@ -29,6 +29,7 @@ from app.application.documents.ports import (
 from app.application.documents.resume_generation_service import ResumeGenerationService
 from app.application.jobs.ingestion_service import JobIngestionService
 from app.application.jobs.ports import JobRepository, JobSourceAdapter
+from app.application.operations.action_recommendation import ActionRecommendationService
 from app.application.operations.incident_investigation import IncidentInvestigationService
 from app.application.operations.operations_service import OperationsService
 from app.application.profile.ports import ProfileRepository
@@ -107,6 +108,12 @@ def get_incident_investigation_service(
         events=SqlAlchemyEventRepository(session),
         services=SqlAlchemyServiceRepository(session),
     )
+
+
+def get_action_recommendation_service(
+    investigation: Annotated[IncidentInvestigationService, Depends(get_incident_investigation_service)],
+) -> ActionRecommendationService:
+    return ActionRecommendationService(investigation)
 
 
 def get_job_ingestion_service(
@@ -275,6 +282,7 @@ __all__ = [
     "get_service_service",
     "get_operations_service",
     "get_incident_investigation_service",
+    "get_action_recommendation_service",
     "get_job_ingestion_service",
     "get_profile_repository",
     "get_profile_service",

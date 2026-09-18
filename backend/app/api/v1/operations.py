@@ -6,7 +6,15 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.api.deps import get_incident_investigation_service, get_operations_service
+from app.api.deps import (
+    get_action_recommendation_service,
+    get_incident_investigation_service,
+    get_operations_service,
+)
+from app.application.operations.action_recommendation import (
+    ActionRecommendationService,
+    IncidentActionRecommendation,
+)
 from app.application.operations.incident_investigation import (
     IncidentInvestigation,
     IncidentInvestigationService,
@@ -102,6 +110,51 @@ class IncidentInvestigationRead(BaseModel):
         )
 
 
+class RecommendationRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    action_type: ActionType
+    reason: str
+    confidence: str
+    requires_approval: bool
+
+
+class RecommendationEvidenceRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    event_count: int
+    critical_event_present: bool
+    error_signal_present: bool
+    deployment_event_present: bool
+    service_status: str
+    incident_severity: IncidentSeverity
+    incident_status: IncidentStatus
+
+
+class IncidentActionRecommendationRead(BaseModel):
+    incident_id: UUID
+    service_id: UUID
+    recommendation: RecommendationRead | None
+    evidence: RecommendationEvidenceRead
+    investigation_ordering: InvestigationOrdering
+
+    @classmethod
+    def from_result(cls, result: IncidentActionRecommendation) -> IncidentActionRecommendationRead:
+        recommendation = result.recommendation
+        return cls(
+            incident_id=result.incident_id,
+            service_id=result.service_id,
+            recommendation=(
+                RecommendationRead.model_validate(recommendation) if recommendation is not None else None
+            ),
+            evidence=RecommendationEvidenceRead.model_validate(result.evidence),
+            investigation_ordering=InvestigationOrdering(
+                basis=result.investigation_ordering_basis,
+                chronology_available=result.chronology_available,
+            ),
+        )
+
+
 class ActionRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
@@ -174,6 +227,18 @@ async def investigate_incident(
     except IncidentNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return IncidentInvestigationRead.from_result(result)
+
+
+@router.get("/incidents/{incident_id}/recommendation", response_model=IncidentActionRecommendationRead)
+async def recommend_incident_action(
+    incident_id: UUID,
+    service: Annotated[ActionRecommendationService, Depends(get_action_recommendation_service)],
+) -> IncidentActionRecommendationRead:
+    try:
+        result = await service.recommend(incident_id=incident_id)
+    except IncidentNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return IncidentActionRecommendationRead.from_result(result)
 
 
 @router.get("/actions", response_model=list[ActionRead])
