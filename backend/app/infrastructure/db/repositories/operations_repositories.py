@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,8 +24,26 @@ class SqlAlchemyEventRepository(_Repository):
         return [_event(row) for row in result.scalars().all()]
 
     async def create(self, event: Event) -> Event:
-        row = EventModel(id=event.id, service_id=event.service_id, event_type=event.event_type, severity=event.severity, message=event.message)
+        row = EventModel(
+            id=event.id,
+            service_id=event.service_id,
+            incident_id=event.incident_id,
+            event_type=event.event_type,
+            severity=event.severity,
+            message=event.message,
+            evaluation_reason=event.evaluation_reason,
+        )
         self._session.add(row)
+        await self._session.flush()
+        await self._session.commit()
+        return _event(row)
+
+    async def update(self, event: Event) -> Event:
+        row = await self._session.get(EventModel, event.id)
+        if row is None:
+            raise ValueError(f"Event {event.id} was not found.")
+        row.incident_id = event.incident_id
+        row.evaluation_reason = event.evaluation_reason
         await self._session.flush()
         await self._session.commit()
         return _event(row)
@@ -35,8 +55,35 @@ class SqlAlchemyIncidentRepository(_Repository):
         return [_incident(row) for row in result.scalars().all()]
 
     async def create(self, incident: Incident) -> Incident:
-        row = IncidentModel(id=incident.id, service_id=incident.service_id, title=incident.title, severity=incident.severity, status=incident.status)
+        row = IncidentModel(
+            id=incident.id,
+            service_id=incident.service_id,
+            title=incident.title,
+            severity=incident.severity,
+            status=incident.status,
+            detection_reason=incident.detection_reason,
+        )
         self._session.add(row)
+        await self._session.flush()
+        await self._session.commit()
+        return _incident(row)
+
+    async def get_active_for_service(self, *, service_id: UUID) -> Incident | None:
+        stmt = select(IncidentModel).where(
+            IncidentModel.service_id == service_id,
+            IncidentModel.status.in_((IncidentStatus.OPEN, IncidentStatus.INVESTIGATING)),
+        ).order_by(IncidentModel.id)
+        result = await self._session.execute(stmt)
+        row = result.scalars().first()
+        return _incident(row) if row is not None else None
+
+    async def update(self, incident: Incident) -> Incident:
+        row = await self._session.get(IncidentModel, incident.id)
+        if row is None:
+            raise ValueError(f"Incident {incident.id} was not found.")
+        row.severity = incident.severity
+        row.status = incident.status
+        row.detection_reason = incident.detection_reason
         await self._session.flush()
         await self._session.commit()
         return _incident(row)
@@ -82,11 +129,26 @@ class SqlAlchemyAuditLogRepository(_Repository):
 
 
 def _event(row: EventModel) -> Event:
-    return Event(row.id, row.service_id, EventType(row.event_type), EventSeverity(row.severity), row.message)
+    return Event(
+        row.id,
+        row.service_id,
+        EventType(row.event_type),
+        EventSeverity(row.severity),
+        row.message,
+        row.incident_id,
+        row.evaluation_reason,
+    )
 
 
 def _incident(row: IncidentModel) -> Incident:
-    return Incident(row.id, row.service_id, row.title, IncidentSeverity(row.severity), IncidentStatus(row.status))
+    return Incident(
+        row.id,
+        row.service_id,
+        row.title,
+        IncidentSeverity(row.severity),
+        IncidentStatus(row.status),
+        row.detection_reason,
+    )
 
 
 def _action(row: ActionModel) -> Action:

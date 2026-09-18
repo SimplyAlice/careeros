@@ -24,6 +24,8 @@ class EventRead(BaseModel):
     event_type: EventType
     severity: EventSeverity
     message: str
+    incident_id: UUID | None
+    evaluation_reason: str | None
 
 
 class EventCreate(BaseModel):
@@ -40,6 +42,7 @@ class IncidentRead(BaseModel):
     title: str
     severity: IncidentSeverity
     status: IncidentStatus
+    detection_reason: str | None
 
 
 class IncidentCreate(BaseModel):

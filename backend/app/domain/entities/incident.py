@@ -23,6 +23,7 @@ class Incident:
     title: str
     severity: IncidentSeverity
     status: IncidentStatus = IncidentStatus.OPEN
+    detection_reason: str | None = None
 
     def __post_init__(self) -> None:
         if not self.title.strip():

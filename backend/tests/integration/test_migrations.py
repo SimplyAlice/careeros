@@ -148,6 +148,33 @@ async def test_migration_creates_working_profiles_singleton_constraint(
 
 
 @pytest.mark.asyncio
+async def test_migration_adds_event_incident_intelligence_columns(migration_test_database_url: str) -> None:
+    result = _run_alembic("upgrade", "head", database_url=migration_test_database_url)
+    assert result.returncode == 0, result.stderr
+
+    conn = await asyncpg.connect(
+        migration_test_database_url.replace("postgresql+asyncpg://", "postgresql://")
+    )
+    try:
+        columns = {
+            row["table_name"]: {row["column_name"] for row in await conn.fetch(
+                "SELECT table_name, column_name FROM information_schema.columns "
+                "WHERE table_schema = 'public' AND table_name IN ('events', 'incidents')"
+            )}
+            for row in await conn.fetch(
+                "SELECT DISTINCT table_name FROM information_schema.columns "
+                "WHERE table_schema = 'public' AND table_name IN ('events', 'incidents')"
+            )
+        }
+    finally:
+        await conn.close()
+
+    assert "incident_id" in columns["events"]
+    assert "evaluation_reason" in columns["events"]
+    assert "detection_reason" in columns["incidents"]
+
+
+@pytest.mark.asyncio
 async def test_migration_adds_profile_scoring_columns_to_job_matches(
     migration_test_database_url: str,
 ) -> None:

@@ -37,3 +37,8 @@ class IncidentModel(Base):
         nullable=False,
         default=IncidentStatus.OPEN,
     )
+
+    detection_reason: Mapped[str | None] = mapped_column(
+        String(1000),
+        nullable=True,
+    )

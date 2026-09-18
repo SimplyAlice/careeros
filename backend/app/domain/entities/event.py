@@ -25,6 +25,8 @@ class Event:
     event_type: EventType
     severity: EventSeverity
     message: str
+    incident_id: UUID | None = None
+    evaluation_reason: str | None = None
 
     def __post_init__(self) -> None:
         if not self.message.strip():

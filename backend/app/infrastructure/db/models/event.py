@@ -1,6 +1,6 @@
 from uuid import UUID, uuid4
 
-from sqlalchemy import Enum, String
+from sqlalchemy import Enum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.domain.entities.event import EventSeverity, EventType
@@ -19,6 +19,11 @@ class EventModel(Base):
         nullable=False,
     )
 
+    incident_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("incidents.id"),
+        nullable=True,
+    )
+
     event_type: Mapped[EventType] = mapped_column(
         Enum(EventType),
         nullable=False,
@@ -32,4 +37,9 @@ class EventModel(Base):
     message: Mapped[str] = mapped_column(
         String(1000),
         nullable=False,
+    )
+
+    evaluation_reason: Mapped[str | None] = mapped_column(
+        String(1000),
+        nullable=True,
     )
