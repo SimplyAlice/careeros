@@ -19,6 +19,12 @@ EXPECTED_TABLES = {
     "jobs",
     "job_matches",
     "applications",
+    "services",
+    "events",
+    "incidents",
+    "actions",
+    "approvals",
+    "audit_logs",
 }
 
 

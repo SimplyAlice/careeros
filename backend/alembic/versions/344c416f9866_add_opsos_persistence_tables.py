@@ -76,4 +76,16 @@ def downgrade() -> None:
     op.drop_table('audit_logs')
     op.drop_table('approvals')
     op.drop_table('actions')
+    for enum_name in (
+        'servicestatus',
+        'incidentstatus',
+        'incidentseverity',
+        'eventseverity',
+        'eventtype',
+        'auditaction',
+        'approvalstatus',
+        'actionstatus',
+        'actiontype',
+    ):
+        op.execute(sa.text(f'DROP TYPE IF EXISTS {enum_name}'))
     # ### end Alembic commands ###

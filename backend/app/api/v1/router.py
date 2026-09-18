@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api.v1 import auth, cover_letters, health, jobs, matches, profile, resumes
+from app.api.v1 import auth, cover_letters, health, jobs, matches, operations, profile, resumes, services
 
 api_router = APIRouter()
 api_router.include_router(health.router)
@@ -19,3 +19,5 @@ api_router.include_router(profile.router)
 api_router.include_router(matches.router)
 api_router.include_router(resumes.router)
 api_router.include_router(cover_letters.router)
+api_router.include_router(services.router)
+api_router.include_router(operations.router)

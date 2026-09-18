@@ -29,10 +29,13 @@ from app.application.documents.ports import (
 from app.application.documents.resume_generation_service import ResumeGenerationService
 from app.application.jobs.ingestion_service import JobIngestionService
 from app.application.jobs.ports import JobRepository, JobSourceAdapter
+from app.application.operations.operations_service import OperationsService
 from app.application.profile.ports import ProfileRepository
 from app.application.profile.profile_service import ProfileService
 from app.application.scoring.ports import JobMatchRepository, LLMProvider
 from app.application.scoring.scoring_service import JobScoringService
+from app.application.services.ports import ServiceRepository
+from app.application.services.service_service import ServiceService
 from app.core.config import Settings, get_settings
 from app.infrastructure.ai_providers.anthropic_provider import AnthropicProvider
 from app.infrastructure.cache.redis import get_redis_client
@@ -42,8 +45,16 @@ from app.infrastructure.db.repositories.generated_cover_letter_repository import
 from app.infrastructure.db.repositories.generated_resume_repository import SqlAlchemyGeneratedResumeRepository
 from app.infrastructure.db.repositories.job_match_repository import SqlAlchemyJobMatchRepository
 from app.infrastructure.db.repositories.job_repository import SqlAlchemyJobRepository
+from app.infrastructure.db.repositories.operations_repositories import (
+    SqlAlchemyActionRepository,
+    SqlAlchemyApprovalRepository,
+    SqlAlchemyAuditLogRepository,
+    SqlAlchemyEventRepository,
+    SqlAlchemyIncidentRepository,
+)
 from app.infrastructure.db.repositories.profile_repository import SqlAlchemyProfileRepository
 from app.infrastructure.db.repositories.refresh_token_repository import SqlAlchemyRefreshTokenRepository
+from app.infrastructure.db.repositories.service_repository import SqlAlchemyServiceRepository
 from app.infrastructure.db.repositories.user_repository import SqlAlchemyUserRepository
 from app.infrastructure.db.session import get_db_session
 from app.infrastructure.job_sources.adzuna import AdzunaJobSourceAdapter
@@ -65,6 +76,26 @@ def get_job_source_adapter(settings: Annotated[Settings, Depends(get_settings)])
 
 def get_job_repository(session: Annotated[AsyncSession, Depends(get_db_session)]) -> JobRepository:
     return SqlAlchemyJobRepository(session)
+
+
+def get_service_repository(session: Annotated[AsyncSession, Depends(get_db_session)]) -> ServiceRepository:
+    return SqlAlchemyServiceRepository(session)
+
+
+def get_service_service(
+    repository: Annotated[ServiceRepository, Depends(get_service_repository)],
+) -> ServiceService:
+    return ServiceService(repository)
+
+
+def get_operations_service(session: Annotated[AsyncSession, Depends(get_db_session)]) -> OperationsService:
+    return OperationsService(
+        events=SqlAlchemyEventRepository(session),
+        incidents=SqlAlchemyIncidentRepository(session),
+        actions=SqlAlchemyActionRepository(session),
+        approvals=SqlAlchemyApprovalRepository(session),
+        audit_logs=SqlAlchemyAuditLogRepository(session),
+    )
 
 
 def get_job_ingestion_service(
@@ -229,6 +260,9 @@ __all__ = [
     "get_redis_client",
     "get_job_source_adapter",
     "get_job_repository",
+    "get_service_repository",
+    "get_service_service",
+    "get_operations_service",
     "get_job_ingestion_service",
     "get_profile_repository",
     "get_profile_service",

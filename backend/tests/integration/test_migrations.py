@@ -107,6 +107,12 @@ async def test_migration_upgrade_creates_all_tables(migration_test_database_url:
         "generated_resumes",
         "generated_cover_letters",
         "refresh_tokens",
+        "services",
+        "events",
+        "incidents",
+        "actions",
+        "approvals",
+        "audit_logs",
     }.issubset(tables)
 
 
