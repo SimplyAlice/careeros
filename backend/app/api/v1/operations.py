@@ -3,10 +3,15 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.api.deps import get_operations_service
+from app.api.deps import get_incident_investigation_service, get_operations_service
+from app.application.operations.incident_investigation import (
+    IncidentInvestigation,
+    IncidentInvestigationService,
+    IncidentNotFoundError,
+)
 from app.application.operations.operations_service import OperationsService
 from app.domain.entities.action import ActionStatus, ActionType
 from app.domain.entities.approval import ApprovalStatus
@@ -50,6 +55,51 @@ class IncidentCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     severity: IncidentSeverity
     status: IncidentStatus = IncidentStatus.OPEN
+
+
+class InvestigationServiceRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    name: str
+    environment: str
+    status: str
+
+
+class InvestigationEventRead(EventRead):
+    sequence: int
+
+
+class InvestigationOrdering(BaseModel):
+    basis: str
+    chronology_available: bool
+
+
+class IncidentInvestigationRead(BaseModel):
+    incident: IncidentRead
+    service: InvestigationServiceRead
+    events: list[InvestigationEventRead]
+    event_count: int
+    findings: list[str]
+    ordering: InvestigationOrdering
+
+    @classmethod
+    def from_result(cls, result: IncidentInvestigation) -> IncidentInvestigationRead:
+        return cls(
+            incident=IncidentRead.model_validate(result.incident),
+            service=InvestigationServiceRead.model_validate(result.service),
+            events=[
+                InvestigationEventRead.model_validate(
+                    {**event.event.__dict__, "sequence": event.sequence}
+                )
+                for event in result.events
+            ],
+            event_count=len(result.events),
+            findings=result.findings,
+            ordering=InvestigationOrdering(
+                basis=result.ordering_basis,
+                chronology_available=result.chronology_available,
+            ),
+        )
 
 
 class ActionRead(BaseModel):
@@ -112,6 +162,18 @@ async def list_incidents(service: Annotated[OperationsService, Depends(get_opera
 @router.post("/incidents", response_model=IncidentRead, status_code=201)
 async def create_incident(body: IncidentCreate, service: Annotated[OperationsService, Depends(get_operations_service)]) -> IncidentRead:
     return IncidentRead.model_validate(await service.create_incident(**body.model_dump()))
+
+
+@router.get("/incidents/{incident_id}/investigation", response_model=IncidentInvestigationRead)
+async def investigate_incident(
+    incident_id: UUID,
+    service: Annotated[IncidentInvestigationService, Depends(get_incident_investigation_service)],
+) -> IncidentInvestigationRead:
+    try:
+        result = await service.investigate(incident_id=incident_id)
+    except IncidentNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return IncidentInvestigationRead.from_result(result)
 
 
 @router.get("/actions", response_model=list[ActionRead])

@@ -29,6 +29,7 @@ from app.application.documents.ports import (
 from app.application.documents.resume_generation_service import ResumeGenerationService
 from app.application.jobs.ingestion_service import JobIngestionService
 from app.application.jobs.ports import JobRepository, JobSourceAdapter
+from app.application.operations.incident_investigation import IncidentInvestigationService
 from app.application.operations.operations_service import OperationsService
 from app.application.profile.ports import ProfileRepository
 from app.application.profile.profile_service import ProfileService
@@ -95,6 +96,16 @@ def get_operations_service(session: Annotated[AsyncSession, Depends(get_db_sessi
         actions=SqlAlchemyActionRepository(session),
         approvals=SqlAlchemyApprovalRepository(session),
         audit_logs=SqlAlchemyAuditLogRepository(session),
+    )
+
+
+def get_incident_investigation_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> IncidentInvestigationService:
+    return IncidentInvestigationService(
+        incidents=SqlAlchemyIncidentRepository(session),
+        events=SqlAlchemyEventRepository(session),
+        services=SqlAlchemyServiceRepository(session),
     )
 
 
@@ -263,6 +274,7 @@ __all__ = [
     "get_service_repository",
     "get_service_service",
     "get_operations_service",
+    "get_incident_investigation_service",
     "get_job_ingestion_service",
     "get_profile_repository",
     "get_profile_service",

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from builtins import list as builtins_list
 from uuid import UUID
 
 from sqlalchemy import select
@@ -19,8 +20,13 @@ class _Repository:
 
 
 class SqlAlchemyEventRepository(_Repository):
-    async def list(self) -> list[Event]:
+    async def list(self) -> builtins_list[Event]:
         result = await self._session.execute(select(EventModel).order_by(EventModel.id))
+        return [_event(row) for row in result.scalars().all()]
+
+    async def list_for_incident(self, *, incident_id: UUID) -> builtins_list[Event]:
+        stmt = select(EventModel).where(EventModel.incident_id == incident_id).order_by(EventModel.id)
+        result = await self._session.execute(stmt)
         return [_event(row) for row in result.scalars().all()]
 
     async def create(self, event: Event) -> Event:
@@ -50,9 +56,13 @@ class SqlAlchemyEventRepository(_Repository):
 
 
 class SqlAlchemyIncidentRepository(_Repository):
-    async def list(self) -> list[Incident]:
+    async def list(self) -> builtins_list[Incident]:
         result = await self._session.execute(select(IncidentModel).order_by(IncidentModel.id))
         return [_incident(row) for row in result.scalars().all()]
+
+    async def get_by_id(self, *, incident_id: UUID) -> Incident | None:
+        row = await self._session.get(IncidentModel, incident_id)
+        return _incident(row) if row is not None else None
 
     async def create(self, incident: Incident) -> Incident:
         row = IncidentModel(
@@ -90,7 +100,7 @@ class SqlAlchemyIncidentRepository(_Repository):
 
 
 class SqlAlchemyActionRepository(_Repository):
-    async def list(self) -> list[Action]:
+    async def list(self) -> builtins_list[Action]:
         result = await self._session.execute(select(ActionModel).order_by(ActionModel.id))
         return [_action(row) for row in result.scalars().all()]
 
@@ -103,7 +113,7 @@ class SqlAlchemyActionRepository(_Repository):
 
 
 class SqlAlchemyApprovalRepository(_Repository):
-    async def list(self) -> list[Approval]:
+    async def list(self) -> builtins_list[Approval]:
         result = await self._session.execute(select(ApprovalModel).order_by(ApprovalModel.id))
         return [_approval(row) for row in result.scalars().all()]
 
@@ -116,7 +126,7 @@ class SqlAlchemyApprovalRepository(_Repository):
 
 
 class SqlAlchemyAuditLogRepository(_Repository):
-    async def list(self) -> list[AuditLog]:
+    async def list(self) -> builtins_list[AuditLog]:
         result = await self._session.execute(select(AuditLogModel).order_by(AuditLogModel.id))
         return [_audit_log(row) for row in result.scalars().all()]
 
