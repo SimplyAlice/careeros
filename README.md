@@ -1,202 +1,1199 @@
-# CareerOS
+﻿\# OpsOS
 
-**An AI-powered career operations platform** — discovers jobs, scores fit
-against your profile, tailors resumes and cover letters, and assists with
-applications, while keeping a human in control of every irreversible action.
 
-![Status](https://img.shields.io/badge/status-in%20development-yellow)
-![Milestone](https://img.shields.io/badge/milestone-7%20%2F%2014-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
 
----
+<p align="center">
 
-## What Is CareerOS?
+&#x20; <img src=".github/readme/hero.svg" alt="OpsOS â€” Intelligent Operations System" width="100%">
 
-CareerOS helps a job seeker discover relevant roles from official job-board
-APIs, understand how well each one matches their profile via an LLM, generate
-tailored application materials, and track every application in one place —
-without ever silently acting on their behalf under their real identity.
+</p>
 
-## Why It Exists
 
-Most "auto-apply" tools either violate job boards' Terms of Service outright,
-or blast out generic, unreviewed applications. CareerOS is built on the
-opposite premise: **automation should remove repetitive work, not judgment.**
-Every AI-generated document and every automated form-fill stops at a human
-confirmation step by default. Full autonomous submission is available but is
-an explicit, off-by-default, per-portal opt-in — see
-[`docs/adr/0009-human-in-the-loop-automation.md`](docs/adr/0009-human-in-the-loop-automation.md)
-for the full reasoning.
 
-## Architecture Overview
+<p align="center">
+
+&#x20; <strong>Intelligent Operations System</strong><br>
+
+&#x20; Observe systems. Understand incidents. Recommend actions. Execute safely.
+
+</p>
+
+
+
+<p align="center">
+
+&#x20; <img src="https://img.shields.io/badge/status-in%20development-22d3ee" alt="Status">
+
+&#x20; <img src="https://img.shields.io/badge/backend-FastAPI-009688" alt="FastAPI">
+
+&#x20; <img src="https://img.shields.io/badge/database-PostgreSQL-4169E1" alt="PostgreSQL">
+
+&#x20; <img src="https://img.shields.io/badge/tests-290%20passing-22c55e" alt="Tests">
+
+&#x20; <img src="https://img.shields.io/badge/license-MIT-a78bfa" alt="License">
+
+</p>
+
+
+
+\---
+
+
+
+\## What is OpsOS?
+
+
+
+\*\*OpsOS\*\* is an intelligent operations platform designed to observe technical systems, understand operational events, investigate incidents, recommend controlled responses, and eventually execute authorised actions through explicit operational tools.
+
+
+
+The project is intentionally built from the operational foundations upward.
+
+
+
+It is \*\*not just a chatbot\*\*.
+
+
+
+It is \*\*not just a monitoring dashboard\*\*.
+
+
+
+It is \*\*not an automation script with an LLM attached\*\*.
+
+
+
+The goal is to build an operational system that can reason from observable evidence while keeping potentially consequential actions controlled, reviewable, and auditable.
+
+
+
+\---
+
+
+
+\## The Operational Loop
+
+
 
 ```mermaid
+
+flowchart LR
+
+&#x20;   A\[Systems] --> B\[Events]
+
+&#x20;   B --> C\[Incidents]
+
+&#x20;   C --> D\[Investigation]
+
+&#x20;   D --> E\[Recommendation]
+
+&#x20;   E --> F\[Approval]
+
+&#x20;   F --> G\[Execution]
+
+&#x20;   G --> H\[Verification]
+
+&#x20;   H --> I\[Audit]
+
+&#x20;   I -. feedback .-> A
+
+```
+
+
+
+The long-term system follows a simple principle:
+
+
+
+> \*\*Observe â†’ Understand â†’ Recommend â†’ Authorise â†’ Execute â†’ Verify â†’ Audit\*\*
+
+
+
+Each stage exists for a reason.
+
+
+
+Operational automation should not jump directly from a noisy system event to a consequential action.
+
+
+
+\---
+
+
+
+\## Why OpsOS?
+
+
+
+Real technical operations involve more than detecting that something is wrong.
+
+
+
+A useful operations system needs to answer questions such as:
+
+
+
+\* What happened?
+
+\* Which service is affected?
+
+\* What evidence supports the incident?
+
+\* How severe is it?
+
+\* What should happen next?
+
+\* Does that action require approval?
+
+\* Was the action actually executed?
+
+\* Did the system recover?
+
+\* What happened afterwards?
+
+
+
+OpsOS is being developed around that complete lifecycle.
+
+
+
+The project therefore prioritises \*\*deterministic operational behaviour first\*\*, with intelligent and AI-assisted capabilities introduced only where they can operate safely on top of those foundations.
+
+
+
+\---
+
+
+
+\# Current Architecture
+
+
+
+```mermaid
+
 flowchart TB
-    User["User (Browser)"] -->|HTTPS + JWT| API["FastAPI API"]
-    API --> DB[(PostgreSQL)]
-    API --> Cache[(Redis)]
-    API --> Blob[(Azure Blob Storage)]
-    API --> Queue[(Redis - Celery broker)]
-    Queue --> Workers["Celery Workers"]
-    Workers --> Ingestion["Job Ingestion"]
-    Workers --> AIEngine["AI Engine"]
-    Workers --> Automation["Browser Automation\n(assisted mode)"]
-    AIEngine --> LLM["LLM Provider\n(Anthropic / OpenAI / Gemini)"]
-    Automation --> Portal["Job Portal\n(human-confirm gate)"]
+
+&#x20;   Systems\["External / Managed Systems"]
+
+
+
+&#x20;   Systems --> Events\["Event Ingestion"]
+
+
+
+&#x20;   Events --> Evaluator\["Deterministic Event Evaluator"]
+
+
+
+&#x20;   Evaluator --> Incident\["Incident Management"]
+
+
+
+&#x20;   Incident --> Investigation\["Incident Investigation"]
+
+
+
+&#x20;   Investigation --> Recommendation\["Action Recommendation"]
+
+
+
+&#x20;   Recommendation --> Approval\["Approval Gate"]
+
+
+
+&#x20;   Approval --> Execution\["Controlled Action Execution"]
+
+
+
+&#x20;   Execution --> Verification\["Operational Verification"]
+
+
+
+&#x20;   Verification --> Audit\["Audit Trail"]
+
+
+
+&#x20;   API\["FastAPI"] --> Events
+
+&#x20;   API --> Incident
+
+&#x20;   API --> Investigation
+
+&#x20;   API --> Recommendation
+
+&#x20;   API --> Approval
+
+&#x20;   API --> Execution
+
+
+
+&#x20;   DB\[("PostgreSQL")]
+
+&#x20;   API --> DB
+
+
+
+&#x20;   Redis\[("Redis")]
+
+&#x20;   API --> Redis
+
 ```
 
-Full architecture documentation, including request-flow, deployment, database,
-security, and observability diagrams, lives in [`docs/architecture/`](docs/architecture/).
 
-## Technologies
 
-Python · FastAPI · SQLAlchemy · PostgreSQL · Redis · Celery · React ·
-TypeScript · Tailwind CSS · Docker · Playwright · Azure (App Service,
-Container Apps, ACR, Managed PostgreSQL, Blob Storage, Key Vault, Application
-Insights) · Bicep · GitHub Actions
+The current implementation is deliberately backend-first.
 
-Full justification for every choice, including alternatives considered and
-trade-offs: [`docs/portfolio/tech-stack.md`](docs/portfolio/tech-stack.md).
 
-## Documentation
 
-| Folder | Contents |
-|---|---|
-| [`docs/architecture/`](docs/architecture/) | System design, high-level architecture, deployment, cloud, API, AI, browser automation, observability, security, and database design — with diagrams |
-| [`docs/adr/`](docs/adr/) | Architecture Decision Records — every significant technical choice, with alternatives and consequences |
-| [`docs/roadmap/`](docs/roadmap/) | Milestones, risks, and the project's development process |
-| [`docs/portfolio/`](docs/portfolio/) | Recruiter/hiring-manager-facing overview, tech stack summary, key engineering decisions, lessons learned, and future roadmap |
+The frontend, external infrastructure integrations, and AI-assisted operational reasoning come later, after the underlying operational model is reliable.
 
-## Setup Instructions
 
-> Milestones 1–7 are complete: FastAPI + PostgreSQL + Redis, job ingestion
-> from Adzuna, profile management, AI-powered job scoring, AI-generated
-> resume/cover-letter PDFs, and JWT authentication all run together via one
-> Docker Compose command. Authentication is real (register/login/refresh/
-> logout, bcrypt-hashed passwords, revocable refresh tokens) but the rest of
-> the API (`profile`, `jobs`, `matches`, `resumes`, `cover-letters`) is not
-> yet scoped per-user — see `docs/adr/0015-authentication.md` for why that
-> reconciliation is deliberately its own future milestone. The frontend
-> hasn't been started (planned for Milestone 8).
+
+\---
+
+
+
+\# Milestone Progress
+
+
+
+| Milestone                                    | Status                         |
+
+| -------------------------------------------- | ------------------------------ |
+
+| 0â€“7                                          | Historical CareerOS foundation |
+
+| \*\*8 â€” Operational Backend Foundation\*\*       | âœ… Complete                     |
+
+| \*\*9 â€” Event â†’ Incident Intelligence\*\*        | âœ… Complete                     |
+
+| \*\*10 â€” Incident Investigation\*\*              | âœ… Complete                     |
+
+| \*\*11 â€” Deterministic Action Recommendation\*\* | âœ… Complete                     |
+
+| \*\*12 â€” Approval-Gated Action Execution\*\*     | ðŸš§ Next                        |
+
+| 13 â€” Verification \& Operational Feedback     | ðŸ“‹ Planned                     |
+
+| 14 â€” Intelligent Operations Layer            | ðŸ“‹ Planned                     |
+
+
+
+> Milestones 0â€“7 belong to the project's original CareerOS phase. From Milestone 8 onward, the system was deliberately pivoted into \*\*OpsOS\*\*.
+
+
+
+\---
+
+
+
+\## Milestone 8 â€” Operational Backend Foundation
+
+
+
+Milestone 8 established the core operational domain.
+
+
+
+\### Core entities
+
+
+
+\* Service
+
+\* Event
+
+\* Incident
+
+\* Action
+
+\* Approval
+
+\* Audit Log
+
+
+
+\### Backend foundations
+
+
+
+\* FastAPI API
+
+\* PostgreSQL persistence
+
+\* SQLAlchemy repositories
+
+\* Application services
+
+\* API routes
+
+\* Database migrations
+
+\* Integration testing against real PostgreSQL
+
+
+
+This milestone established the operational data model that later milestones build upon.
+
+
+
+\---
+
+
+
+\## Milestone 9 â€” Event â†’ Incident Intelligence
+
+
+
+OpsOS can evaluate incoming events deterministically.
+
+
+
+The system considers structured evidence such as:
+
+
+
+\* event severity
+
+\* event type
+
+\* incident severity
+
+\* existing active incidents
+
+
+
+Examples:
+
+
+
+```text
+
+CRITICAL event
+
+&#x20;     â†“
+
+problematic event
+
+&#x20;     â†“
+
+create or reuse active incident
+
+&#x20;     â†“
+
+associate event with incident
+
+```
+
+
+
+The evaluator records \*\*why\*\* an event was considered problematic rather than simply producing an unexplained boolean decision.
+
+
+
+The system can also escalate an existing incident when stronger evidence arrives.
+
+
+
+No LLM is required for this behaviour.
+
+
+
+\---
+
+
+
+\## Milestone 10 â€” Incident Investigation
+
+
+
+OpsOS can investigate an incident using its associated operational evidence.
+
+
+
+The investigation endpoint is:
+
+
+
+```text
+
+GET /api/v1/incidents/{incident\_id}/investigation
+
+```
+
+
+
+It returns:
+
+
+
+\* incident information
+
+\* affected service
+
+\* associated events
+
+\* event count
+
+\* deterministic findings
+
+\* investigation ordering metadata
+
+
+
+The system explicitly distinguishes event ordering from actual chronology.
+
+
+
+Where timestamps are unavailable, OpsOS does \*\*not\*\* pretend that database ordering represents real-world time.
+
+
+
+```json
+
+{
+
+&#x20; "ordering": {
+
+&#x20;   "basis": "event\_id",
+
+&#x20;   "chronology\_available": false
+
+&#x20; }
+
+}
+
+```
+
+
+
+This reflects an important design principle:
+
+
+
+> \*\*The system should distinguish what it knows from what it assumes.\*\*
+
+
+
+\---
+
+
+
+\## Milestone 11 â€” Deterministic Action Recommendation
+
+
+
+OpsOS can now turn an investigated incident into a structured recommendation.
+
+
+
+```text
+
+Incident
+
+&#x20;  â†“
+
+Investigation
+
+&#x20;  â†“
+
+Recommendation
+
+```
+
+
+
+Endpoint:
+
+
+
+```text
+
+GET /api/v1/incidents/{incident\_id}/recommendation
+
+```
+
+
+
+A recommendation contains:
+
+
+
+\* action type
+
+\* reason
+
+\* confidence
+
+\* approval requirement
+
+\* supporting evidence
+
+
+
+For example:
+
+
+
+```json
+
+{
+
+&#x20; "recommendation": {
+
+&#x20;   "action\_type": "restart\_service",
+
+&#x20;   "reason": "Critical incident affecting a degraded service with critical event evidence.",
+
+&#x20;   "confidence": "deterministic",
+
+&#x20;   "requires\_approval": true
+
+&#x20; }
+
+}
+
+```
+
+
+
+Current recommendation logic is intentionally constrained.
+
+
+
+Supported action concepts already present in the domain include:
+
+
+
+```text
+
+restart\_service
+
+scale\_service
+
+rollback\_deployment
+
+acknowledge\_incident
+
+```
+
+
+
+The recommendation engine does \*\*not\*\* execute the action.
+
+
+
+It also does not create an Action or Approval record merely because a recommendation exists.
+
+
+
+That separation is intentional.
+
+
+
+\---
+
+
+
+\# Milestone 12 â€” Approval-Gated Execution
+
+
+
+The next stage is to connect recommendations to controlled execution.
+
+
+
+The intended flow is:
+
+
+
+```text
+
+Recommendation
+
+&#x20;     â†“
+
+Create Action
+
+&#x20;     â†“
+
+Create Approval
+
+&#x20;     â†“
+
+Human / authorised system approves
+
+&#x20;     â†“
+
+Execute controlled action
+
+&#x20;     â†“
+
+Verify result
+
+&#x20;     â†“
+
+Write audit information
+
+```
+
+
+
+The safety rules are deliberately strict:
+
+
+
+\* recommendations do not execute automatically
+
+\* rejected actions cannot execute
+
+\* only approved actions can execute
+
+\* arbitrary shell execution is not permitted
+
+\* destructive infrastructure operations are not introduced casually
+
+\* action types remain explicitly controlled
+
+\* execution is isolated behind an action interface/adapter
+
+
+
+The goal is to establish the \*\*authorisation boundary\*\* before introducing real infrastructure operations.
+
+
+
+\---
+
+
+
+\# Design Principles
+
+
+
+\### 1. Deterministic foundations first
+
+
+
+Operational behaviour should be understandable and testable before AI is introduced.
+
+
+
+\### 2. Evidence over assumptions
+
+
+
+Every investigation and recommendation should be grounded in observable system data.
+
+
+
+\### 3. Explicit uncertainty
+
+
+
+If the system does not have enough information to establish chronology or causality, it should say so.
+
+
+
+\### 4. Recommendation â‰  execution
+
+
+
+Suggesting an action and performing an action are separate responsibilities.
+
+
+
+\### 5. Approval before consequence
+
+
+
+Potentially consequential operations require an explicit authorisation boundary.
+
+
+
+\### 6. Controlled tools
+
+
+
+OpsOS should eventually execute actions through well-defined operational adapters rather than arbitrary commands.
+
+
+
+\### 7. Auditability
+
+
+
+Operational decisions should leave enough information behind to understand what happened and why.
+
+
+
+\### 8. AI as an operational capability
+
+
+
+The eventual AI layer should enhance investigation, reasoning, and decision support rather than replace the operational safety model.
+
+
+
+\---
+
+
+
+\# Technology
+
+
+
+| Layer                        | Technology                      |
+
+| ---------------------------- | ------------------------------- |
+
+| API                          | FastAPI                         |
+
+| Language                     | Python                          |
+
+| Database                     | PostgreSQL                      |
+
+| ORM                          | SQLAlchemy                      |
+
+| Cache / messaging foundation | Redis                           |
+
+| Migrations                   | Alembic                         |
+
+| Testing                      | Pytest                          |
+
+| Static analysis              | Ruff / mypy                     |
+
+| Containers                   | Docker / Docker Compose         |
+
+| CI/CD                        | GitHub Actions                  |
+
+| Future cloud layer           | Azure                           |
+
+| Future intelligence layer    | Controlled AI / LLM integration |
+
+
+
+The stack may evolve as OpsOS moves from a deterministic backend into a broader operational platform.
+
+
+
+\---
+
+
+
+\# Repository Structure
+
+
+
+```text
+
+careeros/
+
+â”‚
+
+â”œâ”€â”€ backend/
+
+â”‚   â”œâ”€â”€ app/
+
+â”‚   â”‚   â”œâ”€â”€ api/
+
+â”‚   â”‚   â”‚   â””â”€â”€ v1/
+
+â”‚   â”‚   â”œâ”€â”€ application/
+
+â”‚   â”‚   â”‚   â””â”€â”€ operations/
+
+â”‚   â”‚   â”œâ”€â”€ domain/
+
+â”‚   â”‚   â”œâ”€â”€ infrastructure/
+
+â”‚   â”‚   â”‚   â””â”€â”€ db/
+
+â”‚   â”‚   â”œâ”€â”€ core/
+
+â”‚   â”‚   â””â”€â”€ main.py
+
+â”‚   â”‚
+
+â”‚   â”œâ”€â”€ alembic/
+
+â”‚   â”‚   â””â”€â”€ versions/
+
+â”‚   â”‚
+
+â”‚   â””â”€â”€ tests/
+
+â”‚       â”œâ”€â”€ unit/
+
+â”‚       â””â”€â”€ integration/
+
+â”‚
+
+â”œâ”€â”€ docs/
+
+â”‚
+
+â”œâ”€â”€ .github/
+
+â”‚   â””â”€â”€ readme/
+
+â”‚       â””â”€â”€ hero.svg
+
+â”‚
+
+â”œâ”€â”€ docker-compose.yml
+
+â”œâ”€â”€ docker-compose.override.yml
+
+â”œâ”€â”€ .env.example
+
+â”œâ”€â”€ LICENSE
+
+â””â”€â”€ README.md
+
+```
+
+
+
+The repository name is currently retained from the project's original CareerOS phase. The product itself is now \*\*OpsOS\*\*.
+
+
+
+\---
+
+
+
+\# Running OpsOS Locally
+
+
+
+Clone the repository and enter the project:
+
+
 
 ```bash
-git clone https://github.com/<your-username>/careeros.git
+
+git clone https://github.com/SimplyAlice/careeros.git
+
 cd careeros
+
+```
+
+
+
+Create the environment file:
+
+
+
+```bash
+
 cp .env.example .env
-# Edit .env — at minimum set SECRET_KEY to a real generated value:
-#   python -c "import secrets; print(secrets.token_urlsafe(64))"
+
+```
+
+
+
+Start the backend infrastructure:
+
+
+
+```bash
+
 docker compose up --build
+
 ```
 
-Then visit:
-- **API root**: `http://localhost:8000/` — basic service info
-- **Health check**: `http://localhost:8000/api/v1/health`
-- **Interactive API docs (Swagger)**: `http://localhost:8000/docs`
-- **List jobs**: `GET http://localhost:8000/api/v1/jobs`
-- **Ingest jobs**: `POST http://localhost:8000/api/v1/jobs/ingest` with body `{"query": "cloud engineer", "location": "Cape Town"}` — requires `ADZUNA_APP_ID`/`ADZUNA_APP_KEY` in `.env` (free at https://developer.adzuna.com); returns `503` if unset.
-- **Profile**: `GET`/`POST`/`PATCH http://localhost:8000/api/v1/profile` — a single local profile (no auth yet, see `docs/adr/0012-profile-management.md`); `POST` returns `409` if one already exists, `GET`/`PATCH` return `404` if none exists yet.
-- **Score a job**: `POST http://localhost:8000/api/v1/matches` with body `{"job_id": "<uuid>"}` — scores the profile against a job using Claude, requires `ANTHROPIC_API_KEY` in `.env` (get one at https://console.anthropic.com); returns `503` if unset, `502` if the model's response can't be parsed, `404` if the profile or job doesn't exist.
-- **List matches**: `GET http://localhost:8000/api/v1/matches`
-- **Generate a resume**: `POST http://localhost:8000/api/v1/resumes/generate` with body `{"job_id": "<uuid>"}` (or `{}` for a general resume) — requires `ANTHROPIC_API_KEY`; returns `502` if the model's response can't be parsed.
-- **List/download resumes**: `GET http://localhost:8000/api/v1/resumes` and `GET http://localhost:8000/api/v1/resumes/{id}/download`
-- **Generate a cover letter**: `POST http://localhost:8000/api/v1/cover-letters/generate` with body `{"job_id": "<uuid>"}` (required — cover letters are always job-specific)
-- **List/download cover letters**: `GET http://localhost:8000/api/v1/cover-letters` and `GET http://localhost:8000/api/v1/cover-letters/{id}/download`
-- **Register**: `POST http://localhost:8000/api/v1/auth/register` with body `{"email": "you@example.com", "password": "Sup3rSecret"}` — password needs 8+ characters, at least one letter and one digit.
-- **Login**: `POST http://localhost:8000/api/v1/auth/login` — returns `{access_token, refresh_token, token_type}`.
-- **Refresh**: `POST http://localhost:8000/api/v1/auth/refresh` with body `{"refresh_token": "..."}` — rotates the refresh token; the old one becomes unusable.
-- **Logout**: `POST http://localhost:8000/api/v1/auth/logout` with body `{"refresh_token": "..."}` — revokes it.
-- **Current user**: `GET http://localhost:8000/api/v1/auth/me` with header `Authorization: Bearer <access_token>` — the first protected endpoint in the API.
 
-### Running backend tests locally (without Docker)
+
+The API is available at:
+
+
+
+```text
+
+http://localhost:8000
+
+```
+
+
+
+Interactive API documentation:
+
+
+
+```text
+
+http://localhost:8000/docs
+
+```
+
+
+
+Health endpoint:
+
+
+
+```text
+
+http://localhost:8000/api/v1/health
+
+```
+
+
+
+\---
+
+
+
+\# Testing
+
+
+
+OpsOS uses both unit and integration tests.
+
+
+
+Integration tests run against a real PostgreSQL database rather than relying only on mocks.
+
+
+
+From the backend directory:
+
+
 
 ```bash
-cd backend
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements-dev.txt
+
 pytest -v
-ruff check app tests
-black --check app tests
-mypy app
+
 ```
 
-Integration tests (`tests/integration/`) run against a real PostgreSQL
-database — set `DATABASE_URL` to point at one (the `docker compose`
-Postgres service works: `postgresql+asyncpg://careeros:<password>@localhost:5432/careeros`).
-They create and drop their own tables per test, so a disposable/dev
-database is fine; don't point this at a database with data you care about.
 
-### Database migrations
+
+Static checks:
+
+
 
 ```bash
-cd backend
-alembic upgrade head          # apply all migrations
-alembic downgrade base        # roll back everything
-alembic revision --autogenerate -m "description"   # generate a new migration after model changes
-```
 
-### Backend folder structure
+ruff check app tests
+
+mypy app
 
 ```
-backend/
-├── app/
-│   ├── domain/            # Entities & business rules — empty until Milestone 2+
-│   ├── application/       # Use-case services — empty until Milestone 2+
-│   ├── infrastructure/    # DB session, Redis client, (later) AI/automation/storage adapters
-│   ├── api/               # FastAPI routers (v1/health.py) and shared dependencies (deps.py)
-│   ├── workers/           # Celery task definitions — added in Milestone 8
-│   ├── core/              # Settings (config.py) and structured logging (logging.py)
-│   └── main.py            # Application factory + startup/shutdown lifecycle
-├── alembic/               # Migration environment — first real migration lands in Milestone 2
-├── tests/
-│   ├── unit/              # test_health.py, test_startup.py
-│   └── integration/       # Added once real DB-backed repositories exist
-├── Dockerfile
-├── pyproject.toml         # ruff / black / pytest / mypy configuration
-├── requirements.txt       # Runtime dependencies
-└── requirements-dev.txt   # + testing/linting/formatting tools
+
+
+
+Current milestone validation includes:
+
+
+
+```text
+
+290 tests passing
+
 ```
 
-Full reasoning behind this layout: [`docs/architecture/repository-structure.md`](docs/architecture/repository-structure.md).
 
-## Roadmap
 
-CareerOS is being built incrementally and publicly, one milestone at a time.
-See [`docs/roadmap/milestones.md`](docs/roadmap/milestones.md) for the full
-14-milestone plan, from the backend skeleton through Azure deployment and
-analytics.
+including focused integration coverage against PostgreSQL.
 
-| Milestone | Status |
-|---|---|
-| 0 — Foundations & architecture | ✅ Complete |
-| 1 — Core backend skeleton | ✅ Complete |
-| 2 — Database schema | ✅ Complete |
-| 3 — Job ingestion | ✅ Complete |
-| 4 — Profile management | ✅ Complete |
-| 5 — AI scoring engine | ✅ Complete |
-| 6 — Resume/cover letter generation | ✅ Complete |
-| 7 — Authentication (JWT) | ✅ Complete |
-| 8 — React dashboard v1 | ⏳ Up next |
-| 9–14 | 📋 Planned |
 
-## Screenshots
 
-*Coming soon — screenshots will be added starting Milestone 6 (React
-dashboard v1).*
+\---
 
-## Deployment
 
-*Coming soon — a live staging environment link will be added starting
-Milestone 12 (Azure deployment). Deployment architecture is fully documented
-now in [`docs/architecture/deployment-architecture.md`](docs/architecture/deployment-architecture.md).*
 
-## Contributing
+\# Database Migrations
 
-This is currently a solo portfolio project built milestone-by-milestone in
-the open. It isn't accepting external contributions at this stage, but
-issues/discussion around the architecture and design decisions are welcome —
-see [`docs/adr/`](docs/adr/) for the reasoning behind current choices before
-suggesting a change.
 
-## License
 
-[MIT](LICENSE)
+From `backend/`:
+
+
+
+```bash
+
+alembic upgrade head
+
+```
+
+
+
+To inspect the current migration history:
+
+
+
+```bash
+
+alembic history
+
+```
+
+
+
+New schema changes should be introduced through Alembic migrations rather than modifying the database manually.
+
+
+
+\---
+
+
+
+\# API Surface
+
+
+
+The current operational API is centred around:
+
+
+
+```text
+
+/api/v1/services
+
+/api/v1/events
+
+/api/v1/incidents
+
+/api/v1/actions
+
+/api/v1/approvals
+
+/api/v1/audit-logs
+
+```
+
+
+
+Operational intelligence currently includes:
+
+
+
+```text
+
+GET /api/v1/incidents/{incident\_id}/investigation
+
+
+
+GET /api/v1/incidents/{incident\_id}/recommendation
+
+```
+
+
+
+The API will expand as approval, execution, verification, and audit workflows are implemented.
+
+
+
+\---
+
+
+
+\# Development Philosophy
+
+
+
+OpsOS is being built milestone-by-milestone rather than attempting to create the complete autonomous system immediately.
+
+
+
+The development sequence intentionally moves from:
+
+
+
+```text
+
+Reliable data
+
+&#x20;     â†“
+
+Deterministic operational logic
+
+&#x20;     â†“
+
+Investigation
+
+&#x20;     â†“
+
+Decision support
+
+&#x20;     â†“
+
+Authorisation
+
+&#x20;     â†“
+
+Controlled execution
+
+&#x20;     â†“
+
+Verification
+
+&#x20;     â†“
+
+Intelligent operations
+
+```
+
+
+
+This makes the system easier to test, reason about, secure, and evolve.
+
+
+
+\---
+
+
+
+\# Project Status
+
+
+
+\*\*OpsOS is actively under development.\*\*
+
+
+
+The operational backend foundation is in place.
+
+
+
+The system can currently:
+
+
+
+\* ingest operational events
+
+\* evaluate event severity deterministically
+
+\* create and associate incidents
+
+\* investigate incidents
+
+\* identify evidence
+
+\* generate deterministic action recommendations
+
+
+
+The next major capability is:
+
+
+
+> \*\*Approval-gated execution of controlled operational actions.\*\*
+
+
+
+Longer term, OpsOS will evolve toward an intelligent operations platform capable of combining deterministic tooling with AI-assisted investigation and decision support.
+
+
+
+\---
+
+
+
+\## License
+
+
+
+This project is licensed under the \[MIT License](LICENSE).
