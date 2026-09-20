@@ -7,10 +7,11 @@ for Alembic migrations and test database creation.
 from __future__ import annotations
 
 from app.infrastructure.db.models.action import ActionModel
-from app.infrastructure.db.models.approval import ApprovalModel
 from app.infrastructure.db.models.application import Application, ApplicationStatus
+from app.infrastructure.db.models.approval import ApprovalModel
 from app.infrastructure.db.models.audit_log import AuditLogModel
 from app.infrastructure.db.models.candidate_profile import CandidateProfile
+from app.infrastructure.db.models.constraint import ConstraintModel
 from app.infrastructure.db.models.education import Education
 from app.infrastructure.db.models.event import EventModel
 from app.infrastructure.db.models.experience import Experience
@@ -19,6 +20,9 @@ from app.infrastructure.db.models.generated_resume import GeneratedResume
 from app.infrastructure.db.models.incident import IncidentModel
 from app.infrastructure.db.models.job import Job
 from app.infrastructure.db.models.job_match import JobMatch
+from app.infrastructure.db.models.plan import PlanModel
+from app.infrastructure.db.models.plan_item import PlanItemModel
+from app.infrastructure.db.models.planning_context import PlanningContextModel
 from app.infrastructure.db.models.profile import Profile
 from app.infrastructure.db.models.refresh_token import RefreshToken
 from app.infrastructure.db.models.resume import Resume
@@ -49,4 +53,8 @@ __all__ = [
     "ServiceModel",
     "Skill",
     "User",
+    "ConstraintModel",
+    "PlanModel",
+    "PlanItemModel",
+    "PlanningContextModel",
 ]

@@ -41,7 +41,9 @@ async def db_engine() -> AsyncGenerator[AsyncEngine]:
     opening a session on top of it.
     """
     settings = get_settings()
-    engine: AsyncEngine = create_async_engine(settings.database_url)
+    engine: AsyncEngine = create_async_engine(
+    settings.database_url.replace("@postgres:", "@localhost:")
+)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     try:
@@ -62,7 +64,9 @@ async def db_session() -> AsyncGenerator[AsyncSession]:
     block undoes everything the test did before the tables are dropped.
     """
     settings = get_settings()
-    engine: AsyncEngine = create_async_engine(settings.database_url)
+    engine: AsyncEngine = create_async_engine(
+    settings.database_url.replace("@postgres:", "@localhost:")
+)
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

@@ -32,6 +32,8 @@ from app.application.jobs.ports import JobRepository, JobSourceAdapter
 from app.application.operations.action_recommendation import ActionRecommendationService
 from app.application.operations.incident_investigation import IncidentInvestigationService
 from app.application.operations.operations_service import OperationsService
+from app.application.planning.planning_service import PlanningService
+from app.application.planning.ports import PlanRepository
 from app.application.profile.ports import ProfileRepository
 from app.application.profile.profile_service import ProfileService
 from app.application.scoring.ports import JobMatchRepository, LLMProvider
@@ -54,6 +56,7 @@ from app.infrastructure.db.repositories.operations_repositories import (
     SqlAlchemyEventRepository,
     SqlAlchemyIncidentRepository,
 )
+from app.infrastructure.db.repositories.plan_repository import SqlAlchemyPlanRepository
 from app.infrastructure.db.repositories.profile_repository import SqlAlchemyProfileRepository
 from app.infrastructure.db.repositories.refresh_token_repository import SqlAlchemyRefreshTokenRepository
 from app.infrastructure.db.repositories.service_repository import SqlAlchemyServiceRepository
@@ -300,4 +303,18 @@ __all__ = [
     "get_password_hasher",
     "get_token_service",
     "get_auth_service",
+    "get_plan_repository",
+    "get_planning_service",
 ]
+
+
+def get_plan_repository(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> PlanRepository:
+    return SqlAlchemyPlanRepository(session)
+
+
+def get_planning_service(
+    repository: Annotated[PlanRepository, Depends(get_plan_repository)],
+) -> PlanningService:
+    return PlanningService(repository)

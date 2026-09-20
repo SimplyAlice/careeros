@@ -46,8 +46,9 @@ def _admin_dsn(settings_database_url: str) -> str:
 async def migration_test_database_url() -> str:
     """Creates a disposable database for this test only, and drops it afterward."""
     settings = get_settings()
-    admin_dsn = _admin_dsn(settings.database_url)
-
+    admin_dsn = _admin_dsn(
+        settings.database_url.replace("@postgres:", "@localhost:")
+    )
     admin_conn = await asyncpg.connect(admin_dsn + "/postgres")
     try:
         await admin_conn.execute(f'DROP DATABASE IF EXISTS "{TEST_DB_NAME}" WITH (FORCE)')

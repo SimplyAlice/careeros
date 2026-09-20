@@ -15,6 +15,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.infrastructure.db.base import Base
 from app.infrastructure.db.mixins import TimestampMixin, UUIDPrimaryKeyMixin
+from app.infrastructure.db.models.plan import PlanModel
 
 if TYPE_CHECKING:
     from app.infrastructure.db.models.application import Application
@@ -33,7 +34,11 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # Bcrypt hashes are 60 characters; 255 leaves headroom for a future
     # algorithm change (e.g. argon2id) without another migration.
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-
+    plans: Mapped[list[PlanModel]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
     # `lazy="selectin"` on every relationship here (and throughout the
     # other models in this package) is a deliberate, project-wide default:
     # SQLAlchemy's default lazy-loading behavior triggers implicit I/O when
