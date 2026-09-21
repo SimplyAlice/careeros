@@ -1,6 +1,6 @@
-from app.application.planning.dtos import CreatePlanData
+from app.application.planning.dtos import ConstraintInput, CreatePlanData, PlanningIntent
 from app.application.planning.ports import PlanRepository
-from app.domain.entities.planning.constraint import Constraint
+from app.domain.entities.planning.constraint import Constraint, ConstraintType
 from app.domain.entities.planning.context import PlanningContext
 from app.domain.entities.planning.plan import Plan
 
@@ -34,3 +34,25 @@ class PlanningService:
             )
 
         return await self.repository.create(data)
+
+    async def create_plan_from_intent(self, intent: PlanningIntent) -> Plan:
+        constraints: list[ConstraintInput] = []
+
+        if intent.budget_max is not None:
+            constraints.append(
+                ConstraintInput(
+                    type=ConstraintType.BUDGET_MAX,
+                    value=f"R{intent.budget_max}",
+                    numeric_value=intent.budget_max,
+                )
+            )
+
+        data = CreatePlanData(
+            user_id=intent.user_id,
+            intention=intent.raw_request,
+            location=intent.location,
+            group_size=intent.group_size,
+            constraints=constraints,
+        )
+
+        return await self.create_plan(data)

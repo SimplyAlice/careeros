@@ -8,9 +8,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.api.deps import get_planning_service
+from app.api.deps import get_intent_interpreter, get_planning_service
 from app.api.v1.auth import get_current_user
 from app.application.planning.dtos import ConstraintInput, CreatePlanData
+from app.application.planning.intent_interpreter import IntentInterpreter
 from app.application.planning.planning_service import PlanningService
 from app.domain.entities.planning.constraint import ConstraintType
 from app.infrastructure.db.models import User
@@ -55,6 +56,10 @@ class CreatePlanRequest(BaseModel):
         )
 
 
+class CreatePlanFromIntentRequest(BaseModel):
+    request: str = Field(..., min_length=1, max_length=5000)
+
+
 class PlanRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -78,4 +83,24 @@ async def create_plan(
     service: Annotated[PlanningService, Depends(get_planning_service)],
 ) -> PlanRead:
     plan = await service.create_plan(body.to_data(current_user.id))
+    return PlanRead.model_validate(plan)
+
+
+@router.post(
+    "/requests",
+    response_model=PlanRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a plan from a natural-language request",
+)
+async def create_plan_from_request(
+    body: CreatePlanFromIntentRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    interpreter: Annotated[IntentInterpreter, Depends(get_intent_interpreter)],
+    service: Annotated[PlanningService, Depends(get_planning_service)],
+) -> PlanRead:
+    intent = interpreter.interpret(
+        user_id=current_user.id,
+        raw_request=body.request,
+    )
+    plan = await service.create_plan_from_intent(intent)
     return PlanRead.model_validate(plan)

@@ -32,6 +32,7 @@ from app.application.jobs.ports import JobRepository, JobSourceAdapter
 from app.application.operations.action_recommendation import ActionRecommendationService
 from app.application.operations.incident_investigation import IncidentInvestigationService
 from app.application.operations.operations_service import OperationsService
+from app.application.planning.intent_interpreter import IntentInterpreter
 from app.application.planning.planning_service import PlanningService
 from app.application.planning.ports import PlanRepository
 from app.application.profile.ports import ProfileRepository
@@ -303,9 +304,12 @@ __all__ = [
     "get_password_hasher",
     "get_token_service",
     "get_auth_service",
+    "get_intent_interpreter",
     "get_plan_repository",
     "get_planning_service",
 ]
+def get_intent_interpreter() -> IntentInterpreter:
+    return IntentInterpreter()
 
 
 def get_plan_repository(

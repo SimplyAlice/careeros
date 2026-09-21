@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from datetime import datetime
+from dataclasses import dataclass, field
+from datetime import date as date_type, datetime
 from decimal import Decimal
 from uuid import UUID
 
@@ -24,3 +24,17 @@ class CreatePlanData:
     group_size: int = 1
     transport_mode: str | None = None
     constraints: list[ConstraintInput] | None = None
+
+
+@dataclass(frozen=True)
+class PlanningIntent:
+    user_id: UUID
+    raw_request: str
+    goal: str
+    location: str | None = None
+    date: date_type | None = None
+    group_size: int = 1
+    budget_max: Decimal | None = None
+    activities: list[str] = field(default_factory=list)
+    preferences: list[str] = field(default_factory=list)
+    constraints: list[str] = field(default_factory=list)
