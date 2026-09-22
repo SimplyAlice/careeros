@@ -54,3 +54,14 @@ def test_plan_item_rejects_invalid_time_range() -> None:
             start_time=start,
             end_time=start - timedelta(hours=1),
         )
+
+
+def test_plan_item_exposes_duration_and_rejects_negative_position() -> None:
+    start = datetime(2026, 9, 26, 18, 0)
+    item = PlanItem(plan_id=uuid4(), name="Dinner", item_type=PlanItemType.FOOD, start_time=start,
+                    end_time=start + timedelta(minutes=90), position=2)
+
+    assert item.duration_minutes == 90
+
+    with pytest.raises(ValueError, match="position cannot be negative"):
+        PlanItem(plan_id=uuid4(), name="Dinner", item_type=PlanItemType.FOOD, position=-1)

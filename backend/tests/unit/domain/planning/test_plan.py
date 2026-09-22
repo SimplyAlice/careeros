@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 
 from app.domain.entities.planning.context import PlanningContext
-from app.domain.entities.planning.plan import Plan
+from app.domain.entities.planning.plan import Plan, PlanStatus
 
 
 def test_plan_requires_intention() -> None:
@@ -48,6 +48,16 @@ def test_plan_rejects_empty_title() -> None:
             user_id=uuid4(),
             title="   ",
         )
+
+
+def test_archived_plan_cannot_be_reactivated_or_modified() -> None:
+    plan = Plan(intention="Dinner", user_id=uuid4(), status=PlanStatus.ARCHIVED)
+
+    with pytest.raises(ValueError, match="cannot be reactivated"):
+        plan.apply_patch({"status": PlanStatus.DRAFT})
+
+    with pytest.raises(ValueError, match="cannot be modified"):
+        plan.apply_patch({"title": "New title"})
 
 
 def test_planning_context_defaults_to_one_person() -> None:

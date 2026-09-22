@@ -1,9 +1,11 @@
 from dataclasses import dataclass, field
-from datetime import date as date_type, datetime
+from datetime import date as date_type
+from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
 from app.domain.entities.planning.constraint import ConstraintType
+from app.domain.entities.planning.plan_item import PlanItemType
 
 
 @dataclass(frozen=True)
@@ -38,3 +40,15 @@ class PlanningIntent:
     activities: list[str] = field(default_factory=list)
     preferences: list[str] = field(default_factory=list)
     constraints: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class PlanItemData:
+    name: str
+    item_type: PlanItemType
+    description: str | None = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    estimated_cost: Decimal | None = None
+    location: str | None = None
+    position: int | None = None

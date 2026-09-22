@@ -1,0 +1,102 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from decimal import Decimal
+from enum import Enum
+from uuid import UUID
+
+from app.domain.entities.planning.information import InformationCategory
+
+
+class CandidateType(str, Enum):
+    PLACE = "place"
+    ACTIVITY = "activity"
+
+
+class ReasonType(str, Enum):
+    LOCATION = "location"
+    BUDGET = "budget"
+    GROUP_SIZE = "group_size"
+    CATEGORY = "category"
+    DURATION = "duration"
+    GENERAL = "general"
+
+
+class ReasonOutcome(str, Enum):
+    SUPPORTED = "supported"
+    NEUTRAL = "neutral"
+    VIOLATED = "violated"
+
+
+@dataclass(frozen=True)
+class DecisionReason:
+    """A single structured explanation for a candidate's evaluation."""
+
+    type: ReasonType
+    outcome: ReasonOutcome
+    message: str
+
+    def __post_init__(self) -> None:
+        if not self.message.strip():
+            raise ValueError("Decision reason message cannot be empty.")
+
+
+@dataclass(frozen=True)
+class DecisionCandidate:
+    """A scored, explainable candidate produced by the decision engine."""
+
+    option_id: UUID
+    option_type: CandidateType
+    name: str
+    is_eligible: bool
+    score: int
+    reasons: tuple[DecisionReason, ...]
+    category: InformationCategory
+    cost: Decimal | None = None
+    duration_minutes: int | None = None
+    location: str | None = None
+    source: str = "development_fixture"
+
+    def __post_init__(self) -> None:
+        if not self.name.strip():
+            raise ValueError("Decision candidate name cannot be empty.")
+        if self.score < 0:
+            raise ValueError("Decision candidate score cannot be negative.")
+        if not self.reasons:
+            raise ValueError("Decision candidate must carry at least one reason.")
+
+
+@dataclass(frozen=True)
+class DecisionResult:
+    """The ordered outcome of evaluating available options for a request."""
+
+    candidates: tuple[DecisionCandidate, ...]
+    source: str
+
+    @property
+    def eligible(self) -> tuple[DecisionCandidate, ...]:
+        return tuple(candidate for candidate in self.candidates if candidate.is_eligible)
+
+
+@dataclass(frozen=True)
+class DecisionCriteria:
+    """The provider-neutral request the decision engine evaluates against.
+
+    Mirrors the fields callers already supply to option search so the same
+    concepts are reused rather than duplicated. Passive value object: the
+    engine interprets each field, not the criteria itself.
+    """
+
+    location: str | None = None
+    category: InformationCategory | None = None
+    maximum_cost: Decimal | None = None
+    group_size: int | None = None
+    maximum_duration_minutes: int | None = None
+
+    def __post_init__(self) -> None:
+        if self.maximum_cost is not None and self.maximum_cost < 0:
+            raise ValueError("Maximum cost cannot be negative.")
+        if self.group_size is not None and self.group_size < 1:
+            raise ValueError("Group size must be at least 1.")
+        if self.maximum_duration_minutes is not None and self.maximum_duration_minutes <= 0:
+            raise ValueError("Maximum duration must be positive.")

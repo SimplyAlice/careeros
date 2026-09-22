@@ -32,9 +32,12 @@ from app.application.jobs.ports import JobRepository, JobSourceAdapter
 from app.application.operations.action_recommendation import ActionRecommendationService
 from app.application.operations.incident_investigation import IncidentInvestigationService
 from app.application.operations.operations_service import OperationsService
+from app.application.planning.decision_service import PlanningDecisionService
+from app.application.planning.information import PlanningInformationService
 from app.application.planning.intent_interpreter import IntentInterpreter
 from app.application.planning.planning_service import PlanningService
-from app.application.planning.ports import PlanRepository
+from app.application.planning.ports import PlanningInformationProvider, PlanRepository
+from app.application.planning.selection_service import PlanSelectionService
 from app.application.profile.ports import ProfileRepository
 from app.application.profile.profile_service import ProfileService
 from app.application.scoring.ports import JobMatchRepository, LLMProvider
@@ -64,6 +67,7 @@ from app.infrastructure.db.repositories.service_repository import SqlAlchemyServ
 from app.infrastructure.db.repositories.user_repository import SqlAlchemyUserRepository
 from app.infrastructure.db.session import get_db_session
 from app.infrastructure.job_sources.adzuna import AdzunaJobSourceAdapter
+from app.infrastructure.planning.fixture_provider import CapeTownFixtureInformationProvider
 from app.infrastructure.rendering.pdf_renderer import FpdfPdfRenderer
 from app.infrastructure.security.bcrypt_password_hasher import BcryptPasswordHasher
 from app.infrastructure.security.jwt_token_service import JwtTokenService
@@ -307,6 +311,10 @@ __all__ = [
     "get_intent_interpreter",
     "get_plan_repository",
     "get_planning_service",
+    "get_planning_information_provider",
+    "get_planning_information_service",
+    "get_planning_decision_service",
+    "get_plan_selection_service",
 ]
 def get_intent_interpreter() -> IntentInterpreter:
     return IntentInterpreter()
@@ -322,3 +330,26 @@ def get_planning_service(
     repository: Annotated[PlanRepository, Depends(get_plan_repository)],
 ) -> PlanningService:
     return PlanningService(repository)
+
+
+def get_planning_information_provider() -> PlanningInformationProvider:
+    return CapeTownFixtureInformationProvider()
+
+
+def get_planning_information_service(
+    provider: Annotated[PlanningInformationProvider, Depends(get_planning_information_provider)],
+) -> PlanningInformationService:
+    return PlanningInformationService(provider)
+
+
+def get_planning_decision_service(
+    information: Annotated[PlanningInformationService, Depends(get_planning_information_service)],
+) -> PlanningDecisionService:
+    return PlanningDecisionService(information)
+
+
+def get_plan_selection_service(
+    plans: Annotated[PlanningService, Depends(get_planning_service)],
+    information: Annotated[PlanningInformationService, Depends(get_planning_information_service)],
+) -> PlanSelectionService:
+    return PlanSelectionService(plans, information)
