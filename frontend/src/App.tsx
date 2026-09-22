@@ -1,44 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { IntentInput } from './components/IntentInput';
+import { UnderstandingCard } from './components/UnderstandingCard';
+import { ProposedPlan } from './components/ProposedPlan';
 import { PlanSummary } from './components/PlanSummary';
-import { RecommendationCard } from './components/RecommendationCard';
 import { createPlanFromIntent, getPlan, getPlanRecommendations, addOptionToPlan } from './api/planning';
+import { buildProposedItinerary } from './utils/itineraryBuilder';
+import type { ProposedItinerary } from './utils/itineraryBuilder';
 import type { DecisionCandidateRead, PlanRead } from './types/planning';
 import './styles.css';
 
 export const App: React.FC = () => {
   const [currentPlan, setCurrentPlan] = useState<PlanRead | null>(null);
-  const [recommendations, setRecommendations] = useState<DecisionCandidateRead[]>([]);
-  const [addedOptionIds, setAddedOptionIds] = useState<Set<string>>(new Set());
+  const [candidates, setCandidates] = useState<DecisionCandidateRead[]>([]);
+  const [proposedItinerary, setProposedItinerary] = useState<ProposedItinerary | null>(null);
+  const [isConfirmed, setIsConfirmed] = useState(false);
 
   const [isPlanning, setIsPlanning] = useState(false);
-  const [isLoadingRecs, setIsLoadingRecs] = useState(false);
-  const [addingOptionId, setAddingOptionId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const inputRef = useRef<HTMLDivElement>(null);
+  const proposalRef = useRef<HTMLDivElement>(null);
 
   // Flow Step 1: User submits an intention
   const handleIntentSubmit = async (intent: string) => {
     setIsPlanning(true);
     setErrorMessage(null);
-    setAddedOptionIds(new Set());
+    setIsConfirmed(false);
+    setProposedItinerary(null);
 
     try {
-      // 1. Create plan from intent (POST /api/v1/planning/requests)
+      // 1. Create plan aggregate from intent (POST /api/v1/planning/requests)
       const plan = await createPlanFromIntent(intent);
       setCurrentPlan(plan);
 
-      // 2. Fetch recommendations (GET /api/v1/planning/plans/{id}/recommendations)
-      setIsLoadingRecs(true);
-      try {
-        const recsResponse = await getPlanRecommendations(plan.id);
-        setRecommendations(recsResponse.candidates || []);
-      } catch (recErr) {
-        console.error('Failed to load recommendations:', recErr);
-        const msg = recErr instanceof Error ? recErr.message : 'Failed to load option recommendations.';
-        setErrorMessage(msg);
-      } finally {
-        setIsLoadingRecs(false);
-      }
+      // 2. Fetch tailored recommendations (GET /api/v1/planning/plans/{id}/recommendations)
+      const recsResponse = await getPlanRecommendations(plan.id);
+      const allRecs = recsResponse.candidates || [];
+      setCandidates(allRecs);
+
+      // 3. Extract budget ceiling from constraints if present
+      const budgetConstraint = plan.constraints?.find((c) => c.type === 'budget_max');
+      const budgetMax = budgetConstraint?.numeric_value
+        ? parseFloat(String(budgetConstraint.numeric_value))
+        : null;
+
+      const groupSize = plan.context?.group_size || 1;
+
+      // 4. Assemble coherent proposed itinerary ("Here's what I'd do")
+      const proposal = buildProposedItinerary(allRecs, budgetMax, intent, groupSize);
+      setProposedItinerary(proposal);
+
+      // Smooth scroll to proposal section
+      setTimeout(() => {
+        proposalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
     } catch (err: unknown) {
       console.error('Planning error:', err);
       const msg = err instanceof Error ? err.message : 'Failed to create plan.';
@@ -48,45 +64,68 @@ export const App: React.FC = () => {
     }
   };
 
-  // Flow Step 4: User selects a recommendation card
-  const handleSelectOption = async (candidate: DecisionCandidateRead) => {
+  // Flow Step 2: User confirms the proposed itinerary ("Looks good")
+  const handleConfirmPlan = async (selectedCandidates: DecisionCandidateRead[]) => {
     if (!currentPlan) return;
 
-    setAddingOptionId(candidate.option_id);
+    setIsSaving(true);
     setErrorMessage(null);
 
     try {
-      // 1. Post selection to authoritative endpoint
-      // POST /api/v1/planning/plans/{plan_id}/items/from-option
-      await addOptionToPlan(currentPlan.id, candidate);
+      // Persist each selected candidate to the authoritative backend plan
+      for (const candidate of selectedCandidates) {
+        await addOptionToPlan(currentPlan.id, candidate);
+      }
 
-      // Mark as added in UI
-      setAddedOptionIds((prev) => new Set(prev).add(candidate.option_id));
-
-      // 2. Refresh plan directly from server (GET /api/v1/planning/plans/{plan_id})
+      // Refresh plan from database (GET /api/v1/planning/plans/{plan_id})
       const refreshed = await getPlan(currentPlan.id);
       setCurrentPlan(refreshed);
+      setIsConfirmed(true);
+
+      // Smooth scroll to confirmed plan
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 100);
     } catch (err: unknown) {
-      console.error('Error adding item to plan:', err);
-      const msg = err instanceof Error ? err.message : 'Failed to add item to plan.';
+      console.error('Error confirming plan:', err);
+      const msg = err instanceof Error ? err.message : 'Failed to save plan.';
       setErrorMessage(msg);
     } finally {
-      setAddingOptionId(null);
+      setIsSaving(false);
     }
   };
+
+  // User wants to modify request or start over
+  const handleModifyIntent = () => {
+    inputRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleStartNew = () => {
+    setCurrentPlan(null);
+    setProposedItinerary(null);
+    setCandidates([]);
+    setIsConfirmed(false);
+    setErrorMessage(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const budgetConstraint = currentPlan?.constraints?.find((c) => c.type === 'budget_max');
+  const budgetMax = budgetConstraint?.numeric_value
+    ? parseFloat(String(budgetConstraint.numeric_value))
+    : null;
 
   return (
     <div className="app-container">
       {/* Header */}
       <header className="app-header">
         <div className="header-inner">
-          <div className="brand-logo">
+          <div className="brand-logo" onClick={handleStartNew} style={{ cursor: 'pointer' }}>
             <h1 className="brand-name">OpsOS</h1>
-            <span className="brand-tagline">Personal Real-World Planner</span>
+            <span className="brand-tagline">Intelligent Real-World Planning</span>
           </div>
           <div className="header-status">
             <span className="status-dot" />
-            <span>Backend Connected</span>
+            <span>Ready to Plan</span>
           </div>
         </div>
       </header>
@@ -107,53 +146,51 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* Step 1: Intent Input */}
-        <IntentInput
-          onSubmit={handleIntentSubmit}
-          isLoading={isPlanning}
-        />
+        {/* Step 1: Homepage Hero & Natural Language Input */}
+        <div ref={inputRef}>
+          <IntentInput
+            onSubmit={handleIntentSubmit}
+            isLoading={isPlanning}
+          />
+        </div>
 
-        {/* Step 2: Plan Overview & Selected Items */}
-        {currentPlan && (
-          <PlanSummary plan={currentPlan} />
+        {/* Planning Loading State */}
+        {isPlanning && (
+          <div className="planning-loading-card">
+            <div className="spinner large" />
+            <h3 className="planning-loading-title">Figuring out your plan...</h3>
+            <p className="planning-loading-subtitle">
+              Analyzing constraints, group size, and local options to assemble a great sequence.
+            </p>
+          </div>
         )}
 
-        {/* Step 3: Recommendations Grid */}
-        {currentPlan && (
-          <section className="recommendations-section">
-            <div className="section-header">
-              <h3 className="section-title">Recommended for your plan</h3>
-              <p className="section-subtitle">
-                Tailored options scored against your location, group size, and budget with explainable reasons.
-              </p>
-            </div>
+        {/* Step 2: Understanding Card & Proposed Plan */}
+        {!isPlanning && currentPlan && proposedItinerary && !isConfirmed && (
+          <div ref={proposalRef} className="proposal-section-wrapper">
+            <UnderstandingCard
+              plan={currentPlan}
+              budgetMax={budgetMax}
+            />
 
-            {isLoadingRecs ? (
-              <div className="loading-block">
-                <div className="spinner" />
-                <p>Curating the best options for your group...</p>
-              </div>
-            ) : recommendations.length === 0 ? (
-              <div className="empty-block">
-                <p>No recommendations found matching your exact criteria. Try adjusting your constraints.</p>
-              </div>
-            ) : (
-              <div className="recommendations-grid">
-                {recommendations.map((candidate) => (
-                  <RecommendationCard
-                    key={candidate.option_id}
-                    candidate={candidate}
-                    onSelect={handleSelectOption}
-                    isAdding={addingOptionId === candidate.option_id}
-                    isAdded={
-                      addedOptionIds.has(candidate.option_id) ||
-                      Boolean(currentPlan.items.some((i) => i.name === candidate.name))
-                    }
-                  />
-                ))}
-              </div>
-            )}
-          </section>
+            <ProposedPlan
+              plan={currentPlan}
+              initialItinerary={proposedItinerary}
+              allCandidates={candidates}
+              budgetMax={budgetMax}
+              onConfirm={handleConfirmPlan}
+              isSaving={isSaving}
+              onModifyIntent={handleModifyIntent}
+            />
+          </div>
+        )}
+
+        {/* Step 3: Confirmed / Saved Plan Summary */}
+        {!isPlanning && currentPlan && isConfirmed && (
+          <PlanSummary
+            plan={currentPlan}
+            onStartNew={handleStartNew}
+          />
         )}
       </main>
     </div>

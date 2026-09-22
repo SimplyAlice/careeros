@@ -1,57 +1,66 @@
 # Project Identity
 
-OpsOS is being pivoted into an intelligent real-world planning platform.
+OpsOS is an intelligent real-world planning platform.
 
-The product helps people turn an intention into an actionable plan.
+The product helps people turn an intention into an actionable, coherent plan.
 
 Instead of forcing users to search across maps, transport apps, restaurant sites,
-social media, event pages, shopping platforms and other fragmented sources,
+social media, event pages, shopping platforms, and other fragmented sources,
 the system combines relevant information with the user's context and constraints.
 
-The core interaction is:
+The core promise is:
 
-> "I want to do something. Figure this out for me."
+> "Tell me what you want to do. I'll figure out the rest."
 
-Examples include:
+The unit of value is a **PLAN**, not a search result or a directory listing.
 
-- planning an outing
-- finding somewhere to eat within a budget
-- planning a day with friends
-- comparing activities and transport
-- planning a trip or holiday
-- finding beauty or lifestyle services
-- comparing products and prices
-- planning around time, budget, location and preferences
-- adapting a plan when real-world conditions change
+## Product Scope
+
+OpsOS conceptually supports a wide variety of real-world planning situations:
+
+- **Social Outings**: Planning a fun day or night out with friends
+- **Dates**: Curating a romantic, memorable outing within a budget
+- **Birthdays & Celebrations**: Assembling a special celebration experience
+- **Food & Dining**: Finding restaurants, food markets, or tasting experiences
+- **Activities & Culture**: Discovering walks, tours, museums, and entertainment
+- **Shopping & Wellness**: Combining appointments, shopping, and self-care
+- **Short Trips**: Day trips and weekend excursions
+- **General Intentions**: Answering *"I want to do something nice this weekend"*
+
+Users never have to choose a rigid category before typing. The primary interaction
+remains conversational and natural:
+
+> "What are you trying to do?"
 
 ## Core Product Loop
 
 ```text
-USER INTENTION
+USER INTENTION ("Tell me what you want to do...")
       |
       v
-CONTEXT
+UNDERSTAND CONTEXT (Location, group size, timing)
       |
       v
-CONSTRAINTS
+IDENTIFY CONSTRAINTS & PREFERENCES (Budget maximum, group fit)
       |
       v
-INFORMATION
+FIND RELEVANT INFORMATION (Places, activities, providers)
       |
       v
-OPTIONS
+MAKE DECISIONS (Scoring, trade-offs, human rationale)
       |
       v
-PLAN
+PROPOSE COHERENT PLAN ("Here's what I'd do")
       |
       v
-USER APPROVAL / EDIT
+USER REVIEWS & CUSTOMIZES (Swap, remove, budget updates)
       |
       v
-EXECUTION
+CONFIRMATION ("Looks good" -> Authoritative persistence)
       |
       v
-LIVE INFORMATION
+SAVED PLAN (Persistent plan ownership)
       |
       v
-PLAN UPDATE
+(Future: LIVE INFORMATION & DYNAMIC PLAN UPDATES)
+```

@@ -1,47 +1,41 @@
 # Product Domain
 
-The new domain will eventually centre around:
+The planning domain is structured around:
 
+```text
 User
   |
-  +-- Context
+  +-- Context (location, timing, group size, transport)
   |
-  +-- Preferences
+  +-- Preferences & Constraints (budget ceilings, preferences, requirements)
   |
-  +-- Plans
+  +-- Plans (lifecycle: draft -> proposed -> ready / archived)
           |
-          +-- Plan Items
+          +-- Understanding Layer (synthesizes context and constraints)
           |
-          +-- Constraints
+          +-- Information Options (places, activities, services from providers)
           |
-          +-- Decisions
+          +-- Decision Engine (evaluates fit, produces human explanations)
           |
-          +-- Budget
+          +-- Proposed Itinerary ("Here's what I'd do" sequence)
+          |         |
+          |         +-- Candidate Slots & Trade-off Alternatives
           |
-          +-- Sources
+          +-- Plan Items (authoritative persistent selections)
+          |
+          +-- Budget Calculation (budget limit, total planned, remaining, over-budget flag)
+```
 
-Potential information entities:
+## First Product Slice
 
-- Place
-- Restaurant
-- Activity
-- Event
-- Transport Option
-- Accommodation
-- Product
-- Service Provider
+The domain slice proves that the system can:
 
-These should not all be implemented immediately.
-
-The first domain slice should prove that the system can:
-
-1. accept an intention
-2. capture relevant constraints
-3. produce structured options
-4. assemble a plan
-5. explain the plan
-6. allow the user to modify it
-7. persist the resulting plan
-
-External data providers will be introduced behind interfaces so that the domain is
-not tightly coupled to one provider.
+1. Accept a natural-language intention (*"What are you trying to do?"*).
+2. Infer relevant context and constraints (location, group size, budget).
+3. Present an immediate understanding of the request (*"Got it. Here's what I'm working with"*).
+4. Query the information layer for eligible places and activities.
+5. Apply decision heuristics to assemble a coherent proposed itinerary (*"Here's what I'd do"*).
+6. Explain decision rationale in human language without exposing machine scores or internals.
+7. Allow the user to review, swap alternatives, or remove items with real-time budget updates.
+8. Persist the chosen plan items via authoritative backend selection upon confirmation (*"Looks good"*).
+9. Maintain immutable archived plans and calculated budget invariants in PostgreSQL.

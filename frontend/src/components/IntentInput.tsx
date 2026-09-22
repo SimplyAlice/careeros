@@ -6,6 +6,38 @@ interface IntentInputProps {
   defaultValue?: string;
 }
 
+interface ExamplePrompt {
+  label: string;
+  prompt: string;
+}
+
+const EXAMPLE_PROMPTS: ExamplePrompt[] = [
+  {
+    label: 'Plan a date',
+    prompt: 'I want a nice date with my partner in Cape Town under R800.',
+  },
+  {
+    label: 'Plan a day out',
+    prompt: 'Something fun with 3 friends in Cape Town under R500.',
+  },
+  {
+    label: 'Plan a birthday',
+    prompt: 'A relaxed birthday celebration with 4 friends under R1000 with good food.',
+  },
+  {
+    label: 'Find something fun',
+    prompt: 'An active and scenic afternoon for 2 people in Cape Town.',
+  },
+  {
+    label: 'Plan dinner',
+    prompt: 'Dinner and a relaxed social evening with friends under R600.',
+  },
+  {
+    label: 'Plan a weekend',
+    prompt: 'A relaxing weekend day exploring local culture and food.',
+  },
+];
+
 export const IntentInput: React.FC<IntentInputProps> = ({
   onSubmit,
   isLoading,
@@ -19,52 +51,56 @@ export const IntentInput: React.FC<IntentInputProps> = ({
     onSubmit(intent.trim());
   };
 
+  const handleSelectPrompt = (promptText: string) => {
+    setIntent(promptText);
+  };
+
   return (
-    <div className="intent-card">
-      <div className="intent-header">
-        <span className="intent-tag">Intelligent Real-World Planning</span>
-        <h2 className="intent-title">What do you want to do?</h2>
-        <p className="intent-subtitle">
-          Tell OpsOS your intention, who you’re with, and your constraints. We’ll figure out the rest.
+    <div className="hero-intent-card">
+      <div className="hero-header">
+        <span className="hero-tag">Intelligent Real-World Planning</span>
+        <h1 className="hero-title">
+          Tell me what you want to do.
+          <span className="hero-title-accent"> I’ll figure out the rest.</span>
+        </h1>
+        <p className="hero-subtitle">
+          Whether it’s a date, a birthday, dinner, or a day out with friends—describe your intention, and OpsOS will work through the options to propose a coherent, budget-aware plan.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="intent-form">
-        <div className="intent-input-wrapper">
+      <form onSubmit={handleSubmit} className="hero-form">
+        <div className="hero-input-wrapper">
           <textarea
-            className="intent-textarea"
+            className="hero-textarea"
             rows={3}
             value={intent}
             onChange={(e) => setIntent(e.target.value)}
-            placeholder="e.g. Something fun with 3 friends in Cape Town under R500"
+            placeholder="e.g. I want to take my boyfriend somewhere nice this Saturday. We have R800 and neither of us drinks."
             disabled={isLoading}
           />
         </div>
 
-        <div className="intent-actions">
-          <div className="intent-presets">
-            <span className="preset-label">Try:</span>
-            <button
-              type="button"
-              className="preset-pill"
-              onClick={() => setIntent('Something fun with 3 friends in Cape Town under R500')}
-              disabled={isLoading}
-            >
-              Cape Town Outing (R500)
-            </button>
-            <button
-              type="button"
-              className="preset-pill"
-              onClick={() => setIntent('Relaxing cultural afternoon in Bo-Kaap for 2')}
-              disabled={isLoading}
-            >
-              Cultural Afternoon
-            </button>
+        <div className="hero-form-footer">
+          <div className="hero-presets">
+            <span className="presets-label">Try an example:</span>
+            <div className="presets-pills">
+              {EXAMPLE_PROMPTS.map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  className={`preset-pill ${intent === item.prompt ? 'active' : ''}`}
+                  onClick={() => handleSelectPrompt(item.prompt)}
+                  disabled={isLoading}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <button
             type="submit"
-            className="plan-button"
+            className="hero-submit-button"
             disabled={isLoading || !intent.trim()}
           >
             {isLoading ? (
