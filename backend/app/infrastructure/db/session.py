@@ -47,18 +47,18 @@ def get_session_factory() -> async_sessionmaker[AsyncSession]:
 async def get_db_session() -> AsyncGenerator[AsyncSession]:
     """FastAPI dependency yielding a request-scoped `AsyncSession`.
 
-    Usage (from Milestone 2 onward):
-
-        @router.get("/jobs")
-        async def list_jobs(session: AsyncSession = Depends(get_db_session)):
-            ...
-
-    The session is always closed at the end of the request, whether the
-    request succeeded or raised.
+    Yields a session per request, commits on success, rolls back on
+    exception, and guarantees the session is closed afterward.
     """
     session_factory = get_session_factory()
     async with session_factory() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            if session.is_active:
+                await session.rollback()
+            raise
 
 
 async def dispose_engine() -> None:

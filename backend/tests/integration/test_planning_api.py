@@ -6,7 +6,7 @@ from decimal import Decimal
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.api.deps import get_db_session
 from app.core.config import get_settings
@@ -431,3 +431,119 @@ async def test_plan_aware_recommendations_endpoint(
     assert top["score"] > 0
     reason_types = {r["type"] for r in top["reasons"]}
     assert {"location", "category", "budget", "group_size"} <= reason_types
+
+
+@pytest.fixture
+async def multi_request_planning_client(db_engine: AsyncEngine):
+    app = create_app()
+    session_factory = async_sessionmaker(
+        bind=db_engine,
+        expire_on_commit=False,
+        autoflush=False,
+    )
+
+    async def _per_request_get_db_session():
+        async with session_factory() as session:
+            try:
+                yield session
+                await session.commit()
+            except Exception:
+                if session.is_active:
+                    await session.rollback()
+                raise
+
+    app.dependency_overrides[get_db_session] = _per_request_get_db_session
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://testserver",
+    ) as client:
+        yield client
+
+
+@pytest.mark.asyncio
+async def test_separate_request_persistence_and_item_selection(
+    multi_request_planning_client: AsyncClient,
+) -> None:
+    # Authenticate
+    register_res = await multi_request_planning_client.post(
+        _prefix("auth/register"),
+        json={"email": "persistent_planner@example.com", "password": "Sup3rSecretPassword123"},
+    )
+    assert register_res.status_code == 201
+
+    login_res = await multi_request_planning_client.post(
+        _prefix("auth/login"),
+        json={"email": "persistent_planner@example.com", "password": "Sup3rSecretPassword123"},
+    )
+    assert login_res.status_code == 200
+    token = login_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # TEST 1: POST /planning/requests in Request A, GET /planning/plans/{id} in Request B
+    create_res = await multi_request_planning_client.post(
+        _prefix("planning/requests"),
+        headers=headers,
+        json={"request": "Something fun with 3 friends in Cape Town under R500"},
+    )
+    assert create_res.status_code == 201
+    created_plan = create_res.json()
+    plan_id = created_plan["id"]
+
+    # In a completely separate HTTP request:
+    get_res = await multi_request_planning_client.get(
+        _prefix(f"planning/plans/{plan_id}"),
+        headers=headers,
+    )
+    assert get_res.status_code == 200
+    fetched_plan = get_res.json()
+    assert fetched_plan["id"] == plan_id
+    assert fetched_plan["intention"] == created_plan["intention"]
+    assert fetched_plan["context"] == created_plan["context"]
+    assert (
+        Decimal(str(fetched_plan["budget"]["budget_maximum"]))
+        == Decimal(str(created_plan["budget"]["budget_maximum"]))
+    )
+
+    # TEST 2: Separate recommendations -> item selection -> retrieval sequence
+    # In a separate request: GET /planning/plans/{id}/recommendations
+    recs_res = await multi_request_planning_client.get(
+        _prefix(f"planning/plans/{plan_id}/recommendations"),
+        headers=headers,
+    )
+    assert recs_res.status_code == 200
+    candidates = recs_res.json()["candidates"]
+    assert len(candidates) > 0
+
+    eligible = next(c for c in candidates if c["is_eligible"])
+
+    # In another separate request: POST /planning/plans/{id}/items/from-option
+    add_item_res = await multi_request_planning_client.post(
+        _prefix(f"planning/plans/{plan_id}/items/from-option"),
+        headers=headers,
+        json={"option_id": eligible["option_id"], "option_type": eligible["option_type"]},
+    )
+    assert add_item_res.status_code == 201
+    added_item = add_item_res.json()
+    assert added_item["name"] == eligible["name"]
+
+    # In another separate request: GET /planning/plans/{id}
+    final_res = await multi_request_planning_client.get(
+        _prefix(f"planning/plans/{plan_id}"),
+        headers=headers,
+    )
+    assert final_res.status_code == 200
+    final_plan = final_res.json()
+
+    # Selected item exists in plan
+    assert any(i["name"] == eligible["name"] for i in final_plan["items"])
+
+    # Budget total reflects selected item
+    expected_cost = Decimal(str(eligible["cost"] or 0))
+    assert Decimal(str(final_plan["budget"]["total_planned_cost"])) == expected_cost
+
+    # Remaining budget reflects selected item
+    if final_plan["budget"]["budget_maximum"] is not None:
+        max_budget = Decimal(str(final_plan["budget"]["budget_maximum"]))
+        assert Decimal(str(final_plan["budget"]["remaining_budget"])) == max_budget - expected_cost
