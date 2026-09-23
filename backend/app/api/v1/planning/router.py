@@ -402,8 +402,10 @@ async def get_plan_recommendations(
     criteria = criteria_from_plan(plan)
     result = await decision.recommend(criteria)
     return RecommendationResponse(
-        data_source=information.source.data_source,
-        is_live=information.source.is_live,
+        data_source=result.source,
+        is_live=result.is_live,
+        attribution=result.attribution,
+        freshness=result.freshness,
         candidates=[DecisionCandidateRead.from_candidate(candidate) for candidate in result.candidates],
     )
 

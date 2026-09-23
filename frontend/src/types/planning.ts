@@ -57,11 +57,18 @@ export interface DecisionCandidateRead {
   duration_minutes: number | null;
   location: string | null;
   source: string;
+  address?: string | null;
+  opening_hours?: string | null;
+  freshness?: 'live' | 'recently_verified' | 'cached' | 'fixture' | string | null;
+  verified_at?: string | null;
+  attribution?: string | null;
 }
 
 export interface RecommendationResponse {
   data_source: string;
   is_live: boolean;
+  attribution?: string | null;
+  freshness?: 'live' | 'recently_verified' | 'cached' | 'fixture' | string | null;
   candidates: DecisionCandidateRead[];
 }
 

@@ -270,3 +270,54 @@ def test_decision_criteria_applies_occasion_fit_boost() -> None:
     occasion_reasons = [r for r in candidate_date.reasons if r.type is ReasonType.OCCASION]
     assert len(occasion_reasons) > 0
     assert occasion_reasons[0].outcome is ReasonOutcome.SUPPORTED
+
+
+def test_evaluate_place_neighborhood_matching() -> None:
+    place = _place(
+        name="Waterfront Bistro",
+        location="Cape Town",
+        address="10 Dock Rd, V&A Waterfront, Cape Town",
+    )
+    criteria = DecisionCriteria(location="Waterfront")
+    candidate = evaluate_place(place, criteria)
+
+    assert candidate.is_eligible is True
+    loc_reason = next(r for r in candidate.reasons if r.type is ReasonType.LOCATION)
+    assert loc_reason.outcome is ReasonOutcome.SUPPORTED
+    assert "matches Waterfront" in loc_reason.message
+    assert candidate.address == "10 Dock Rd, V&A Waterfront, Cape Town"
+
+
+def test_evaluate_place_unlisted_price_is_eligible_with_neutral_reason() -> None:
+    place = _place(name="Art Gallery", price_from=None)
+    criteria = DecisionCriteria(maximum_cost=Decimal("200"))
+    candidate = evaluate_place(place, criteria)
+
+    assert candidate.is_eligible is True
+    assert candidate.cost is None
+    budget_reason = next(r for r in candidate.reasons if r.type is ReasonType.BUDGET)
+    assert budget_reason.outcome is ReasonOutcome.NEUTRAL
+    assert "Cost is unknown" in budget_reason.message
+
+
+def test_decide_populates_real_source_and_attribution() -> None:
+    place = _place(
+        name="Kirstenbosch Garden",
+        source="openstreetmap",
+        address="Rhodes Dr, Newlands, Cape Town",
+        opening_hours="Daily 08:00-18:00",
+        freshness="recently_verified",
+        verified_at="2026-09",
+    )
+    criteria = DecisionCriteria(location="Cape Town")
+    result = decide(criteria, [place], [])
+
+    assert result.source == "openstreetmap"
+    assert result.attribution == "© OpenStreetMap contributors"
+    assert result.freshness == "recently_verified"
+    assert result.is_live is False
+    assert len(result.candidates) == 1
+    c = result.candidates[0]
+    assert c.address == "Rhodes Dr, Newlands, Cape Town"
+    assert c.opening_hours == "Daily 08:00-18:00"
+    assert c.freshness == "recently_verified"

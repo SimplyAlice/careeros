@@ -36,6 +36,11 @@ class PlaceRead(BaseModel):
     minimum_group_size: int
     maximum_group_size: int | None
     source: str
+    address: str | None = None
+    operating_status: str | None = None
+    freshness: str = "fixture"
+    verified_at: str | None = None
+    source_url: str | None = None
 
     @classmethod
     def from_entity(cls, place: Place) -> PlaceRead:
@@ -49,12 +54,16 @@ class ActivityRead(BaseModel):
     location: str | None
     category: InformationCategory
     description: str
-    cost: Decimal
+    cost: Decimal | None = None
     duration_minutes: int
     minimum_group_size: int
     maximum_group_size: int | None
     metadata: dict[str, str]
     source: str
+    address: str | None = None
+    freshness: str = "fixture"
+    verified_at: str | None = None
+    source_url: str | None = None
 
     @classmethod
     def from_entity(cls, activity: Activity) -> ActivityRead:
@@ -62,10 +71,12 @@ class ActivityRead(BaseModel):
 
 
 class SearchResponse(BaseModel):
-    """Provider-neutral envelope carrying data-source provenance."""
+    """Provider-neutral envelope carrying data-source provenance and attribution."""
 
     data_source: str
     is_live: bool
+    attribution: str | None = None
+    freshness: str = "fixture"
 
 
 class PlaceSearchResponse(SearchResponse):
@@ -98,14 +109,32 @@ class DecisionCandidateRead(BaseModel):
     duration_minutes: int | None
     location: str | None
     source: str
+    address: str | None = None
+    opening_hours: str | None = None
+    freshness: str | None = None
+    verified_at: str | None = None
+    attribution: str | None = None
 
     @classmethod
     def from_candidate(cls, candidate: DecisionCandidate) -> DecisionCandidateRead:
-        return cls(option_id=candidate.option_id, option_type=candidate.option_type, name=candidate.name,
-                   is_eligible=candidate.is_eligible, score=candidate.score,
-                   reasons=[DecisionReasonRead.from_reason(reason) for reason in candidate.reasons],
-                   category=candidate.category, cost=candidate.cost, duration_minutes=candidate.duration_minutes,
-                   location=candidate.location, source=candidate.source)
+        return cls(
+            option_id=candidate.option_id,
+            option_type=candidate.option_type,
+            name=candidate.name,
+            is_eligible=candidate.is_eligible,
+            score=candidate.score,
+            reasons=[DecisionReasonRead.from_reason(reason) for reason in candidate.reasons],
+            category=candidate.category,
+            cost=candidate.cost,
+            duration_minutes=candidate.duration_minutes,
+            location=candidate.location,
+            source=candidate.source,
+            address=candidate.address,
+            opening_hours=candidate.opening_hours,
+            freshness=candidate.freshness,
+            verified_at=candidate.verified_at,
+            attribution=candidate.attribution,
+        )
 
 
 class RecommendationResponse(SearchResponse):
@@ -113,7 +142,12 @@ class RecommendationResponse(SearchResponse):
 
 
 def _envelope(source: InformationSource) -> dict[str, object]:
-    return {"data_source": source.data_source, "is_live": source.is_live}
+    return {
+        "data_source": source.data_source,
+        "is_live": source.is_live,
+        "attribution": source.attribution,
+        "freshness": source.freshness,
+    }
 
 
 def _criteria(
@@ -178,6 +212,9 @@ async def recommend_options(
                                 group_size=group_size, maximum_duration_minutes=maximum_duration_minutes)
     result = await decision.recommend(criteria)
     return RecommendationResponse(
-        data_source=information.source.data_source, is_live=information.source.is_live,
+        data_source=result.source,
+        is_live=result.is_live,
+        attribution=result.attribution,
+        freshness=result.freshness,
         candidates=[DecisionCandidateRead.from_candidate(candidate) for candidate in result.candidates],
     )

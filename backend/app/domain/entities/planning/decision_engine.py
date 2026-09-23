@@ -55,13 +55,22 @@ def decide(
         ),
     )
     source = candidates[0].source if candidates else "unknown"
-    return DecisionResult(candidates=tuple(ordered), source=source)
+    is_live = any(c.freshness == "live" for c in candidates)
+    freshness = "live" if is_live else (candidates[0].freshness if candidates else "fixture")
+    attribution = "© OpenStreetMap contributors" if any("openstreetmap" in (c.source or "").lower() for c in candidates) else None
+    return DecisionResult(
+        candidates=tuple(ordered),
+        source=source,
+        is_live=is_live,
+        attribution=attribution,
+        freshness=freshness,
+    )
 
 
 def evaluate_place(place: Place, criteria: DecisionCriteria) -> DecisionCandidate:
     reasons: list[DecisionReason] = []
     eligible = True
-    eligible &= _assess_location(place.location, criteria.location, reasons)
+    eligible &= _assess_location(place.location, criteria.location, reasons, address=place.address)
     eligible &= _assess_category(place.category, criteria.category, reasons)
     eligible &= _assess_budget(place.price_from, criteria.maximum_cost, reasons)
     eligible &= _assess_group(
@@ -97,13 +106,17 @@ def evaluate_place(place: Place, criteria: DecisionCriteria) -> DecisionCandidat
         duration_minutes=None,
         location=place.location,
         source=place.source,
+        address=place.address,
+        opening_hours=place.opening_hours,
+        freshness=place.freshness,
+        verified_at=place.verified_at,
     )
 
 
 def evaluate_activity(activity: Activity, criteria: DecisionCriteria) -> DecisionCandidate:
     reasons: list[DecisionReason] = []
     eligible = True
-    eligible &= _assess_location(activity.location, criteria.location, reasons)
+    eligible &= _assess_location(activity.location, criteria.location, reasons, address=activity.address)
     eligible &= _assess_category(activity.category, criteria.category, reasons)
     eligible &= _assess_budget(activity.cost, criteria.maximum_cost, reasons)
     eligible &= _assess_group(
@@ -148,6 +161,9 @@ def evaluate_activity(activity: Activity, criteria: DecisionCriteria) -> Decisio
         duration_minutes=activity.duration_minutes,
         location=activity.location,
         source=activity.source,
+        address=activity.address,
+        freshness=activity.freshness,
+        verified_at=activity.verified_at,
     )
 
 
@@ -170,22 +186,54 @@ def _ensure_reasons(reasons: list[DecisionReason], kind: str) -> list[DecisionRe
 
 
 def _assess_location(
-    value: str | None, requested: str | None, reasons: list[DecisionReason]
+    value: str | None,
+    requested: str | None,
+    reasons: list[DecisionReason],
+    address: str | None = None,
 ) -> bool:
     if requested is None:
         return True
-    if value is not None and value.casefold() == requested.strip().casefold():
+    req_clean = requested.strip().casefold()
+    val_clean = (value or "").strip().casefold()
+    addr_clean = (address or "").strip().casefold()
+
+    # 1. Exact match on city or location
+    if val_clean and val_clean == req_clean:
         reasons.append(
             DecisionReason(ReasonType.LOCATION, ReasonOutcome.SUPPORTED, f"Fits the {value} location")
         )
-    else:
+        return True
+
+    # 2. Neighborhood / address / substring match (e.g. "waterfront", "kloof", "camps bay", "gardens", "city bowl", "newlands")
+    if req_clean in addr_clean or req_clean in val_clean or (val_clean in req_clean and len(val_clean) > 3):
+        loc_display = address if address else value
         reasons.append(
             DecisionReason(
                 ReasonType.LOCATION,
-                ReasonOutcome.NEUTRAL,
-                "Location was not specified for this option",
+                ReasonOutcome.SUPPORTED,
+                f"Located in {loc_display} which matches {requested}",
             )
         )
+        return True
+
+    # 3. If requested is general "around town", "town", "cape town", "in town"
+    if req_clean in {"town", "around town", "cape town", "in town", "city"} and ("cape town" in val_clean or "cape town" in addr_clean):
+        reasons.append(
+            DecisionReason(
+                ReasonType.LOCATION,
+                ReasonOutcome.SUPPORTED,
+                "Located in Cape Town, convenient for town outing",
+            )
+        )
+        return True
+
+    reasons.append(
+        DecisionReason(
+            ReasonType.LOCATION,
+            ReasonOutcome.NEUTRAL,
+            "Location was not specified for this option",
+        )
+    )
     return True
 
 

@@ -16,16 +16,25 @@ class InformationCategory(str, Enum):
     SHOPPING = "shopping"
 
 
+class FreshnessKind(str, Enum):
+    LIVE = "live"
+    RECENTLY_VERIFIED = "recently_verified"
+    CACHED = "cached"
+    FIXTURE = "fixture"
+
+
 @dataclass(frozen=True)
 class InformationSource:
     """Describes where planning options came from.
 
-    Lets callers distinguish a development fixture from eventually live
+    Lets callers distinguish development fixtures from live or verified
     information without the API layer hardcoding any particular provider.
     """
 
     data_source: str
     is_live: bool
+    attribution: str | None = None
+    freshness: str = "fixture"
 
     def __post_init__(self) -> None:
         if not self.data_source.strip():
@@ -46,6 +55,13 @@ class Place:
     minimum_group_size: int = 1
     maximum_group_size: int | None = None
     source: str = "development_fixture"
+    address: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    operating_status: str | None = None
+    freshness: str = "fixture"
+    verified_at: str | None = None
+    source_url: str | None = None
 
     def __post_init__(self) -> None:
         if not self.name.strip():
@@ -66,8 +82,8 @@ class Activity:
     name: str
     category: InformationCategory
     description: str
-    cost: Decimal
     duration_minutes: int
+    cost: Decimal | None = None
     id: UUID = field(default_factory=uuid4)
     place_id: UUID | None = None
     location: str | None = None
@@ -75,13 +91,19 @@ class Activity:
     maximum_group_size: int | None = None
     metadata: Mapping[str, str] = field(default_factory=dict)
     source: str = "development_fixture"
+    address: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    freshness: str = "fixture"
+    verified_at: str | None = None
+    source_url: str | None = None
 
     def __post_init__(self) -> None:
         if not self.name.strip():
             raise ValueError("Activity name cannot be empty.")
         if not self.description.strip():
             raise ValueError("Activity description cannot be empty.")
-        if self.cost < 0:
+        if self.cost is not None and self.cost < 0:
             raise ValueError("Activity cost cannot be negative.")
         if self.duration_minutes <= 0:
             raise ValueError("Activity duration must be positive.")

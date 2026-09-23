@@ -91,7 +91,18 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
     <div className="proposed-plan-card">
       {/* Editorial Header */}
       <div className="proposal-header">
-        <span className="proposal-badge">Proposed Itinerary</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+          <span className="proposal-badge">Proposed Itinerary</span>
+          {itinerary.freshness === 'live' ? (
+            <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 500 }}>
+              ● Live information
+            </span>
+          ) : itinerary.freshness === 'recently_verified' ? (
+            <span style={{ fontSize: '0.75rem', color: '#4b5563', fontWeight: 500 }}>
+              ✓ Verified real-world places
+            </span>
+          ) : null}
+        </div>
         <h2 className="proposal-title">Here’s what I’d do</h2>
         <p className="proposal-subtitle">{itinerary.narrativeSubheading}</p>
       </div>
@@ -138,6 +149,13 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
                     </div>
 
                     <div className="step-subtitle">{item.subtitle}</div>
+
+                    {item.candidate.opening_hours && (
+                      <div style={{ fontSize: '0.75rem', color: '#52525b', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span>🕐</span>
+                        <span>{item.candidate.opening_hours}</span>
+                      </div>
+                    )}
 
                     {/* Decision Explanation: Human language rationale */}
                     {item.rationale && item.rationale.length > 0 && (
@@ -461,6 +479,19 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
           Try a different request
         </button>
       </div>
+
+      {itinerary.attribution && (
+        <div
+          style={{
+            marginTop: '1.25rem',
+            textAlign: 'center',
+            fontSize: '0.72rem',
+            color: '#71717a',
+          }}
+        >
+          Map and place information {itinerary.attribution}
+        </div>
+      )}
     </div>
   );
 };

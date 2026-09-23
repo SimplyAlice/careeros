@@ -8,13 +8,18 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
-from app.api.deps import get_db_session
+from app.api.deps import get_db_session, get_planning_information_provider
+from app.infrastructure.planning import CapeTownFixtureInformationProvider
 from app.core.config import get_settings
 from app.main import create_app
 
 
 def _prefix(resource: str) -> str:
     return f"{get_settings().api_v1_prefix}/{resource}"
+
+
+def _override_fixture_provider() -> CapeTownFixtureInformationProvider:
+    return CapeTownFixtureInformationProvider()
 
 
 @pytest.fixture
@@ -25,6 +30,7 @@ async def planning_client(db_session: AsyncSession):
         yield db_session
 
     app.dependency_overrides[get_db_session] = _override_get_db_session
+    app.dependency_overrides[get_planning_information_provider] = _override_fixture_provider
 
     transport = ASGITransport(app=app)
     async with AsyncClient(
@@ -453,6 +459,7 @@ async def multi_request_planning_client(db_engine: AsyncEngine):
                 raise
 
     app.dependency_overrides[get_db_session] = _per_request_get_db_session
+    app.dependency_overrides[get_planning_information_provider] = _override_fixture_provider
 
     transport = ASGITransport(app=app)
     async with AsyncClient(

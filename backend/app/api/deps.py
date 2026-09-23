@@ -68,7 +68,10 @@ from app.infrastructure.db.repositories.service_repository import SqlAlchemyServ
 from app.infrastructure.db.repositories.user_repository import SqlAlchemyUserRepository
 from app.infrastructure.db.session import get_db_session
 from app.infrastructure.job_sources.adzuna import AdzunaJobSourceAdapter
-from app.infrastructure.planning.fixture_provider import CapeTownFixtureInformationProvider
+from app.infrastructure.planning import (
+    CapeTownFixtureInformationProvider,
+    OpenStreetMapInformationProvider,
+)
 from app.infrastructure.rendering.pdf_renderer import FpdfPdfRenderer
 from app.infrastructure.security.bcrypt_password_hasher import BcryptPasswordHasher
 from app.infrastructure.security.jwt_token_service import JwtTokenService
@@ -338,8 +341,14 @@ def get_planning_service(
     return PlanningService(repository)
 
 
-def get_planning_information_provider() -> PlanningInformationProvider:
-    return CapeTownFixtureInformationProvider()
+def get_planning_information_provider(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> PlanningInformationProvider:
+    if settings.planning_provider.lower() == "fixture":
+        return CapeTownFixtureInformationProvider()
+    return OpenStreetMapInformationProvider(
+        timeout_seconds=settings.openstreetmap_timeout_seconds,
+    )
 
 
 def get_planning_information_service(

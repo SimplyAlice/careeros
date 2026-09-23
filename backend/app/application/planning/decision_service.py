@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from app.application.planning.information import OptionSearchCriteria, PlanningInformationService
-from app.domain.entities.planning.decision import DecisionCriteria, DecisionResult
+from app.domain.entities.planning.decision import DecisionCandidate, DecisionCriteria, DecisionResult
 from app.domain.entities.planning.decision_engine import decide
 
 
@@ -22,10 +22,35 @@ class PlanningDecisionService:
         places = await self._information.search_places(search)
         activities = await self._information.search_activities(search)
         result = decide(criteria, places, activities)
-        # Provenance is the provider's authoritative source, not inferred
-        # from individual entities, so callers always see one consistent
-        # answer about whether the data is live or a fixture.
-        return DecisionResult(candidates=result.candidates, source=self._information.source.data_source)
+        attr = self._information.source.attribution
+        candidates = [
+            DecisionCandidate(
+                option_id=c.option_id,
+                option_type=c.option_type,
+                name=c.name,
+                is_eligible=c.is_eligible,
+                score=c.score,
+                reasons=c.reasons,
+                category=c.category,
+                cost=c.cost,
+                duration_minutes=c.duration_minutes,
+                location=c.location,
+                source=c.source,
+                address=c.address,
+                opening_hours=c.opening_hours,
+                freshness=c.freshness,
+                verified_at=c.verified_at,
+                attribution=c.attribution or attr,
+            )
+            for c in result.candidates
+        ]
+        return DecisionResult(
+            candidates=tuple(candidates),
+            source=self._information.source.data_source,
+            is_live=self._information.source.is_live,
+            attribution=attr,
+            freshness=self._information.source.freshness,
+        )
 
 
 def _search_criteria(criteria: DecisionCriteria) -> OptionSearchCriteria:

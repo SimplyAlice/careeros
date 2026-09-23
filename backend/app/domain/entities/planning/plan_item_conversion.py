@@ -46,6 +46,6 @@ def candidate_to_plan_item(
         start_time=start_time,
         end_time=end_time,
         estimated_cost=candidate.cost,
-        location=candidate.location,
+        location=candidate.address or candidate.location,
         position=position,
     )

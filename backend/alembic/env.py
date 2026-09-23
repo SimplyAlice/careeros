@@ -31,12 +31,22 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
+import socket
+
 settings = get_settings()
 
-alembic_database_url = settings.database_url.replace(
-    "@postgres:",
-    "@localhost:",
-)
+
+def _resolve_db_url(url: str) -> str:
+    if "@postgres:" in url:
+        try:
+            socket.gethostbyname("postgres")
+            return url
+        except socket.gaierror:
+            return url.replace("@postgres:", "@localhost:")
+    return url
+
+
+alembic_database_url = _resolve_db_url(settings.database_url)
 
 config.set_main_option("sqlalchemy.url", alembic_database_url)
 

@@ -15,6 +15,8 @@ export interface ProposedItinerary {
   remainingBudget: number | null;
   isOverBudget: boolean;
   narrativeSubheading: string;
+  attribution?: string | null;
+  freshness?: string | null;
 }
 
 /**
@@ -58,7 +60,15 @@ export function buildItemSubtitle(candidate: DecisionCandidateRead): string {
     parts.push('Flexible time');
   }
 
-  if (candidate.location) {
+  // Location / address
+  if (candidate.address) {
+    const segments = candidate.address.split(',').map((s) => s.trim());
+    if (segments.length >= 2) {
+      parts.push(`${segments[0]}, ${segments[1]}`);
+    } else {
+      parts.push(segments[0]);
+    }
+  } else if (candidate.location) {
     parts.push(candidate.location);
   }
 
@@ -66,12 +76,13 @@ export function buildItemSubtitle(candidate: DecisionCandidateRead): string {
 }
 
 /**
- * Formats currency in South African Rands or Free.
+ * Formats currency in South African Rands or Free or Price not listed.
  */
 export function formatCurrency(amount: number | string | null | undefined): string {
-  if (amount === null || amount === undefined) return 'Free';
+  if (amount === null || amount === undefined) return 'Price not listed';
   const num = typeof amount === 'number' ? amount : parseFloat(amount);
-  if (isNaN(num) || num === 0) return 'Free';
+  if (isNaN(num)) return 'Price not listed';
+  if (num === 0) return 'Free';
   return `R${num.toFixed(0)}`;
 }
 
@@ -89,13 +100,20 @@ export function humanizeCandidateReasons(
   const cost = parseCandidateCost(candidate.cost);
 
   // 1. Budget rationale
-  if (cost === 0) {
+  if (candidate.cost === null || candidate.cost === undefined) {
+    humanReasons.push('Price not listed — menu or admission prices vary.');
+  } else if (cost === 0) {
     humanReasons.push('Free to enjoy — zero impact on your budget.');
   } else if (budgetMax !== null && cost <= budgetMax) {
     humanReasons.push(`Fits comfortably within your ${formatCurrency(budgetMax)} budget.`);
   }
 
-  // 2. Occasion rationale
+  // 2. Real opening hours if known
+  if (candidate.opening_hours) {
+    humanReasons.push(`Hours: ${candidate.opening_hours}`);
+  }
+
+  // 3. Occasion rationale
   if (understanding?.occasion === 'date') {
     humanReasons.push('A great, relaxed setting for a date.');
   } else if (understanding?.occasion === 'birthday') {
@@ -323,6 +341,8 @@ export function buildProposedItinerary(
   const remainingBudget = budgetMax !== null ? budgetMax - currentCost : null;
   const isOverBudget = remainingBudget !== null && remainingBudget < 0;
   const narrativeSubheading = buildProposalNarrative(items, budgetMax, remainingBudget, understanding);
+  const attribution = candidates.find((c) => c.attribution)?.attribution || null;
+  const freshness = candidates.find((c) => c.freshness)?.freshness || null;
 
   return {
     items,
@@ -331,6 +351,8 @@ export function buildProposedItinerary(
     remainingBudget,
     isOverBudget,
     narrativeSubheading,
+    attribution,
+    freshness,
   };
 }
 
@@ -348,6 +370,8 @@ export function recalculateItinerary(
   const remainingBudget = budgetMax !== null ? budgetMax - currentCost : null;
   const isOverBudget = remainingBudget !== null && remainingBudget < 0;
   const narrativeSubheading = buildProposalNarrative(items, budgetMax, remainingBudget);
+  const attribution = allEligibleCandidates.find((c) => c.attribution)?.attribution || null;
+  const freshness = allEligibleCandidates.find((c) => c.freshness)?.freshness || null;
 
   return {
     items,
@@ -356,5 +380,7 @@ export function recalculateItinerary(
     remainingBudget,
     isOverBudget,
     narrativeSubheading,
+    attribution,
+    freshness,
   };
 }

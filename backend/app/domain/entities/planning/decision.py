@@ -58,6 +58,11 @@ class DecisionCandidate:
     duration_minutes: int | None = None
     location: str | None = None
     source: str = "development_fixture"
+    address: str | None = None
+    opening_hours: str | None = None
+    freshness: str = "fixture"
+    verified_at: str | None = None
+    attribution: str | None = None
 
     def __post_init__(self) -> None:
         if not self.name.strip():
@@ -74,6 +79,9 @@ class DecisionResult:
 
     candidates: tuple[DecisionCandidate, ...]
     source: str
+    is_live: bool = False
+    attribution: str | None = None
+    freshness: str = "fixture"
 
     @property
     def eligible(self) -> tuple[DecisionCandidate, ...]:
