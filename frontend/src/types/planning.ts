@@ -100,6 +100,24 @@ export interface BudgetRead {
   is_over_budget: boolean;
 }
 
+export interface UnderstandingRead {
+  goal: string;
+  occasion: string | null;
+  people_count: number | null;
+  relationship_context: string | null;
+  date_spec: string | null;
+  time_window: string | null;
+  location: string | null;
+  location_is_inferred: boolean;
+  budget_amount: string | number | null;
+  budget_kind: 'hard_max' | 'approximate' | 'preference' | 'none';
+  preferences: string[];
+  exclusions: string[];
+  activity_types: string[];
+  ambiguities: string[];
+  provenance: Record<string, string>;
+}
+
 export interface PlanRead {
   id: string;
   intention: string;
@@ -111,9 +129,14 @@ export interface PlanRead {
   constraints: ConstraintRead[];
   items: PlanItemRead[];
   budget: BudgetRead;
+  understanding?: UnderstandingRead | null;
 }
 
 export interface CreatePlanFromIntentRequest {
+  request: string;
+}
+
+export interface PlanModifyRequest {
   request: string;
 }
 

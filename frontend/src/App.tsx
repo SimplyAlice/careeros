@@ -3,7 +3,7 @@ import { IntentInput } from './components/IntentInput';
 import { UnderstandingCard } from './components/UnderstandingCard';
 import { ProposedPlan } from './components/ProposedPlan';
 import { PlanSummary } from './components/PlanSummary';
-import { createPlanFromIntent, getPlan, getPlanRecommendations, addOptionToPlan } from './api/planning';
+import { createPlanFromIntent, getPlan, getPlanRecommendations, addOptionToPlan, modifyPlan } from './api/planning';
 import { buildProposedItinerary } from './utils/itineraryBuilder';
 import type { ProposedItinerary } from './utils/itineraryBuilder';
 import type { DecisionCandidateRead, PlanRead } from './types/planning';
@@ -17,6 +17,7 @@ export const App: React.FC = () => {
 
   const [isPlanning, setIsPlanning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isTweaking, setIsTweaking] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLDivElement>(null);
@@ -48,7 +49,7 @@ export const App: React.FC = () => {
       const groupSize = plan.context?.group_size || 1;
 
       // 4. Assemble coherent proposed itinerary ("Here's what I'd do")
-      const proposal = buildProposedItinerary(allRecs, budgetMax, intent, groupSize);
+      const proposal = buildProposedItinerary(allRecs, budgetMax, intent, groupSize, plan.understanding);
       setProposedItinerary(proposal);
 
       // Smooth scroll to proposal section
@@ -61,6 +62,48 @@ export const App: React.FC = () => {
       setErrorMessage(msg);
     } finally {
       setIsPlanning(false);
+    }
+  };
+
+  // Conversational Plan Modification ("Tweak this plan")
+  const handleTweakPlan = async (tweakText: string) => {
+    if (!currentPlan) return;
+    setIsTweaking(true);
+    setErrorMessage(null);
+
+    try {
+      // 1. Send modification delta to backend
+      const updatedPlan = await modifyPlan(currentPlan.id, tweakText);
+      setCurrentPlan(updatedPlan);
+
+      // 2. Refresh recommendations with updated context & constraints
+      const recsResponse = await getPlanRecommendations(updatedPlan.id);
+      const allRecs = recsResponse.candidates || [];
+      setCandidates(allRecs);
+
+      // 3. Extract updated budget
+      const budgetConstraint = updatedPlan.constraints?.find((c) => c.type === 'budget_max');
+      const budgetMax = budgetConstraint?.numeric_value
+        ? parseFloat(String(budgetConstraint.numeric_value))
+        : null;
+
+      const groupSize = updatedPlan.context?.group_size || 1;
+
+      // 4. Re-assemble itinerary with updated understanding & candidates
+      const proposal = buildProposedItinerary(
+        allRecs,
+        budgetMax,
+        updatedPlan.intention,
+        groupSize,
+        updatedPlan.understanding
+      );
+      setProposedItinerary(proposal);
+    } catch (err: unknown) {
+      console.error('Error tweaking plan:', err);
+      const msg = err instanceof Error ? err.message : 'Failed to update plan.';
+      setErrorMessage(msg);
+    } finally {
+      setIsTweaking(false);
     }
   };
 
@@ -174,6 +217,7 @@ export const App: React.FC = () => {
             />
 
             <ProposedPlan
+              key={`${currentPlan.id}-${currentPlan.updated_at || ''}-${proposedItinerary.estimatedTotal}`}
               plan={currentPlan}
               initialItinerary={proposedItinerary}
               allCandidates={candidates}
@@ -181,6 +225,8 @@ export const App: React.FC = () => {
               onConfirm={handleConfirmPlan}
               isSaving={isSaving}
               onModifyIntent={handleModifyIntent}
+              onTweakPlan={handleTweakPlan}
+              isTweaking={isTweaking}
             />
           </div>
         )}

@@ -20,6 +20,8 @@ class ReasonType(str, Enum):
     CATEGORY = "category"
     DURATION = "duration"
     GENERAL = "general"
+    PREFERENCE = "preference"
+    OCCASION = "occasion"
 
 
 class ReasonOutcome(str, Enum):
@@ -92,6 +94,10 @@ class DecisionCriteria:
     maximum_cost: Decimal | None = None
     group_size: int | None = None
     maximum_duration_minutes: int | None = None
+    occasion: str | None = None
+    preferences: tuple[str, ...] = ()
+    exclusions: tuple[str, ...] = ()
+    activity_types: tuple[InformationCategory, ...] = ()
 
     def __post_init__(self) -> None:
         if self.maximum_cost is not None and self.maximum_cost < 0:

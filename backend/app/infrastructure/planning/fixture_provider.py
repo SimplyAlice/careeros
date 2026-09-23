@@ -15,6 +15,8 @@ from app.domain.entities.planning.information import Activity, InformationCatego
 V_AND_A_ID = UUID("10000000-0000-0000-0000-000000000001")
 COMPANY_GARDENS_ID = UUID("10000000-0000-0000-0000-000000000002")
 BO_KAAP_ID = UUID("10000000-0000-0000-0000-000000000003")
+KLOOF_STREET_ID = UUID("10000000-0000-0000-0000-000000000004")
+WATERFRONT_GRILL_ID = UUID("10000000-0000-0000-0000-000000000005")
 
 
 class CapeTownFixtureInformationProvider(PlanningInformationProvider):
@@ -36,6 +38,12 @@ class CapeTownFixtureInformationProvider(PlanningInformationProvider):
         Place(id=BO_KAAP_ID, name="Bo-Kaap Cultural Stop", location="Cape Town", category=InformationCategory.CULTURE,
               description="Fixture cultural neighbourhood stop with a guided-history option.", price_from=Decimal("120"),
               opening_hours="Tue-Sun 09:00-17:00", maximum_group_size=8),
+        Place(id=KLOOF_STREET_ID, name="Kloof Street Roastery", location="Cape Town", category=InformationCategory.FOOD,
+              description="Fixture cozy neighborhood cafe and coffee roastery with relaxed indoor seating.", price_from=Decimal("45"),
+              opening_hours="Daily 07:00-18:00", maximum_group_size=4),
+        Place(id=WATERFRONT_GRILL_ID, name="Grand Harbour Fine Dining", location="Cape Town", category=InformationCategory.FOOD,
+              description="Fixture upscale fine dining waterfront steakhouse with formal dress code.", price_from=Decimal("480"),
+              opening_hours="Daily 18:00-23:00", maximum_group_size=6),
     )
     _activities = (
         Activity(id=UUID("20000000-0000-0000-0000-000000000001"), place_id=V_AND_A_ID, name="Harbour food tasting",
@@ -50,6 +58,14 @@ class CapeTownFixtureInformationProvider(PlanningInformationProvider):
                  location="Cape Town", category=InformationCategory.CULTURE,
                  description="Fixture small-group cultural walk.", cost=Decimal("150"), duration_minutes=75,
                  maximum_group_size=8, metadata={"booking": "recommended", "weather_sensitive": "true"}),
+        Activity(id=UUID("20000000-0000-0000-0000-000000000004"), place_id=KLOOF_STREET_ID, name="Artisan coffee & pastry flight",
+                 location="Cape Town", category=InformationCategory.FOOD,
+                 description="Fixture relaxed indoor coffee tasting and pastry pairing.", cost=Decimal("75"), duration_minutes=45,
+                 maximum_group_size=3, metadata={"booking": "not_required", "weather_sensitive": "false"}),
+        Activity(id=UUID("20000000-0000-0000-0000-000000000005"), place_id=WATERFRONT_GRILL_ID, name="Chef tasting menu & wine pairing",
+                 location="Cape Town", category=InformationCategory.FOOD,
+                 description="Fixture luxury multi-course fine dining tasting menu.", cost=Decimal("650"), duration_minutes=120,
+                 maximum_group_size=6, metadata={"booking": "required", "weather_sensitive": "false"}),
     )
 
     @property

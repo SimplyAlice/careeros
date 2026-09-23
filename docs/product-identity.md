@@ -38,22 +38,19 @@ remains conversational and natural:
 USER INTENTION ("Tell me what you want to do...")
       |
       v
-UNDERSTAND CONTEXT (Location, group size, timing)
-      |
-      v
-IDENTIFY CONSTRAINTS & PREFERENCES (Budget maximum, group fit)
+UNDERSTAND CONTEXT & INTENT (Occasion, group, date/time, budget, preferences, exclusions)
       |
       v
 FIND RELEVANT INFORMATION (Places, activities, providers)
       |
       v
-MAKE DECISIONS (Scoring, trade-offs, human rationale)
+MAKE DECISIONS (Exclusion filtering, preference scoring, trade-offs, human rationale)
       |
       v
 PROPOSE COHERENT PLAN ("Here's what I'd do")
       |
       v
-USER REVIEWS & CUSTOMIZES (Swap, remove, budget updates)
+USER REVIEWS & TWEAKS (Swap, remove, conversational adjustments: "Make it cheaper", "No outdoors")
       |
       v
 CONFIRMATION ("Looks good" -> Authoritative persistence)

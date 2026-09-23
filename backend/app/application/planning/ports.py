@@ -9,6 +9,20 @@ from app.domain.entities.planning.plan_item import PlanItem
 
 if TYPE_CHECKING:
     from app.application.planning.information import OptionSearchCriteria
+    from app.domain.entities.planning.understanding import PlanningUnderstanding
+
+
+class PlanningUnderstandingPort(Protocol):
+    """Boundary for understanding conversational planning requests.
+
+    Consumes a raw natural language user request and produces a structured,
+    provider-neutral PlanningUnderstanding value object. Implementations may
+    be deterministic, rule-based, hybrid, or LLM-driven without changing the domain
+    or application callers.
+    """
+
+    async def understand(self, user_id: UUID, raw_request: str) -> PlanningUnderstanding:
+        ...
 
 
 class PlanRepository(Protocol):

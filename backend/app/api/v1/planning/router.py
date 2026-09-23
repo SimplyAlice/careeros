@@ -14,6 +14,7 @@ from app.api.deps import (
     get_planning_decision_service,
     get_planning_information_service,
     get_planning_service,
+    get_planning_understanding_service,
 )
 from app.api.v1.auth import get_current_user
 from app.api.v1.planning.information import DecisionCandidateRead, RecommendationResponse
@@ -23,11 +24,14 @@ from app.application.planning.errors import OptionNotFoundError, PlanItemNotFoun
 from app.application.planning.information import PlanningInformationService
 from app.application.planning.intent_interpreter import IntentInterpreter
 from app.application.planning.planning_service import PlanningService
+from app.application.planning.ports import PlanningUnderstandingPort
 from app.application.planning.selection_service import PlanSelectionService, criteria_from_plan
+from app.application.planning.understanding_service import DeterministicUnderstandingEngine
 from app.domain.entities.planning.constraint import ConstraintType
 from app.domain.entities.planning.decision import CandidateType
 from app.domain.entities.planning.plan import Plan, PlanStatus
 from app.domain.entities.planning.plan_item import PlanItem, PlanItemType
+from app.domain.entities.planning.understanding import PlanningUnderstanding
 from app.infrastructure.db.models import User
 
 router = APIRouter(prefix="/planning", tags=["planning"])
@@ -125,6 +129,48 @@ class PlanItemPatchRequest(BaseModel):
         return self.model_dump(exclude_unset=True)
 
 
+class UnderstandingRead(BaseModel):
+    goal: str
+    occasion: str | None = None
+    people_count: int | None = None
+    relationship_context: str | None = None
+    date_spec: str | None = None
+    time_window: str | None = None
+    location: str | None = None
+    location_is_inferred: bool = False
+    budget_amount: Decimal | None = None
+    budget_kind: str = "none"
+    preferences: list[str] = Field(default_factory=list)
+    exclusions: list[str] = Field(default_factory=list)
+    activity_types: list[str] = Field(default_factory=list)
+    ambiguities: list[str] = Field(default_factory=list)
+    provenance: dict[str, str] = Field(default_factory=dict)
+
+    @classmethod
+    def from_understanding(cls, u: PlanningUnderstanding) -> UnderstandingRead:
+        return cls(
+            goal=u.goal,
+            occasion=u.occasion,
+            people_count=u.people_count,
+            relationship_context=u.relationship_context,
+            date_spec=u.date_spec,
+            time_window=u.time_window,
+            location=u.location,
+            location_is_inferred=u.location_is_inferred,
+            budget_amount=u.budget_amount,
+            budget_kind=u.budget_kind.value,
+            preferences=list(u.preferences),
+            exclusions=list(u.exclusions),
+            activity_types=[cat.value for cat in u.activity_types],
+            ambiguities=list(u.ambiguities),
+            provenance=dict(u.provenance),
+        )
+
+
+class PlanModifyRequest(BaseModel):
+    request: str = Field(..., min_length=1, max_length=5000)
+
+
 class CreatePlanFromIntentRequest(BaseModel):
     request: str = Field(..., min_length=1, max_length=5000)
 
@@ -191,19 +237,97 @@ class PlanRead(BaseModel):
     constraints: list[ConstraintRead]
     items: list[PlanItemRead]
     budget: BudgetRead
+    understanding: UnderstandingRead | None = None
 
     @classmethod
-    def from_plan(cls, plan: Plan) -> PlanRead:
+    def from_plan(cls, plan: Plan, understanding: PlanningUnderstanding | None = None) -> PlanRead:
         context = None if plan.context is None else ContextRead(
             location=plan.context.location, start_time=plan.context.start_time, end_time=plan.context.end_time,
             group_size=plan.context.group_size, transport_mode=plan.context.transport_mode,
         )
         budget = plan.budget_summary()
-        return cls(id=plan.id, intention=plan.intention, title=plan.title, status=plan.status,
-                   created_at=plan.created_at, updated_at=plan.updated_at, context=context,
-                   constraints=[ConstraintRead(id=item.id, type=item.type, value=item.value,
-                                               numeric_value=item.numeric_value) for item in plan.constraints],
-                   items=[PlanItemRead.from_item(item) for item in plan.items], budget=BudgetRead(**budget.__dict__))
+        u_read = (
+            UnderstandingRead.from_understanding(understanding)
+            if understanding is not None
+            else _build_plan_understanding_read(plan)
+        )
+        return cls(
+            id=plan.id,
+            intention=plan.intention,
+            title=plan.title,
+            status=plan.status,
+            created_at=plan.created_at,
+            updated_at=plan.updated_at,
+            context=context,
+            constraints=[
+                ConstraintRead(
+                    id=item.id,
+                    type=item.type,
+                    value=item.value,
+                    numeric_value=item.numeric_value,
+                )
+                for item in plan.constraints
+            ],
+            items=[PlanItemRead.from_item(item) for item in plan.items],
+            budget=BudgetRead(**budget.__dict__),
+            understanding=u_read,
+        )
+
+
+def _build_plan_understanding_read(plan: Plan) -> UnderstandingRead:
+    engine = DeterministicUnderstandingEngine()
+    try:
+        parsed = engine.parse(plan.intention)
+    except Exception:
+        parsed = None
+
+    stored_exclusions: list[str] = []
+    stored_preferences: list[str] = []
+    stored_occasion: str | None = None
+    stored_date: str | None = None
+    stored_time: str | None = None
+
+    for c in plan.constraints:
+        if c.type is ConstraintType.REQUIREMENT:
+            if c.value.startswith("exclude:"):
+                stored_exclusions.append(c.value.split(":", 1)[1])
+            elif c.value.startswith("date:"):
+                stored_date = c.value.split(":", 1)[1]
+            elif c.value.startswith("time:"):
+                stored_time = c.value.split(":", 1)[1]
+        elif c.type is ConstraintType.PREFERENCE:
+            if c.value.startswith("occasion:"):
+                stored_occasion = c.value.split(":", 1)[1]
+            else:
+                stored_preferences.append(c.value)
+
+    budget_c = next((c for c in plan.constraints if c.type is ConstraintType.BUDGET_MAX), None)
+    budget_amount = budget_c.numeric_value if budget_c else (parsed.budget_amount if parsed else None)
+    budget_kind = parsed.budget_kind.value if parsed else ("hard_max" if budget_amount else "none")
+
+    group_size = plan.context.group_size if plan.context else (parsed.people_count if parsed else 1)
+    location = plan.context.location if plan.context else (parsed.location if parsed else "Cape Town")
+
+    merged_exclusions = list(dict.fromkeys((list(parsed.exclusions) if parsed else []) + stored_exclusions))
+    merged_preferences = list(dict.fromkeys((list(parsed.preferences) if parsed else []) + stored_preferences))
+
+    return UnderstandingRead(
+        goal=plan.title or (parsed.goal if parsed else plan.intention),
+        occasion=stored_occasion or (parsed.occasion if parsed else None),
+        people_count=group_size,
+        relationship_context=parsed.relationship_context if parsed else None,
+        date_spec=stored_date or (parsed.date_spec if parsed else None),
+        time_window=stored_time or (parsed.time_window if parsed else None),
+        location=location,
+        location_is_inferred=parsed.location_is_inferred if parsed else True,
+        budget_amount=budget_amount,
+        budget_kind=budget_kind,
+        preferences=merged_preferences,
+        exclusions=merged_exclusions,
+        activity_types=[cat.value for cat in parsed.activity_types] if parsed else [],
+        ambiguities=list(parsed.ambiguities) if parsed else [],
+        provenance=dict(parsed.provenance) if parsed else {},
+    )
 
 
 def _not_found(exc: Exception) -> HTTPException:
@@ -220,10 +344,31 @@ async def create_plan(body: CreatePlanRequest, current_user: Annotated[User, Dep
 
 
 @router.post("/requests", response_model=PlanRead, status_code=status.HTTP_201_CREATED)
-async def create_plan_from_request(body: CreatePlanFromIntentRequest, current_user: Annotated[User, Depends(get_current_user)],
-                                   interpreter: Annotated[IntentInterpreter, Depends(get_intent_interpreter)],
-                                   service: Annotated[PlanningService, Depends(get_planning_service)]) -> PlanRead:
-    return PlanRead.from_plan(await service.create_plan_from_intent(interpreter.interpret(current_user.id, body.request)))
+async def create_plan_from_request(
+    body: CreatePlanFromIntentRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    understanding_engine: Annotated[PlanningUnderstandingPort, Depends(get_planning_understanding_service)],
+    service: Annotated[PlanningService, Depends(get_planning_service)],
+) -> PlanRead:
+    understanding = await understanding_engine.understand(current_user.id, body.request)
+    plan = await service.create_plan_from_understanding(current_user.id, understanding)
+    return PlanRead.from_plan(plan, understanding=understanding)
+
+
+@router.post("/plans/{plan_id}/modifications", response_model=PlanRead)
+async def modify_plan(
+    plan_id: UUID,
+    body: PlanModifyRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[PlanningService, Depends(get_planning_service)],
+) -> PlanRead:
+    try:
+        updated = await service.modify_plan(current_user.id, plan_id, body.request)
+        return PlanRead.from_plan(updated)
+    except PlanningNotFoundError as exc:
+        raise _not_found(exc) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.get("/plans", response_model=list[PlanRead])

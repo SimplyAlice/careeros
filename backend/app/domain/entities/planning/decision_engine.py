@@ -27,6 +27,9 @@ GROUP_FIT_SCORE = 15
 LOCATION_MATCH_SCORE = 10
 DURATION_FIT_SCORE = 10
 PLACE_DURATION_NEUTRAL_SCORE = 5
+PREFERENCE_FIT_SCORE = 15
+OCCASION_FIT_SCORE = 15
+ACTIVITY_TYPE_FIT_SCORE = 20
 
 
 def decide(
@@ -64,13 +67,30 @@ def evaluate_place(place: Place, criteria: DecisionCriteria) -> DecisionCandidat
     eligible &= _assess_group(
         place.minimum_group_size, place.maximum_group_size, criteria.group_size, reasons
     )
+    eligible &= _assess_exclusions(
+        place.category, place.name, place.description, place.price_from, {}, criteria.exclusions, reasons
+    )
+    pref_matched = _assess_preferences(
+        place.category, place.description, criteria.preferences, reasons
+    )
+    occasion_matched = _assess_occasion(
+        place.category, place.description, criteria.occasion, reasons
+    )
     reasons = _ensure_reasons(reasons, "place")
     return DecisionCandidate(
         option_id=place.id,
         option_type=CandidateType.PLACE,
         name=place.name,
         is_eligible=eligible,
-        score=_score(criteria, place.category, place.price_from, place.location, None),
+        score=_score(
+            criteria,
+            place.category,
+            place.price_from,
+            place.location,
+            None,
+            pref_matched=pref_matched,
+            occasion_matched=occasion_matched,
+        ),
         reasons=tuple(reasons),
         category=place.category,
         cost=place.price_from,
@@ -92,6 +112,21 @@ def evaluate_activity(activity: Activity, criteria: DecisionCriteria) -> Decisio
     eligible &= _assess_duration(
         activity.duration_minutes, criteria.maximum_duration_minutes, reasons
     )
+    eligible &= _assess_exclusions(
+        activity.category,
+        activity.name,
+        activity.description,
+        activity.cost,
+        dict(activity.metadata),
+        criteria.exclusions,
+        reasons,
+    )
+    pref_matched = _assess_preferences(
+        activity.category, activity.description, criteria.preferences, reasons
+    )
+    occasion_matched = _assess_occasion(
+        activity.category, activity.description, criteria.occasion, reasons
+    )
     reasons = _ensure_reasons(reasons, "activity")
     return DecisionCandidate(
         option_id=activity.id,
@@ -99,7 +134,13 @@ def evaluate_activity(activity: Activity, criteria: DecisionCriteria) -> Decisio
         name=activity.name,
         is_eligible=eligible,
         score=_score(
-            criteria, activity.category, activity.cost, activity.location, activity.duration_minutes
+            criteria,
+            activity.category,
+            activity.cost,
+            activity.location,
+            activity.duration_minutes,
+            pref_matched=pref_matched,
+            occasion_matched=occasion_matched,
         ),
         reasons=tuple(reasons),
         category=activity.category,
@@ -268,10 +309,14 @@ def _score(
     cost: Decimal | None,
     location: str | None,
     duration_minutes: int | None,
+    pref_matched: bool = False,
+    occasion_matched: bool = False,
 ) -> int:
     score = 0
     if criteria.category is not None and category is criteria.category:
         score += CATEGORY_MATCH_SCORE
+    if criteria.activity_types and category in criteria.activity_types:
+        score += ACTIVITY_TYPE_FIT_SCORE
     if criteria.maximum_cost is not None and (cost is None or cost <= criteria.maximum_cost):
         score += BUDGET_FIT_SCORE
     if criteria.group_size is not None:
@@ -287,4 +332,194 @@ def _score(
             score += PLACE_DURATION_NEUTRAL_SCORE
         elif duration_minutes <= criteria.maximum_duration_minutes:
             score += DURATION_FIT_SCORE
+    if pref_matched:
+        score += PREFERENCE_FIT_SCORE
+    if occasion_matched:
+        score += OCCASION_FIT_SCORE
     return score
+
+
+def _assess_exclusions(
+    category: InformationCategory,
+    name: str,
+    description: str,
+    cost: Decimal | None,
+    metadata: dict[str, str],
+    exclusions: tuple[str, ...],
+    reasons: list[DecisionReason],
+) -> bool:
+    is_eligible = True
+    combined_text = f"{name} {description}".casefold()
+    for raw_exclusion in exclusions:
+        ex = raw_exclusion.casefold().replace(" ", "_")
+        if ex in {"no_outdoors", "no_outdoor", "not_outdoors", "nothing_outdoors"}:
+            is_outdoor = category is InformationCategory.NATURE or metadata.get("weather_sensitive") == "true" or "outdoor" in combined_text
+            if is_outdoor:
+                reasons.append(
+                    DecisionReason(
+                        ReasonType.GENERAL,
+                        ReasonOutcome.VIOLATED,
+                        "Excluded: outdoor activity violates constraint",
+                    )
+                )
+                is_eligible = False
+        elif ex in {"not_fancy", "not_too_fancy", "nothing_too_fancy", "no_fancy"}:
+            is_fancy = "fine dining" in combined_text or "upscale" in combined_text or (cost is not None and cost >= Decimal("400"))
+            if is_fancy:
+                reasons.append(
+                    DecisionReason(
+                        ReasonType.GENERAL,
+                        ReasonOutcome.VIOLATED,
+                        "Excluded: upscale / formal venue violates constraint",
+                    )
+                )
+                is_eligible = False
+        elif ex in {"no_clubs", "no_club", "no_party"}:
+            if "club" in combined_text or "nightclub" in combined_text:
+                reasons.append(
+                    DecisionReason(
+                        ReasonType.GENERAL,
+                        ReasonOutcome.VIOLATED,
+                        "Excluded: clubs or party venues violate constraint",
+                    )
+                )
+                is_eligible = False
+    return is_eligible
+
+
+def _assess_preferences(
+    category: InformationCategory,
+    description: str,
+    preferences: tuple[str, ...],
+    reasons: list[DecisionReason],
+) -> bool:
+    matched = False
+    desc_lower = description.casefold()
+    for raw_pref in preferences:
+        pref = raw_pref.casefold()
+        if pref in {"casual", "chill", "relaxed", "unhurried"}:
+            if any(term in desc_lower for term in ("casual", "relaxed", "walk", "tasting", "green space", "coffee", "roastery")):
+                reasons.append(
+                    DecisionReason(
+                        ReasonType.PREFERENCE,
+                        ReasonOutcome.SUPPORTED,
+                        "Fits your preference for a relaxed, casual vibe",
+                    )
+                )
+                matched = True
+        elif pref in {"nice", "somewhere nice", "aesthetic", "scenic"}:
+            if any(term in desc_lower for term in ("waterfront", "green space", "guided-history", "tasting", "roastery", "view", "walk", "cultural")):
+                reasons.append(
+                    DecisionReason(
+                        ReasonType.PREFERENCE,
+                        ReasonOutcome.SUPPORTED,
+                        "Fits your preference for somewhere nice and pleasant",
+                    )
+                )
+                matched = True
+        elif pref in {"romantic", "date"}:
+            if any(term in desc_lower for term in ("shared", "tasting", "waterfront", "walk", "cultural", "relaxed")):
+                reasons.append(
+                    DecisionReason(
+                        ReasonType.PREFERENCE,
+                        ReasonOutcome.SUPPORTED,
+                        "Matches your preference for a romantic outing",
+                    )
+                )
+                matched = True
+        elif pref in {"fun", "something fun", "entertainment", "social"}:
+            reasons.append(
+                DecisionReason(
+                    ReasonType.PREFERENCE,
+                    ReasonOutcome.SUPPORTED,
+                    "Matches your preference for something fun and engaging",
+                )
+            )
+            matched = True
+        elif pref in {"food", "food-focused", "food_focused"}:
+            if category is InformationCategory.FOOD:
+                reasons.append(
+                    DecisionReason(
+                        ReasonType.PREFERENCE,
+                        ReasonOutcome.SUPPORTED,
+                        "Matches your food-focused preference",
+                    )
+                )
+                matched = True
+        elif pref in {"culture", "cultural"}:
+            if category is InformationCategory.CULTURE:
+                reasons.append(
+                    DecisionReason(
+                        ReasonType.PREFERENCE,
+                        ReasonOutcome.SUPPORTED,
+                        "Matches your cultural preference",
+                    )
+                )
+                matched = True
+        elif pref in {"outdoors", "nature"}:
+            if category is InformationCategory.NATURE:
+                reasons.append(
+                    DecisionReason(
+                        ReasonType.PREFERENCE,
+                        ReasonOutcome.SUPPORTED,
+                        "Matches your outdoors preference",
+                    )
+                )
+                matched = True
+    return matched
+
+
+def _assess_occasion(
+    category: InformationCategory,
+    description: str,
+    occasion: str | None,
+    reasons: list[DecisionReason],
+) -> bool:
+    if occasion is None:
+        return False
+    occ = occasion.casefold()
+    desc_lower = description.casefold()
+    if occ == "date":
+        if any(term in desc_lower for term in ("shared", "waterfront", "walk", "tasting", "guided", "relaxed")) or category in (
+            InformationCategory.FOOD,
+            InformationCategory.CULTURE,
+            InformationCategory.NATURE,
+        ):
+            reasons.append(
+                DecisionReason(
+                    ReasonType.OCCASION,
+                    ReasonOutcome.SUPPORTED,
+                    "Well suited for a date outing",
+                )
+            )
+            return True
+    elif occ in {"birthday", "celebration"}:
+        if category in (InformationCategory.FOOD, InformationCategory.ENTERTAINMENT):
+            reasons.append(
+                DecisionReason(
+                    ReasonType.OCCASION,
+                    ReasonOutcome.SUPPORTED,
+                    "Great choice for celebrating a special occasion",
+                )
+            )
+            return True
+    elif occ in {"friends", "casual_hangout"}:
+        reasons.append(
+            DecisionReason(
+                ReasonType.OCCASION,
+                ReasonOutcome.SUPPORTED,
+                "Great fit for a casual get-together with friends",
+            )
+        )
+        return True
+    elif occ == "solo":
+        if "self-guided" in desc_lower or "walk" in desc_lower or category in (InformationCategory.NATURE, InformationCategory.CULTURE):
+            reasons.append(
+                DecisionReason(
+                    ReasonType.OCCASION,
+                    ReasonOutcome.SUPPORTED,
+                    "Ideal for an unhurried solo experience",
+                )
+            )
+            return True
+    return False

@@ -36,8 +36,9 @@ from app.application.planning.decision_service import PlanningDecisionService
 from app.application.planning.information import PlanningInformationService
 from app.application.planning.intent_interpreter import IntentInterpreter
 from app.application.planning.planning_service import PlanningService
-from app.application.planning.ports import PlanningInformationProvider, PlanRepository
+from app.application.planning.ports import PlanningInformationProvider, PlanningUnderstandingPort, PlanRepository
 from app.application.planning.selection_service import PlanSelectionService
+from app.application.planning.understanding_service import DeterministicUnderstandingEngine
 from app.application.profile.ports import ProfileRepository
 from app.application.profile.profile_service import ProfileService
 from app.application.scoring.ports import JobMatchRepository, LLMProvider
@@ -315,7 +316,12 @@ __all__ = [
     "get_planning_information_service",
     "get_planning_decision_service",
     "get_plan_selection_service",
+    "get_planning_understanding_service",
 ]
+def get_planning_understanding_service() -> PlanningUnderstandingPort:
+    return DeterministicUnderstandingEngine()
+
+
 def get_intent_interpreter() -> IntentInterpreter:
     return IntentInterpreter()
 

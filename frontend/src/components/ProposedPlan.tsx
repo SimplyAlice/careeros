@@ -19,6 +19,8 @@ interface ProposedPlanProps {
   onConfirm: (selectedCandidates: DecisionCandidateRead[]) => Promise<void>;
   isSaving: boolean;
   onModifyIntent: () => void;
+  onTweakPlan?: (tweakText: string) => Promise<void>;
+  isTweaking?: boolean;
 }
 
 export const ProposedPlan: React.FC<ProposedPlanProps> = ({
@@ -29,10 +31,13 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
   onConfirm,
   isSaving,
   onModifyIntent,
+  onTweakPlan,
+  isTweaking = false,
 }) => {
   const [itinerary, setItinerary] = useState<ProposedItinerary>(initialItinerary);
   const [swappingIndex, setSwappingIndex] = useState<number | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [customTweak, setCustomTweak] = useState('');
 
   const groupSize = plan.context?.group_size || 1;
 
@@ -296,13 +301,129 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
         )}
       </div>
 
+      {/* Conversational Plan Modification */}
+      {onTweakPlan && (
+        <div
+          className="proposal-tweak-section"
+          style={{
+            marginTop: '1.5rem',
+            marginBottom: '1rem',
+            padding: '1rem 1.25rem',
+            borderRadius: '12px',
+            background: 'var(--surface-subtle, #fbfbfa)',
+            border: '1px solid var(--border-subtle, #e5e5e0)',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '0.6rem',
+            }}
+          >
+            <span
+              style={{
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                color: 'var(--text-secondary, #52525b)',
+              }}
+            >
+              💬 Want to tweak this plan?
+            </span>
+            <small style={{ fontSize: '0.75rem', color: 'var(--text-muted, #71717a)' }}>
+              Preserves your context
+            </small>
+          </div>
+
+          {/* Quick adjustment chips */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '0.5rem',
+              marginBottom: '0.75rem',
+            }}
+          >
+            {['Make it cheaper', 'Nothing outdoors', 'Add 2 people', 'Make it Sunday'].map(
+              (chip) => (
+                <button
+                  key={chip}
+                  type="button"
+                  className="chip-btn"
+                  style={{
+                    fontSize: '0.8rem',
+                    padding: '4px 10px',
+                    borderRadius: '16px',
+                    border: '1px solid #d4d4d8',
+                    background: '#ffffff',
+                    color: '#27272a',
+                    cursor: isTweaking || isSaving ? 'not-allowed' : 'pointer',
+                    opacity: isTweaking || isSaving ? 0.6 : 1,
+                  }}
+                  disabled={isTweaking || isSaving}
+                  onClick={() => onTweakPlan(chip)}
+                >
+                  + {chip}
+                </button>
+              )
+            )}
+          </div>
+
+          {/* Inline custom prompt input */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (customTweak.trim() && !isTweaking && !isSaving) {
+                onTweakPlan(customTweak.trim());
+                setCustomTweak('');
+              }
+            }}
+            style={{ display: 'flex', gap: '0.5rem' }}
+          >
+            <input
+              type="text"
+              value={customTweak}
+              onChange={(e) => setCustomTweak(e.target.value)}
+              placeholder="e.g. Make it cheaper, no outdoors, add 2 people..."
+              disabled={isTweaking || isSaving}
+              style={{
+                flex: 1,
+                fontSize: '0.85rem',
+                padding: '0.45rem 0.75rem',
+                borderRadius: '8px',
+                border: '1px solid #d4d4d8',
+                outline: 'none',
+              }}
+            />
+            <button
+              type="submit"
+              disabled={!customTweak.trim() || isTweaking || isSaving}
+              style={{
+                fontSize: '0.85rem',
+                padding: '0.45rem 1rem',
+                borderRadius: '8px',
+                border: 'none',
+                background: '#18181b',
+                color: '#fff',
+                fontWeight: 500,
+                cursor: !customTweak.trim() || isTweaking || isSaving ? 'not-allowed' : 'pointer',
+                opacity: !customTweak.trim() || isTweaking || isSaving ? 0.5 : 1,
+              }}
+            >
+              {isTweaking ? 'Updating...' : 'Tweak'}
+            </button>
+          </form>
+        </div>
+      )}
+
       {/* Bottom Actions */}
       <div className="proposal-actions">
         <button
           type="button"
           className="btn-primary-confirm"
           onClick={handleConfirmClick}
-          disabled={isSaving || itinerary.items.length === 0}
+          disabled={isSaving || isTweaking || itinerary.items.length === 0}
         >
           {isSaving ? (
             <span className="spinner-wrap">

@@ -211,3 +211,62 @@ def test_decision_criteria_rejects_invalid_values() -> None:
         DecisionCriteria(group_size=0)
     with pytest.raises(ValueError, match="Maximum duration"):
         DecisionCriteria(maximum_duration_minutes=0)
+
+
+def test_decision_criteria_filters_hard_exclusions_no_outdoors() -> None:
+    criteria = DecisionCriteria(
+        location="Cape Town",
+        exclusions=("no_outdoors",),
+    )
+    nature_place = _place(category=InformationCategory.NATURE, name="Botanical Gardens")
+    candidate = evaluate_place(nature_place, criteria)
+
+    assert candidate.is_eligible is False
+    violation = next(r for r in candidate.reasons if r.outcome is ReasonOutcome.VIOLATED)
+    assert "outdoor activity violates constraint" in violation.message
+
+
+def test_decision_criteria_filters_hard_exclusions_not_too_fancy() -> None:
+    criteria = DecisionCriteria(
+        location="Cape Town",
+        exclusions=("not_too_fancy",),
+    )
+    upscale_place = _place(
+        category=InformationCategory.FOOD,
+        name="The Test Kitchen",
+        description="Upscale fine dining tasting experience.",
+        price_from=Decimal("550"),
+    )
+    candidate = evaluate_place(upscale_place, criteria)
+
+    assert candidate.is_eligible is False
+    violation = next(r for r in candidate.reasons if r.outcome is ReasonOutcome.VIOLATED)
+    assert "upscale / formal venue violates constraint" in violation.message
+
+
+def test_decision_criteria_applies_preference_fit_boost() -> None:
+    criteria_normal = DecisionCriteria(location="Cape Town")
+    criteria_chill = DecisionCriteria(location="Cape Town", preferences=("chill",))
+
+    place = _place(description="A relaxed, casual venue with good coffee.")
+    candidate_normal = evaluate_place(place, criteria_normal)
+    candidate_chill = evaluate_place(place, criteria_chill)
+
+    assert candidate_chill.score > candidate_normal.score
+    pref_reasons = [r for r in candidate_chill.reasons if r.type is ReasonType.PREFERENCE]
+    assert len(pref_reasons) > 0
+    assert pref_reasons[0].outcome is ReasonOutcome.SUPPORTED
+
+
+def test_decision_criteria_applies_occasion_fit_boost() -> None:
+    criteria_normal = DecisionCriteria(location="Cape Town")
+    criteria_date = DecisionCriteria(location="Cape Town", occasion="date")
+
+    place = _place(description="A romantic waterfront spot with sunset views.")
+    candidate_normal = evaluate_place(place, criteria_normal)
+    candidate_date = evaluate_place(place, criteria_date)
+
+    assert candidate_date.score > candidate_normal.score
+    occasion_reasons = [r for r in candidate_date.reasons if r.type is ReasonType.OCCASION]
+    assert len(occasion_reasons) > 0
+    assert occasion_reasons[0].outcome is ReasonOutcome.SUPPORTED

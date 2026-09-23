@@ -82,10 +82,8 @@ class PlanSelectionService:
 def criteria_from_plan(plan: Plan) -> DecisionCriteria:
     """Derive decision criteria from the plan's existing context/constraints.
 
-    Reuses the plan's own location, group size, category and budget/duration
-    constraints rather than inventing new ones. Eligibility is informational
-    only here: an over-budget selection is still allowed so the plan can
-    represent it.
+    Reuses the plan's own location, group size, category, budget/duration,
+    preferences, exclusions, and occasion constraints.
     """
     location = plan.context.location if plan.context is not None else None
     return DecisionCriteria(
@@ -94,7 +92,33 @@ def criteria_from_plan(plan: Plan) -> DecisionCriteria:
         maximum_cost=_budget_maximum(plan.constraints),
         group_size=_group_size(plan),
         maximum_duration_minutes=_duration_maximum(plan.constraints),
+        occasion=_occasion_from_constraints(plan.constraints),
+        preferences=_preferences_from_constraints(plan.constraints),
+        exclusions=_exclusions_from_constraints(plan.constraints),
     )
+
+
+def _occasion_from_constraints(constraints: list[Constraint]) -> str | None:
+    for constraint in constraints:
+        if constraint.type is ConstraintType.PREFERENCE and constraint.value.startswith("occasion:"):
+            return constraint.value.split(":", 1)[1]
+    return None
+
+
+def _preferences_from_constraints(constraints: list[Constraint]) -> tuple[str, ...]:
+    prefs: list[str] = []
+    for constraint in constraints:
+        if constraint.type is ConstraintType.PREFERENCE and not constraint.value.startswith("occasion:"):
+            prefs.append(constraint.value)
+    return tuple(prefs)
+
+
+def _exclusions_from_constraints(constraints: list[Constraint]) -> tuple[str, ...]:
+    exclusions: list[str] = []
+    for constraint in constraints:
+        if constraint.type is ConstraintType.REQUIREMENT and constraint.value.startswith("exclude:"):
+            exclusions.append(constraint.value.split(":", 1)[1])
+    return tuple(exclusions)
 
 
 def _category_from_constraints(constraints: list[Constraint]) -> InformationCategory | None:

@@ -1,4 +1,4 @@
-import type { DecisionCandidateRead, InformationCategory } from '../types/planning';
+import type { DecisionCandidateRead, InformationCategory, UnderstandingRead } from '../types/planning';
 
 export interface ProposedItineraryItem {
   candidate: DecisionCandidateRead;
@@ -82,7 +82,8 @@ export function formatCurrency(amount: number | string | null | undefined): stri
 export function humanizeCandidateReasons(
   candidate: DecisionCandidateRead,
   budgetMax: number | null,
-  groupSize: number = 1
+  groupSize: number = 1,
+  understanding?: UnderstandingRead | null
 ): string[] {
   const humanReasons: string[] = [];
   const cost = parseCandidateCost(candidate.cost);
@@ -94,12 +95,21 @@ export function humanizeCandidateReasons(
     humanReasons.push(`Fits comfortably within your ${formatCurrency(budgetMax)} budget.`);
   }
 
-  // 2. Group suitability
+  // 2. Occasion rationale
+  if (understanding?.occasion === 'date') {
+    humanReasons.push('A great, relaxed setting for a date.');
+  } else if (understanding?.occasion === 'birthday') {
+    humanReasons.push('A celebratory spot for a special day.');
+  } else if (understanding?.occasion === 'friends') {
+    humanReasons.push('Fun, easygoing setting for a group of friends.');
+  }
+
+  // 3. Group suitability
   if (groupSize > 1) {
     humanReasons.push(`Well suited for a group of ${groupSize}.`);
   }
 
-  // 3. Category context
+  // 4. Category context
   if (candidate.category === 'nature') {
     humanReasons.push('Offers a scenic, relaxed outdoor start.');
   } else if (candidate.category === 'culture') {
@@ -109,10 +119,9 @@ export function humanizeCandidateReasons(
   }
 
   // Fallback to any positive message from backend reasons if human list is small
-  if (humanReasons.length < 2 && candidate.reasons) {
+  if (candidate.reasons) {
     for (const r of candidate.reasons) {
       if (r.outcome === 'supported' && r.message) {
-        // Strip machine jargon if present
         const cleanMsg = r.message.replace(/R0\.00/g, 'R0');
         if (!humanReasons.includes(cleanMsg)) {
           humanReasons.push(cleanMsg);
@@ -153,9 +162,33 @@ export function getTradeOffNote(
 export function buildProposalNarrative(
   items: ProposedItineraryItem[],
   _budgetMax: number | null,
-  remainingBudget: number | null
+  remainingBudget: number | null,
+  understanding?: UnderstandingRead | null
 ): string {
   const categories = new Set(items.map((i) => i.candidate.category));
+
+  if (understanding?.occasion === 'date') {
+    if (remainingBudget !== null && remainingBudget > 0) {
+      return `A romantic outing designed for the two of you, with ${formatCurrency(remainingBudget)} left to spare.`;
+    }
+    return 'A relaxed, memorable date outing tailored for the two of you.';
+  }
+
+  if (understanding?.occasion === 'birthday') {
+    const forWho = understanding.relationship_context ? ` for your ${understanding.relationship_context}` : '';
+    if (remainingBudget !== null && remainingBudget > 0) {
+      return `A celebratory birthday plan${forWho}, with ${formatCurrency(remainingBudget)} left to spare.`;
+    }
+    return `A thoughtful birthday celebration${forWho} tailored to what you asked for.`;
+  }
+
+  if (understanding?.occasion === 'friends') {
+    const countStr = understanding.people_count ? `the ${understanding.people_count} of you` : 'your group';
+    if (remainingBudget !== null && remainingBudget > 0) {
+      return `A fun outing for ${countStr}, with ${formatCurrency(remainingBudget)} left in your budget.`;
+    }
+    return `A fun group plan tailored for ${countStr}.`;
+  }
 
   if (categories.has('food') && (categories.has('nature') || categories.has('culture'))) {
     if (remainingBudget !== null && remainingBudget > 0) {
@@ -178,18 +211,35 @@ export function buildProposalNarrative(
 /**
  * Assembles a coherent proposed itinerary from ranked recommendation candidates.
  *
- * Intent-aware and extensible:
- * - Prioritizes requested themes (food, outdoors, culture) when present.
+ * Understanding-aware and constraint-respecting:
+ * - Strictly filters out candidates violating exclusions (e.g. no outdoor, not fancy).
+ * - Prioritizes requested themes (food, outdoors, culture, date) when present.
  * - Otherwise builds a varied, non-repetitive sequence across categories.
  * - Strictly enforces budget limits.
  */
 export function buildProposedItinerary(
   candidates: DecisionCandidateRead[],
   budgetMax: number | null,
-  intentText: string = '',
-  groupSize: number = 1
+  _intentText: string = '',
+  groupSize: number = 1,
+  understanding?: UnderstandingRead | null
 ): ProposedItinerary {
-  const eligible = candidates.filter((c) => c.is_eligible);
+  let eligible = candidates.filter((c) => c.is_eligible);
+
+  // Client-side safety filter against exclusions
+  if (understanding?.exclusions && understanding.exclusions.length > 0) {
+    if (understanding.exclusions.includes('no_outdoors')) {
+      eligible = eligible.filter((c) => c.category !== 'nature');
+    }
+    if (understanding.exclusions.includes('not_too_fancy')) {
+      eligible = eligible.filter((c) => {
+        const cost = parseCandidateCost(c.cost);
+        const nameLower = c.name.toLowerCase();
+        return cost < 400 && !nameLower.includes('fine dining') && !nameLower.includes('luxury');
+      });
+    }
+  }
+
   if (eligible.length === 0) {
     return {
       items: [],
@@ -201,27 +251,25 @@ export function buildProposedItinerary(
     };
   }
 
-  const lowerIntent = intentText.toLowerCase();
-  const isFoodFocused = /food|eat|dinner|lunch|tasting|restaurant|drinks|cocktail/.test(lowerIntent);
-  const isOutdoorsFocused = /outdoor|nature|walk|hike|park|garden|beach/.test(lowerIntent);
-  const isCultureFocused = /culture|cultural|history|museum|art|heritage/.test(lowerIntent);
-
   const selectedCandidates: DecisionCandidateRead[] = [];
   const selectedOptionIds = new Set<string>();
   const selectedCategories = new Set<string>();
   let currentCost = 0;
 
-  // 1. If user has a strong focus, pick top candidate from that category first
-  if (isFoodFocused || isOutdoorsFocused || isCultureFocused) {
-    const focusedCategory = isFoodFocused ? 'food' : isOutdoorsFocused ? 'nature' : 'culture';
-    const focusMatch = eligible.find((c) => c.category === focusedCategory);
-    if (focusMatch) {
-      const cost = parseCandidateCost(focusMatch.cost);
-      if (budgetMax === null || cost <= budgetMax) {
-        selectedCandidates.push(focusMatch);
-        selectedOptionIds.add(focusMatch.option_id);
-        selectedCategories.add(focusMatch.category);
-        currentCost += cost;
+  // 1. If user has a strong focus or activity_type preference, pick top candidate from that category first
+  const preferredCats = understanding?.activity_types || [];
+  if (preferredCats.length > 0) {
+    for (const cat of preferredCats) {
+      const match = eligible.find((c) => c.category === cat && !selectedOptionIds.has(c.option_id));
+      if (match) {
+        const cost = parseCandidateCost(match.cost);
+        if (budgetMax === null || currentCost + cost <= budgetMax) {
+          selectedCandidates.push(match);
+          selectedOptionIds.add(match.option_id);
+          selectedCategories.add(match.category);
+          currentCost += cost;
+          break;
+        }
       }
     }
   }
@@ -268,13 +316,13 @@ export function buildProposedItinerary(
     icon: getCategoryIcon(candidate.category),
     subtitle: buildItemSubtitle(candidate),
     costNumber: parseCandidateCost(candidate.cost),
-    rationale: humanizeCandidateReasons(candidate, budgetMax, groupSize),
+    rationale: humanizeCandidateReasons(candidate, budgetMax, groupSize, understanding),
   }));
 
   const alternatives = eligible.filter((c) => !selectedOptionIds.has(c.option_id));
   const remainingBudget = budgetMax !== null ? budgetMax - currentCost : null;
   const isOverBudget = remainingBudget !== null && remainingBudget < 0;
-  const narrativeSubheading = buildProposalNarrative(items, budgetMax, remainingBudget);
+  const narrativeSubheading = buildProposalNarrative(items, budgetMax, remainingBudget, understanding);
 
   return {
     items,

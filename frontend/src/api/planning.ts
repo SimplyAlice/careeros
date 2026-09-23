@@ -61,3 +61,17 @@ export async function addOptionToPlan(
     body: JSON.stringify(body),
   });
 }
+
+/**
+ * Modifies an existing plan using a conversational request while retaining context.
+ * Endpoint: POST /api/v1/planning/plans/{plan_id}/modifications
+ */
+export async function modifyPlan(
+  planId: string,
+  request: string
+): Promise<PlanRead> {
+  return apiClient<PlanRead>(`/planning/plans/${planId}/modifications`, {
+    method: 'POST',
+    body: JSON.stringify({ request }),
+  });
+}
