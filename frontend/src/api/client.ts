@@ -1,5 +1,5 @@
 /**
- * Centralized API client for OpsOS.
+ * Centralized API client for Dayform.
  *
  * Handles base URL, auth token attachment, automated demo authentication
  * for local development, JSON parsing, and friendly error reporting.
@@ -7,7 +7,9 @@
 
 const API_BASE = '/api/v1';
 
-let authToken: string | null = localStorage.getItem('opsos_access_token');
+let authToken: string | null =
+  localStorage.getItem('dayform_access_token') ||
+  localStorage.getItem('opsos_access_token');
 
 export async function ensureAuthToken(): Promise<string> {
   if (authToken) {
@@ -26,7 +28,7 @@ export async function ensureAuthToken(): Promise<string> {
     });
   } catch (netErr) {
     console.error('Network failure during authentication:', netErr);
-    throw new Error('Unable to connect to OpsOS backend. Ensure backend is running on port 8000.');
+    throw new Error('Unable to connect to Dayform backend. Ensure backend is running on port 8000.');
   }
 
   if (!response.ok) {
@@ -43,7 +45,7 @@ export async function ensureAuthToken(): Promise<string> {
       });
     } catch (netErr) {
       console.error('Network failure during demo registration:', netErr);
-      throw new Error('Unable to connect to OpsOS backend. Ensure backend is running on port 8000.');
+      throw new Error('Unable to connect to Dayform backend. Ensure backend is running on port 8000.');
     }
 
     if (regRes.ok || regRes.status === 409 || regRes.status === 422) {
@@ -59,13 +61,13 @@ export async function ensureAuthToken(): Promise<string> {
         });
       } catch (netErr) {
         console.error('Network failure during login retry:', netErr);
-        throw new Error('Unable to connect to OpsOS backend. Ensure backend is running on port 8000.');
+        throw new Error('Unable to connect to Dayform backend. Ensure backend is running on port 8000.');
       }
 
       if (retryLogin.ok) {
         const data = await retryLogin.json();
         authToken = data.access_token;
-        localStorage.setItem('opsos_access_token', authToken!);
+        localStorage.setItem('dayform_access_token', authToken!);
         return authToken!;
       }
 
@@ -91,7 +93,7 @@ export async function ensureAuthToken(): Promise<string> {
 
   const data = await response.json();
   authToken = data.access_token;
-  localStorage.setItem('opsos_access_token', authToken!);
+  localStorage.setItem('dayform_access_token', authToken!);
   return authToken!;
 }
 

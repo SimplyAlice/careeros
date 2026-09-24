@@ -146,7 +146,7 @@ def execution_service(
 # Scenario A — Website
 # Create a plan containing a real venue with a verified official website.
 # Expected: "Visit website" appears. Clicking it returns verified destination.
-# OpsOS does not claim anything was booked.
+# Dayform does not claim anything was booked.
 # -----------------------------------------------------------------------------
 @pytest.mark.asyncio
 async def test_scenario_a_website(

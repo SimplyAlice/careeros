@@ -1,6 +1,9 @@
-# Project Identity
+# Project Identity: Dayform
 
-OpsOS is an intelligent real-world planning platform.
+**Dayform** is an intelligent real-world planning platform.
+
+> **Give shape to your day.**  
+> *“Tell me what you want to do. I’ll figure out the rest.”*
 
 The product helps people turn an intention into an actionable, coherent plan.
 
@@ -8,15 +11,11 @@ Instead of forcing users to search across maps, transport apps, restaurant sites
 social media, event pages, shopping platforms, and other fragmented sources,
 the system combines relevant information with the user's context and constraints.
 
-The core promise is:
-
-> "Tell me what you want to do. I'll figure out the rest."
-
 The unit of value is a **PLAN**, not a search result or a directory listing.
 
 ## Product Scope
 
-OpsOS conceptually supports a wide variety of real-world planning situations:
+Dayform conceptually supports a wide variety of real-world planning situations:
 
 - **Social Outings**: Planning a fun day or night out with friends
 - **Dates**: Curating a romantic, memorable outing within a budget

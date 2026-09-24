@@ -1,4 +1,4 @@
-"""OpsOS domain entities."""
+"""Dayform domain entities."""
 
 from app.domain.entities.action import Action, ActionStatus, ActionType
 from app.domain.entities.approval import Approval, ApprovalStatus

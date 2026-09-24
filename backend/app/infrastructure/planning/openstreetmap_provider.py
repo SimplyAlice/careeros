@@ -711,7 +711,7 @@ class OpenStreetMapInformationProvider(PlanningInformationProvider):
             url = f"https://nominatim.openstreetmap.org/search?{params}"
             req = urllib.request.Request(
                 url,
-                headers={"User-Agent": "OpsOS-RealPlanning/0.1 (https://github.com/SimplyAlice/careeros; dev@opsos.local)"}
+                headers={"User-Agent": "Dayform-RealPlanning/0.1 (https://github.com/SimplyAlice/careeros; dev@dayform.local)"}
             )
             with urllib.request.urlopen(req, timeout=self._timeout_seconds) as resp:
                 data = json.loads(resp.read().decode("utf-8"))

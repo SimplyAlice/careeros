@@ -7,14 +7,15 @@
 
 The repository originally contained CareerOS, a career and job-search platform.
 
-The project was subsequently developed as OpsOS, an intelligent technical operations
-system.
+The project was subsequently developed under the working moniker OpsOS, exploring
+autonomous system mechanics.
 
 Those implementations remain valuable engineering history.
 
-## New Product Direction
+## New Product Direction: Dayform
 
-The product is now being pivoted toward intelligent real-world planning.
+The official product identity is **Dayform** (*“Give shape to your day”*), an
+intelligent real-world planning product.
 
 The problem:
 

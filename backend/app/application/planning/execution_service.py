@@ -1,4 +1,4 @@
-"""Execution layer service for OpsOS.
+"""Execution layer service for Dayform.
 
 Connects approved plan items to authentic, verified real-world actions:
 - Visit website (verified source_url)
@@ -431,7 +431,7 @@ class PlanExecutionService:
             "action": "TEMPLATE",
             "text": item.name,
             "dates": f"{start_fmt}/{end_fmt}",
-            "details": f"Planned with OpsOS: {item.description or item.name}",
+            "details": f"Planned with Dayform: {item.description or item.name}",
             "location": address or item.location or "Cape Town",
         }
         return f"https://calendar.google.com/calendar/render?{urllib.parse.urlencode(params)}"

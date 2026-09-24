@@ -1,17 +1,40 @@
-﻿<svg width="1200" height="420" viewBox="0 0 1200 420" xmlns="http://www.w3.org/2000/svg">
+<svg width="1200" height="420" viewBox="0 0 1200 420" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#09090b"/>
-      <stop offset="100%" stop-color="#18181b"/>
+    <!-- Background Gradient -->
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#07090e"/>
+      <stop offset="50%" stop-color="#0d121d"/>
+      <stop offset="100%" stop-color="#080b12"/>
     </linearGradient>
 
-    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#22d3ee"/>
-      <stop offset="100%" stop-color="#a78bfa"/>
+    <!-- Mesh Radial Glows -->
+    <radialGradient id="mesh-glow-1" cx="20%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="mesh-glow-2" cx="80%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Title Gradient -->
+    <linearGradient id="title-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="45%" stop-color="#f1f5f9"/>
+      <stop offset="85%" stop-color="#94a3b8"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
     </linearGradient>
 
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="4" result="blur"/>
+    <!-- Loop Accent Gradient -->
+    <linearGradient id="accent-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="50%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#c084fc"/>
+    </linearGradient>
+
+    <!-- Border Glow Filter -->
+    <filter id="glow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
       <feMerge>
         <feMergeNode in="blur"/>
         <feMergeNode in="SourceGraphic"/>
@@ -19,128 +42,150 @@
     </filter>
 
     <style>
-      .title {
-        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
-        font-size: 72px;
-        font-weight: 700;
-        letter-spacing: 14px;
-        fill: white;
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap');
+      .brand-title {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 64px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
       }
-
-      .subtitle {
-        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
-        font-size: 18px;
-        letter-spacing: 5px;
-        fill: #a1a1aa;
+      .badge-text {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        fill: #38bdf8;
       }
-
-      .terminal {
-        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
-        font-size: 17px;
-        fill: #d4d4d8;
+      .tagline-text {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 22px;
+        font-weight: 500;
+        fill: #94a3b8;
       }
-
-      .accent {
-        fill: #67e8f9;
+      .promise-text {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 16px;
+        font-weight: 400;
+        fill: #64748b;
+        font-style: italic;
       }
-
-      .status {
-        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
-        font-size: 15px;
-        letter-spacing: 2px;
-        fill: #a1a1aa;
+      .node-text {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        fill: #e2e8f0;
       }
-
-      .cursor {
-        animation: blink 1s step-end infinite;
+      .node-sub {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 10px;
+        fill: #64748b;
       }
-
-      .line1 {
-        animation: reveal1 10s infinite;
-      }
-
-      .line2 {
-        animation: reveal2 10s infinite;
-      }
-
-      .line3 {
-        animation: reveal3 10s infinite;
-      }
-
-      .line4 {
-        animation: reveal4 10s infinite;
-      }
-
-      @keyframes blink {
-        50% { opacity: 0; }
-      }
-
-      @keyframes reveal1 {
-        0%, 8% { opacity: 0; }
-        12%, 100% { opacity: 1; }
-      }
-
-      @keyframes reveal2 {
-        0%, 28% { opacity: 0; }
-        32%, 100% { opacity: 1; }
-      }
-
-      @keyframes reveal3 {
-        0%, 48% { opacity: 0; }
-        52%, 100% { opacity: 1; }
-      }
-
-      @keyframes reveal4 {
-        0%, 68% { opacity: 0; }
-        72%, 100% { opacity: 1; }
-      }
-
-      .pulse {
-        animation: pulse 1.8s ease-in-out infinite;
-      }
-
-      @keyframes pulse {
-        50% { opacity: 0.35; }
+      .status-text {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        font-weight: 500;
+        fill: #10b981;
       }
     </style>
   </defs>
 
-  <rect width="1200" height="420" rx="18" fill="url(#bg)"/>
+  <!-- Background Base -->
+  <rect width="1200" height="420" rx="16" fill="url(#bg-grad)"/>
+  <rect width="1200" height="420" rx="16" fill="url(#mesh-glow-1)"/>
+  <rect width="1200" height="420" rx="16" fill="url(#mesh-glow-2)"/>
 
-  <rect x="1" y="1" width="1198" height="418" rx="18"
-        fill="none" stroke="#27272a" stroke-width="2"/>
+  <!-- Subtle Subtle Grid Lines -->
+  <g stroke="#ffffff" stroke-opacity="0.04" stroke-width="1">
+    <line x1="0" y1="70" x2="1200" y2="70"/>
+    <line x1="0" y1="140" x2="1200" y2="140"/>
+    <line x1="0" y1="210" x2="1200" y2="210"/>
+    <line x1="0" y1="280" x2="1200" y2="280"/>
+    <line x1="0" y1="350" x2="1200" y2="350"/>
+    <line x1="200" y1="0" x2="200" y2="420"/>
+    <line x1="400" y1="0" x2="400" y2="420"/>
+    <line x1="600" y1="0" x2="600" y2="420"/>
+    <line x1="800" y1="0" x2="800" y2="420"/>
+    <line x1="1000" y1="0" x2="1000" y2="420"/>
+  </g>
 
-  <circle cx="34" cy="34" r="6" fill="#ef4444"/>
-  <circle cx="56" cy="34" r="6" fill="#eab308"/>
-  <circle cx="78" cy="34" r="6" fill="#22c55e"/>
+  <!-- Outer Border -->
+  <rect x="1" y="1" width="1198" height="418" rx="15" stroke="#ffffff" stroke-opacity="0.08" stroke-width="2"/>
 
-  <text x="60" y="145" class="title">OpsOS</text>
+  <!-- Header Category Badge -->
+  <g transform="translate(70, 52)">
+    <rect width="280" height="26" rx="13" fill="#0f172a" stroke="#38bdf8" stroke-opacity="0.3" stroke-width="1"/>
+    <circle cx="14" cy="13" r="4" fill="#38bdf8" filter="url(#glow)"/>
+    <text x="26" y="17" class="badge-text">REAL-WORLD PLANNING SYSTEM</text>
+  </g>
 
-  <rect x="62" y="165" width="310" height="2" fill="url(#accent)"/>
+  <!-- Live Status Pill (Right) -->
+  <g transform="translate(890, 52)">
+    <rect width="240" height="26" rx="13" fill="#062d1f" fill-opacity="0.6" stroke="#10b981" stroke-opacity="0.3" stroke-width="1"/>
+    <circle cx="14" cy="13" r="4" fill="#10b981"/>
+    <text x="26" y="17" class="status-text">PLANNING ENGINE ONLINE</text>
+  </g>
 
-  <text x="62" y="202" class="subtitle">
-    INTELLIGENT OPERATIONS SYSTEM
-  </text>
+  <!-- Hero Typography -->
+  <text x="70" y="148" class="brand-title" fill="url(#title-grad)">DAYFORM</text>
+  <text x="70" y="188" class="tagline-text">Give shape to your day.</text>
+  <text x="70" y="216" class="promise-text">“Tell me what you want to do. I’ll figure out the rest.”</text>
 
-  <text x="62" y="258" class="terminal line1">
-    <tspan class="accent">&gt;</tspan> OBSERVING SYSTEMS
-  </text>
+  <!-- Core Loop Pipeline Visualization (Bottom Container) -->
+  <g transform="translate(70, 260)">
+    <!-- Container Box -->
+    <rect width="1060" height="105" rx="12" fill="#0b111e" fill-opacity="0.8" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1"/>
 
-  <text x="62" y="290" class="terminal line2">
-    <tspan class="accent">&gt;</tspan> INVESTIGATING INCIDENTS
-  </text>
+    <!-- Connecting Pathway Line -->
+    <line x1="85" y1="42" x2="975" y2="42" stroke="url(#accent-grad)" stroke-width="2" stroke-dasharray="4 4" stroke-opacity="0.5"/>
 
-  <text x="62" y="322" class="terminal line3">
-    <tspan class="accent">&gt;</tspan> RECOMMENDING ACTIONS
-  </text>
+    <!-- Step 1: Intention -->
+    <g transform="translate(40, 20)">
+      <circle cx="45" cy="22" r="16" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>
+      <text x="45" y="26" text-anchor="middle" font-family="'JetBrains Mono'" font-size="12" font-weight="700" fill="#38bdf8">1</text>
+      <text x="45" y="56" text-anchor="middle" class="node-text">INTENTION</text>
+      <text x="45" y="70" text-anchor="middle" class="node-sub">Natural Voice</text>
+    </g>
 
-  <text x="62" y="354" class="terminal line4">
-    <tspan class="accent">&gt;</tspan> AWAITING AUTHORISATION
-    <tspan class="cursor accent">_</tspan>
-  </text>
+    <!-- Step 2: Understand -->
+    <g transform="translate(220, 20)">
+      <circle cx="45" cy="22" r="16" fill="#0f172a" stroke="#60a5fa" stroke-width="1.5"/>
+      <text x="45" y="26" text-anchor="middle" font-family="'JetBrains Mono'" font-size="12" font-weight="700" fill="#60a5fa">2</text>
+      <text x="45" y="56" text-anchor="middle" class="node-text">UNDERSTAND</text>
+      <text x="45" y="70" text-anchor="middle" class="node-sub">Budgets &amp; Timing</text>
+    </g>
 
-  <circle cx="1090" cy="352" r="7" fill="#22c55e" class="pulse" filter="url(#glow)"/>
+    <!-- Step 3: Research -->
+    <g transform="translate(400, 20)">
+      <circle cx="45" cy="22" r="16" fill="#0f172a" stroke="#818cf8" stroke-width="1.5"/>
+      <text x="45" y="26" text-anchor="middle" font-family="'JetBrains Mono'" font-size="12" font-weight="700" fill="#818cf8">3</text>
+      <text x="45" y="56" text-anchor="middle" class="node-text">RESEARCH</text>
+      <text x="45" y="70" text-anchor="middle" class="node-sub">Real OSM Venues</text>
+    </g>
 
-  <text x="1110" y="357" class="status">CORE ONLINE</text>
+    <!-- Step 4: Plan -->
+    <g transform="translate(580, 20)">
+      <circle cx="45" cy="22" r="16" fill="#0f172a" stroke="#a78bfa" stroke-width="1.5"/>
+      <text x="45" y="26" text-anchor="middle" font-family="'JetBrains Mono'" font-size="12" font-weight="700" fill="#a78bfa">4</text>
+      <text x="45" y="56" text-anchor="middle" class="node-text">PLAN</text>
+      <text x="45" y="70" text-anchor="middle" class="node-sub">Transit &amp; Pacing</text>
+    </g>
+
+    <!-- Step 5: Adapt -->
+    <g transform="translate(760, 20)">
+      <circle cx="45" cy="22" r="16" fill="#0f172a" stroke="#c084fc" stroke-width="1.5"/>
+      <text x="45" y="26" text-anchor="middle" font-family="'JetBrains Mono'" font-size="12" font-weight="700" fill="#c084fc">5</text>
+      <text x="45" y="56" text-anchor="middle" class="node-text">ADAPT</text>
+      <text x="45" y="70" text-anchor="middle" class="node-sub">Weather &amp; Delays</text>
+    </g>
+
+    <!-- Step 6: Execute -->
+    <g transform="translate(940, 20)">
+      <circle cx="45" cy="22" r="16" fill="#0f172a" stroke="#34d399" stroke-width="1.5"/>
+      <text x="45" y="26" text-anchor="middle" font-family="'JetBrains Mono'" font-size="12" font-weight="700" fill="#34d399">6</text>
+      <text x="45" y="56" text-anchor="middle" class="node-text">EXECUTE</text>
+      <text x="45" y="70" text-anchor="middle" class="node-sub">Maps, Calls &amp; .ics</text>
+    </g>
+  </g>
 </svg>
-

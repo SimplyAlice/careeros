@@ -110,7 +110,7 @@ export const IntentInput = forwardRef<IntentInputHandle, IntentInputProps>(
         <div className="hero-content">
           <div className="hero-eyebrow animate-fade-in">
             <IconSparkles size={14} className="eyebrow-icon" />
-            <span>OPSOS · REAL-WORLD PLANNING ENGINE</span>
+            <span>DAYFORM · REAL-WORLD PLANNING</span>
           </div>
 
           <h1 className="hero-heading animate-fade-up">
@@ -121,7 +121,7 @@ export const IntentInput = forwardRef<IntentInputHandle, IntentInputProps>(
 
           <p className="hero-description animate-fade-up delay-1">
             No 15 open tabs. No manual spreadsheet of opening times. No guesswork on whether 5 friends
-            can actually get dinner for R1500 on a Saturday night. Describe your intention in plain words—OpsOS
+            can actually get dinner for R1500 on a Saturday night. Describe your intention in plain words—Dayform
             evaluates real places, verified operating hours, and live budgets to propose a coherent, timed itinerary.
           </p>
         </div>
@@ -198,7 +198,7 @@ export const IntentInput = forwardRef<IntentInputHandle, IntentInputProps>(
 
         {/* Scroll Cue */}
         <div className="hero-scroll-cue" onClick={handleScrollDown} role="button" tabIndex={0}>
-          <span className="cue-label">Explore how OpsOS works</span>
+          <span className="cue-label">Explore how Dayform works</span>
           <IconArrowDown size={14} className="cue-arrow-icon" />
         </div>
       </div>

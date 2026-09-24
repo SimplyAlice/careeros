@@ -1,9 +1,9 @@
-# Real Information Architecture & Providers — OpsOS Milestone 3
+# Real Information Architecture & Providers — Dayform
 
-OpsOS is an intelligent planning platform that operates on the core promise:
+Dayform is an intelligent planning platform that operates on the core promise:
 > **"Tell me what you want to do. I'll figure out the rest."**
 
-In Milestone 3, OpsOS transitioned from operating solely against a synthetic developer fixture catalog to planning against **authoritative, real-world information** grounded in actual places, activities, street addresses, opening hours, realistic pricing, and honest provenance.
+Dayform plans against **authoritative, real-world information** grounded in actual places, activities, street addresses, opening hours, realistic pricing, and honest provenance.
 
 ---
 
@@ -68,7 +68,7 @@ CONSUMER EXPERIENCE ("Here's what I'd do")
 
 ## 3. Provenance & Freshness Hierarchy
 
-To maintain complete honesty about real-world information without misleading users or pretending stale data is live, OpsOS enforces four distinct freshness states:
+To maintain complete honesty about real-world information without misleading users or pretending stale data is live, Dayform enforces four distinct freshness states:
 
 1. **`live`**: Information retrieved from the external provider during the active request.
 2. **`cached`**: Information retrieved from the external provider earlier in the active process session.
@@ -87,7 +87,7 @@ When an information search is performed:
 4. HONEST EMPTY RESULT ("I found no options matching your criteria")
 ```
 
-**OpsOS NEVER silently falls back to synthetic fixtures when configured in real information mode.** Synthetic fixtures are only loaded when `settings.planning_provider == "fixture"` is explicitly set.
+**Dayform NEVER silently falls back to synthetic fixtures when configured in real information mode.** Synthetic fixtures are only loaded when `settings.planning_provider == "fixture"` is explicitly set.
 
 ---
 

@@ -20,28 +20,28 @@ export const CapabilitiesSection: React.FC<CapabilitiesSectionProps> = ({ onStar
       tag: 'PARSING',
       title: 'Implicit Context Extraction',
       description:
-        'Plain text intention becomes structured reality. OpsOS parses dates, time-of-day, group sizes, and budget constraints without making you click through dropdown forms.',
+        'Plain text intention becomes structured reality. Dayform parses dates, time-of-day, group sizes, and budget constraints without making you click through dropdown forms.',
     },
     {
       icon: <IconClock size={20} className="cap-icon-cognac" />,
       tag: 'SEQUENCING',
       title: 'Temporal & Spatial Logic',
       description:
-        'Stops aren’t just recommended—they are sequenced logically. OpsOS checks travel buffers, realistic stop durations, and verified operating hours so you never face a locked door.',
+        'Stops aren’t just recommended—they are sequenced logically. Dayform checks travel buffers, realistic stop durations, and verified operating hours so you never face a locked door.',
     },
     {
       icon: <IconRefresh size={20} className="cap-icon-cognac" />,
       tag: 'ADAPTIVE',
       title: 'Conversational Replanning',
       description:
-        'Life changes. Running 45 minutes late? Need a cheaper alternative? Tell OpsOS conversationally and the engine recalibrates your plan while keeping intact stops preserved.',
+        'Life changes. Running 45 minutes late? Need a cheaper alternative? Tell Dayform conversationally and the engine recalibrates your plan while keeping intact stops preserved.',
     },
     {
       icon: <IconWallet size={20} className="cap-icon-cognac" />,
       tag: 'BUDGETS',
       title: 'Deterministic Budget Tracking',
       description:
-        'Never get surprised by the bill. OpsOS tallies real venue price levels and tracks remaining headroom against your strict ceiling, showing transparent per-person breakdowns.',
+        'Never get surprised by the bill. Dayform tallies real venue price levels and tracks remaining headroom against your strict ceiling, showing transparent per-person breakdowns.',
     },
     {
       icon: <IconNavigation size={20} className="cap-icon-cognac" />,
@@ -55,7 +55,7 @@ export const CapabilitiesSection: React.FC<CapabilitiesSectionProps> = ({ onStar
       tag: 'MONITORING',
       title: 'Live Intelligence & Health',
       description:
-        'Continuous checks confirm venue operating status and schedule validity. If a venue unexpectedly closes or schedule conflicts arise, OpsOS flags the change and proposes a smooth adaptation.',
+        'Continuous checks confirm venue operating status and schedule validity. If a venue unexpectedly closes or schedule conflicts arise, Dayform flags the change and proposes a smooth adaptation.',
     },
   ];
 
@@ -74,7 +74,7 @@ export const CapabilitiesSection: React.FC<CapabilitiesSectionProps> = ({ onStar
             <span className="serif-italic-accent">actually happen.</span>
           </h2>
           <p className="capabilities-subheading">
-            Search engines give you ten thousand links. OpsOS gives you one coherent, verified plan.
+            Search engines give you ten thousand links. Dayform gives you one coherent, verified plan.
           </p>
         </div>
 

@@ -1,0 +1,85 @@
+name: Dayform CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend-test:
+    name: Backend Test Suite
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: careeros
+          POSTGRES_PASSWORD: changeme
+          POSTGRES_DB: careeros
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e backend
+
+      - name: Run Planning Unit Tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://careeros:changeme@localhost:5432/careeros
+          REDIS_URL: redis://localhost:6379/0
+          SECRET_KEY: ci-test-secret-key-dayform
+        run: |
+          pytest backend/tests/unit/domain/planning backend/tests/unit/application/planning backend/tests/unit/infrastructure/planning -v
+
+  frontend-build:
+    name: Frontend Lint & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run Linter
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Run Production Build
+        working-directory: frontend
+        run: npm run build

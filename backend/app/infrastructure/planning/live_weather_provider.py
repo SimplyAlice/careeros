@@ -84,7 +84,7 @@ class LiveWeatherProvider:
             url = f"https://api.open-meteo.com/v1/forecast?{params}"
             req = urllib.request.Request(
                 url,
-                headers={"User-Agent": "OpsOS-LiveIntelligence/0.1 (careeros-clean; dev@opsos.local)"}
+                headers={"User-Agent": "Dayform-LiveIntelligence/0.1 (careeros-clean; dev@dayform.local)"}
             )
             with urllib.request.urlopen(req, timeout=self._timeout_seconds) as resp:
                 data = json.loads(resp.read().decode("utf-8"))

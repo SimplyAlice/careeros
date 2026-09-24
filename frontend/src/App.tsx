@@ -364,9 +364,9 @@ export const App: React.FC = () => {
               <div className="footer-container">
                 <div className="footer-top-row">
                   <div className="footer-brand-col">
-                    <span className="footer-logo">OpsOS</span>
+                    <span className="footer-logo">DAYFORM</span>
                     <p className="footer-tagline">
-                      Real-world planning intelligence. Designed for humans who live in the physical world.
+                      Intelligent real-world planning. Give shape to your day.
                     </p>
                   </div>
 
@@ -380,13 +380,13 @@ export const App: React.FC = () => {
                   <div className="footer-links-col">
                     <span className="footer-col-title">Engine</span>
                     <span className="footer-meta-item">Version 0.1.0</span>
-                    <span className="footer-meta-item">Milestones M1–M7</span>
+                    <span className="footer-meta-item">Adaptive Sequencing</span>
                     <span className="footer-meta-item">Live Intelligence Active</span>
                   </div>
                 </div>
 
                 <div className="footer-bottom-row">
-                  <span className="footer-copy">© 2026 OpsOS. Built with verified places and real-world logic.</span>
+                  <span className="footer-copy">© 2026 Dayform. Built with verified places and real-world logic.</span>
                   <div className="footer-system-status">
                     <span className="live-status-dot" />
                     <span>All services operational</span>

@@ -1,118 +1,172 @@
-# OpsOS
+<div align="center">
 
-> **Intelligent real-world planning.**  
-> *“Tell me what you want to do. I’ll figure out the rest.”*
+<img src=".github/readme/hero.svg" alt="Dayform — Give shape to your day" width="100%" />
 
-OpsOS is an intelligent planning platform that turns a plain-spoken human intention into an actionable, coherent, budget-aware, and time-aware real-world plan.
+<br/><br/>
+
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-18.3+-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6+-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Vite](https://img.shields.io/badge/Vite-6.0+-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev)
+[![Python](https://img.shields.io/badge/Python-3.12%20%7C%203.13-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![Redis](https://img.shields.io/badge/Redis-7+-DC382D?style=flat-square&logo=redis&logoColor=white)](https://redis.io)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
+
+<br/>
+
+**“Tell me what you want to do. I’ll figure out the rest.”**  
+*Give shape to your day.*
+
+</div>
 
 ---
 
-## The Problem
+## What is Dayform?
 
-Planning a real outing is broken and fragmented. Today, putting together a simple day out forces you to juggle dozens of browser tabs and apps:
+**Dayform** is an intelligent real-world planning system. It takes an unstructured, natural-language human intention and synthesizes it into an actionable, coherent, budget-aware, and time-sequenced day out.
 
-- **Search engines** return thousands of disconnected blog posts and sponsored listicles.
-- **Maps** show pins without understanding your budget, group pacing, or schedule constraints.
-- **Venue websites** bury opening hours, dress codes, and pricing behind clunky interfaces.
-- **Messaging apps and spreadsheets** become messy scratchpads for calculating travel buffers and total spend.
+Whether it is a romantic anniversary dinner, a group birthday celebration, a Saturday cultural outing, an afternoon of self-care, or a spontaneous *"I want to do something fun tonight"*, Dayform connects intention to physical reality.
 
-A collection of bookmarks or pins is not a plan. Real plans require understanding who is going, how much money can be spent, what times venues actually operate, how far apart they are, and what happens when someone runs 45 minutes late.
-
-OpsOS brings that reasoning into a unified, deterministic planning engine.
+It is **not** a search engine, a bookmark collector, or a directory of sponsored links.  
+Dayform evaluates real venues, verified operating hours, travel buffers, group dynamics, and financial limits to produce **a complete, living plan**.
 
 ---
 
-## Core Loop
+## The Core Loop
 
-OpsOS operates through an explicit six-stage loop:
+Dayform operates through a deterministic six-stage planning lifecycle:
 
 ```text
-INTENTION ──► UNDERSTAND ──► RESEARCH ──► PLAN ──► ADAPT ──► EXECUTE
-   │               │             │          │        │          │
-   │               │             │          │        │          └─► Directions, calls, web links, progress
-   │               │             │          │        └─► Conversational tweaks ("running 45m late")
-   │               │             │          └─► Logical timeline, transit buffers, budget headroom
-   │               │             └─► Real places, opening hours, pricing (OpenStreetMap, Overpass)
-   │               └─► Structured context (people, budget ceiling, temporal window, exclusions)
-   └─► Natural human thought ("something fun Saturday with 4 friends under R500")
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│  INTENTION   │ ──► │  UNDERSTAND  │ ──► │   RESEARCH   │
+└──────────────┘     └──────────────┘     └──────────────┘
+  Natural human        Extracts group,      Verifies places,
+  voice or text        budget ceiling,      operating hours,
+  ("Saturday dinner    temporal window,     categories via
+   under R1200")       hard exclusions      OpenStreetMap
+                             │
+                             ▼
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│   EXECUTE    │ ◄── │    ADAPT     │ ◄── │     PLAN     │
+└──────────────┘     └──────────────┘     └──────────────┘
+  Maps directions,     Dynamic shifts       Sequences dwell
+  phone calls,         for weather alerts   times, transit,
+  calendar export,     or late arrivals     budget headroom
+  stop completion      with clean diffs     & trade-offs
 ```
+
+1. **Intention**: Speak or type naturally without filling out rigid filter forms.
+2. **Understand**: Synthesizes the request into structured constraints, distinguishing hard boundaries (*"no seafood"*, *"strict R500 max"*) from soft aesthetic cues (*"romantic"*, *"casual"*).
+3. **Research**: Discovers candidate venues with authentic geographical coordinates, street addresses, and verified operating hours via OpenStreetMap and Overpass.
+4. **Plan**: Sequences stops in chronological order, computes travel times and dwell buffers, and validates financial headroom.
+5. **Adapt**: When reality shifts (*"We're running 45 minutes late"* or sudden rain), recalculates schedules with non-destructive diffs that preserve unaffected stops.
+6. **Execute**: Connects directly to the physical world with one-tap Google Maps routing, venue phone dialing, and `.ics` calendar sync.
 
 ---
 
-## Capabilities
+## Why Dayform Exists
 
-- **Natural-Language Understanding**: Parses natural speech into structured context (party size, temporal windows, budget ceilings, occasion types, and negative constraints) without rigid forms.
-- **Contextual Constraint Extraction**: Distinguishes hard requirements (e.g. *"no outdoors"*, *"under R500"*, *"home by 6pm"*) from soft aesthetic preferences (*"romantic"*, *"casual"*).
-- **Real-World Place Discovery**: Grounded in verified places with real street addresses, categories, and operating hours via OpenStreetMap and Nominatim.
-- **Temporal Sequencing & Pacing**: Calculates start and end times for each stop with realistic dwell times and geographic travel buffers.
-- **Budget Tracking & Invariants**: Computes transparent per-person and group totals, tracks remaining headroom, and flags budget overages deterministically.
-- **Candidate Customization**: Browse categorized alternatives for any stop with instant cost trade-off notes before confirming.
-- **Adaptive Replanning**: Conversational modification requests (*"Make it cheaper"*, *"We're running 45 minutes late"*) recalculate the schedule with a minimal, non-destructive diff preserving unaffected stops.
-- **Real-World Execution Layer**: Provides one-tap directions in Google Maps, direct telephone links, venue websites, and completed-stop tracking.
-- **Live Intelligence & Monitoring**: Evaluates active plans against real-time signals (hourly precipitation via Open-Meteo and venue closing times) without silent mutations.
+Organizing a real outing is broken. Putting together a simple afternoon or evening typically forces you to juggle dozens of browser tabs and mobile apps:
+
+| Traditional Friction | The Dayform Experience |
+| :--- | :--- |
+| **Search engines** return thousands of sponsored listicles and outdated blog posts. | **Deterministic engine** selects venues that directly satisfy your specific constraints. |
+| **Map apps** display isolated pins with zero understanding of sequence or budget pacing. | **Paced itinerary** calculates realistic transit times and comfortable dwell buffers between stops. |
+| **Static directories** bury opening hours and dietary options behind clunky interfaces. | **Verified operational rules** ensure you never arrive at a locked door or closed kitchen. |
+| **Messaging apps & spreadsheets** become messy scratchpads for computing total spend. | **Real-time budget ledger** tracks per-person costs, group totals, and remaining financial headroom. |
+
+> A collection of saved pins is not a plan. Real plans require understanding who is going, what things cost, when venues actually operate, and what happens when timing changes.
+
+---
+
+## What It Can Do
+
+Dayform supports any real-world human plan:
+
+- **Dates & Anniversaries**: Intimate cocktail lounges, scenic viewpoints, curated dinners, and timed reservations.
+- **Group Celebrations**: Birthdays, bachelor/bachelorette gatherings, and family outings accommodating large parties and diverse dietary requirements.
+- **Cultural & Weekend Outings**: Art galleries, botanical gardens, live jazz, and coastal walks sequenced by geographical proximity.
+- **Self-Care & Shopping**: Spa appointments, boutique shopping districts, and artisanal coffee stops with relaxed pacing.
+- **Spontaneous Plans**: *"It's 7:00 PM, I'm in Gardens with R300, what can I do right now?"*
+
+---
+
+## Product Experience
+
+### 1. Conversational Understanding
+Express intent in natural words. Dayform extracts temporal windows, group sizes, budget limits, and negative exclusions with transparent confidence ratings.
+
+### 2. Candidate Swapping & Trade-Offs
+Every stop is customizable. Browse categorized alternative venues with instant cost trade-off notes before confirming substitutions.
+
+### 3. Non-Destructive Adaptation
+When circumstances shift, Dayform recalculates the itinerary without obliterating unaffected plans. You review an exact before-and-after diff highlighting shifted start times and modified stops.
+
+### 4. Real-World Execution
+- **One-Tap Directions**: Immediate navigation via Google Maps coordinates.
+- **Direct Calling**: Immediate telephone dialer links for reservations and inquiries.
+- **Calendar Integration**: One-click download of `.ics` calendar events signed by Dayform.
+- **Active Progress Tracking**: Mark stops as complete as your day unfolds.
 
 ---
 
 ## Technical Architecture
 
-OpsOS is structured around clean architecture principles with strict boundary separation:
+Dayform is designed according to **Clean Architecture** principles, enforcing strict decoupling between domain rules, application services, and external providers:
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
-│                          Frontend (React / Vite)                       │
-│     Cinematic Scrollytelling · Workspace · Timeline · Adaptation Diff  │
+│                        Frontend (React / Vite)                         │
+│   Cinematic Scrollytelling · Real-Time Planning Stage · Adaptive Diff  │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │ HTTP / JSON
 ┌───────────────────────────────────▼────────────────────────────────────┐
 │                       FastAPI Application Layer                        │
-│            Endpoints: /auth · /planning/requests · /adapt · /actions   │
+│        Endpoints: /api/v1/auth · /planning/requests · /adapt · /actions│
 └──────────────────┬──────────────────────────────────┬──────────────────┘
                    │                                  │
 ┌──────────────────▼──────────────────┐   ┌───────────▼──────────────────┐
 │        Application Services         │   │      Domain Planning Engine  │
 │  Planning · Adaptation · Execution  │   │  Understanding · Decisions   │
-│       Live Intelligence Service     │   │  Temporal Logic · Invariants │
+│      Live Intelligence Service      │   │  Temporal Logic · Invariants │
 └──────────────────┬──────────────────┘   └───────────┬──────────────────┘
                    │                                  │
 ┌──────────────────▼──────────────────────────────────▼──────────────────┐
-│                    Infrastructure & Providers                          │
+│                   Infrastructure & External Providers                  │
 │   PostgreSQL (Asyncpg / Alembic) · Redis · OpenStreetMap · Open-Meteo   │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Frontend**: React 18, TypeScript, Vite, custom responsive design system with fluid typography and full `prefers-reduced-motion` compliance.
-- **Backend API**: Python 3.13, FastAPI, Pydantic v2, Uvicorn.
-- **Persistence & Migrations**: PostgreSQL, SQLAlchemy 2.0 (asyncio + asyncpg), Alembic migrations.
-- **Caching & Ephemeral State**: Redis.
+- **Frontend**: React 18, TypeScript, Vite, custom editorial design system with fluid typography and full `prefers-reduced-motion` compliance.
+- **Backend API**: Python 3.12 / 3.13, FastAPI, Pydantic v2, Uvicorn.
+- **Persistence & Migrations**: PostgreSQL 15+, SQLAlchemy 2.0 (asyncio + asyncpg), Alembic.
+- **Caching & Ephemeral State**: Redis 7+.
 - **Information Providers**: OpenStreetMap (Overpass API + Nominatim geocoding) for spatial venue discovery.
 - **Live Weather**: Open-Meteo API for real-time precipitation and adverse weather detection.
 
 ---
 
-## Product Principles
+## Real-World Intelligence & Invariants
 
-1. **Natural Language First**: Users should never have to navigate a maze of filter menus to communicate what they want.
-2. **Constraints Matter**: Negative constraints (*"not too fancy"*, *"no outdoors"*) are strictly enforced, not treated as suggestions.
-3. **Plans, Not Lists**: A list of places is not an itinerary. Plans require sequence, timing, travel buffers, and budget coherence.
-4. **Explain Decisions**: Every recommendation includes plain-language human rationale, never exposing raw machine scores or internal IDs.
-5. **Honest Uncertainty**: Missing data is marked as `UNKNOWN`, never assumed. If a live provider is unreachable, the system fails safely without breaking existing plans.
-6. **User Remains in Control**: Dynamic adaptations produce reviewable diffs. Changes are never applied behind the user's back.
-7. **Real-World Execution**: A plan ends in the real world with directions, direct phone calls, and schedule tracking.
+Dayform adheres to three strict engineering invariants:
+
+1. **Grounded Venue Data**: Recommendations are backed by verified OpenStreetMap nodes. If a venue has no physical address or source URL, it is explicitly flagged.
+2. **Honest Uncertainty**: Missing information is marked as `UNKNOWN`. Dayform never fabricates hours, reservations, or ticket prices.
+3. **Graceful Degradation**: If an external provider is unreachable, Dayform falls back safely to cached fixtures without interrupting the user experience.
 
 ---
 
-## Local Setup
+## Running Locally
 
 ### Prerequisites
 
 - **Python**: 3.12 or 3.13
 - **Node.js**: 18+ and `npm`
-- **PostgreSQL**: 15+ (local instance or Docker)
-- **Redis**: 7+ (local instance or Docker)
+- **PostgreSQL**: 15+ (local or Docker)
+- **Redis**: 7+ (local or Docker)
 
 ### 1. Database & Cache Services
-
-Using Docker:
 
 ```bash
 docker compose up -d postgres redis
@@ -121,24 +175,17 @@ docker compose up -d postgres redis
 ### 2. Backend Setup
 
 ```bash
-# Navigate to backend directory
 cd backend
 
-# Create virtual environment
+# Create and activate virtual environment
 python -m venv .venv
-
-# Activate virtual environment
 # Windows:
 .venv\Scripts\activate
 # macOS/Linux:
 source .venv/bin/activate
 
-# Install dependencies
+# Install dependencies in editable mode
 pip install -e .
-
-# Configure environment variables
-# Copy .env.example to .env and adjust credentials if needed
-cp ../.env.example .env
 
 # Run database migrations
 alembic upgrade head
@@ -147,60 +194,66 @@ alembic upgrade head
 uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8000 --reload
 ```
 
-Backend endpoints will be available at `http://127.0.0.1:8000/`.
+Backend will be online at `http://127.0.0.1:8000/` (Swagger docs at `/docs`).
 
 ### 3. Frontend Setup
 
 ```bash
-# Navigate to frontend directory
 cd frontend
 
 # Install dependencies
 npm install
 
-# Run development server
+# Start Vite development server
 npm run dev
+```
 
-# Run linter
+Open `http://localhost:5173/` in your browser.
+
+---
+
+## Testing & Quality
+
+### Backend Test Suite
+```bash
+# Run all planning unit and domain tests
+pytest backend/tests/unit/domain/planning backend/tests/unit/application/planning backend/tests/unit/infrastructure/planning -v
+
+# Run integration tests
+pytest backend/tests/integration/test_planning_api.py -v
+```
+
+### Frontend Code Quality
+```bash
+cd frontend
+
+# Lint with Oxlint
 npm run lint
 
-# Build for production
+# Typecheck and production build
 npm run build
 ```
 
-Frontend application will be accessible at `http://localhost:5173/`.
-
 ---
 
-## Demo Flow
+## Project Evolution
 
-The fastest way to experience OpsOS:
+This repository reflects an iterative engineering journey across three distinct stages:
 
-1. **Enter an Intention**: On the homepage, enter:
-   > *“I want to do something fun this Saturday with 4 friends in Cape Town under R500.”*
-2. **Review Understanding**: OpsOS extracts 5 people total (user + 4 friends), Saturday timing, Cape Town location, and an R500 strict ceiling.
-3. **Inspect Proposed Itinerary**: OpsOS sequences eligible local venues with verified hours, travel times, and an R80 buffer.
-4. **Swap a Stop**: Click **"Swap stop"** on any venue to preview categorized alternatives with clear cost trade-offs.
-5. **Save the Itinerary**: Click **"Save Itinerary"** to persist the plan and transition to the execution view.
-6. **Test Adaptive Recalibration**:
-   - In the follow-up tweak box, enter: *“Actually, we’re running 45 minutes late.”*
-   - OpsOS shifts downstream start times, verifies venue closing buffers, and displays a review diff.
-7. **Execute in the Real World**: Click **"Google Maps"** to open directions, or check off a stop to update the active schedule.
-8. **Check Live Intelligence**: Click **"Check Live"** to verify current operating hours and weather conditions.
+```text
+CareerOS (M1–M7)              OpsOS (M8 Working Title)             DAYFORM (Canonical Product)
+AI-powered job discovery   ──► Infrastructure orchestration   ──► Intelligent real-world planning
+and application tailoring      and operational automation         "Give shape to your day"
+```
 
----
+1. **CareerOS (Milestones 1–7)**: Established clean architecture boundaries, async PostgreSQL migrations, JWT authentication, and AI provider abstractions.
+2. **OpsOS (Milestone 8 Exploration)**: Explored deterministic decision engines, event monitoring, and human-in-the-loop action proposals.
+3. **Dayform (Canonical Product)**: Synthesized these foundations into an intelligent real-world planning platform that turns human intent into real-world action.
 
-## Current Status & Boundaries
-
-OpsOS is a **completed release candidate and portfolio project**.
-
-- **Provider Coverage**: Real-world data is currently grounded in Cape Town, South Africa via OpenStreetMap and Open-Meteo.
-- **Provider Accuracy**: Venue operating hours and price levels are derived from open community data and heuristics.
-- **Bookings**: OpsOS provides direct links and phone dialing rather than automated booking transactions.
-- **Deployment**: Configured for local development and containerized evaluation.
+*The GitHub repository identifier (`SimplyAlice/careeros`) and underlying PostgreSQL schemas are retained for historical and operational continuity.*
 
 ---
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) for details.
+This project is open-source under the [MIT License](LICENSE).

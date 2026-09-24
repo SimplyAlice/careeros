@@ -100,9 +100,9 @@ export const Navigation: React.FC<NavigationProps> = ({
             onClick={handleBrandClick}
             role="button"
             tabIndex={0}
-            aria-label="OpsOS Homepage"
+            aria-label="Dayform Homepage"
           >
-            <span className="brand-mark">OpsOS</span>
+            <span className="brand-mark">DAYFORM</span>
             <span className="brand-badge">Real-World Planning</span>
           </div>
 
@@ -143,7 +143,7 @@ export const Navigation: React.FC<NavigationProps> = ({
 
           {/* Right Action Cluster */}
           <div className="nav-right">
-            <div className="nav-status-indicator" title="Connected to OpsOS Planning Engine">
+            <div className="nav-status-indicator" title="Connected to Dayform Planning Engine">
               <span className="live-status-dot" />
               <span className="live-status-label">Engine ready</span>
             </div>
@@ -189,8 +189,8 @@ export const Navigation: React.FC<NavigationProps> = ({
           <div className="mobile-nav-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="mobile-nav-header">
               <div className="brand-group" onClick={handleBrandClick}>
-                <span className="brand-mark">OpsOS</span>
-                <span className="brand-badge">2026 Engine</span>
+                <span className="brand-mark">DAYFORM</span>
+                <span className="brand-badge">Real-World Planning</span>
               </div>
               <button
                 type="button"

@@ -35,7 +35,7 @@ const CHAPTERS: StoryChapter[] = [
     tag: 'THE INTENTION',
     title: 'Speak human. Not search queries.',
     lead: 'Real plans don’t start with coordinates, filters, or fifteen open browser tabs.',
-    body: 'They start with a simple impulse: dinner with five friends on a Saturday night, a romantic evening under R800, or a spontaneous cultural afternoon. OpsOS takes your plain-spoken intent as the authoritative starting point.',
+    body: 'They start with a simple impulse: dinner with five friends on a Saturday night, a romantic evening under R800, or a spontaneous cultural afternoon. Dayform takes your plain-spoken intent as the authoritative starting point.',
     keyTakeaway: 'No drop-downs. No date pickers. Just describe what you want.',
   },
   {
@@ -43,7 +43,7 @@ const CHAPTERS: StoryChapter[] = [
     stepNumber: '02',
     tag: 'UNDERSTANDING',
     title: 'From messy thoughts to structured context.',
-    lead: 'OpsOS immediately extracts the implicit geometry of your day.',
+    lead: 'Dayform immediately extracts the implicit geometry of your day.',
     body: 'The engine parses temporal bounds, geographic center points, party sizes, and financial ceilings—without asking you to fill out forms. It forms an authoritative brief before searching for a single place.',
     keyTakeaway: 'Structured temporal and financial boundaries locked in milliseconds.',
   },
@@ -53,7 +53,7 @@ const CHAPTERS: StoryChapter[] = [
     tag: 'INTELLIGENCE',
     title: 'Evaluating places, verified hours, and real trade-offs.',
     lead: 'A list of places isn’t a plan. Venues must make sense together.',
-    body: 'OpsOS scans local options, checks real operating schedules to prevent arriving at closed doors, calculates physical transit buffers, and filters candidates so the combined cost stays strictly within your budget limit.',
+    body: 'Dayform scans local options, checks real operating schedules to prevent arriving at closed doors, calculates physical transit buffers, and filters candidates so the combined cost stays strictly within your budget limit.',
     keyTakeaway: 'Verified opening hours and geographic clusters, checked before proposing.',
   },
   {
@@ -61,7 +61,7 @@ const CHAPTERS: StoryChapter[] = [
     stepNumber: '04',
     tag: 'THE ITINERARY',
     title: 'A coherent sequence. Not an isolated list.',
-    lead: 'You didn’t search for all of this. OpsOS put it together.',
+    lead: 'You didn’t search for all of this. Dayform put it together.',
     body: 'The engine sequences stops into a realistic flow with calculated start times, duration buffers, and transparent cost rollups. Every venue has a clear purpose in the sequence, from kickoff to wind-down.',
     keyTakeaway: 'Timed, paced, and budget-verified. Ready to preview or tweak.',
   },
@@ -71,7 +71,7 @@ const CHAPTERS: StoryChapter[] = [
     tag: 'ADAPTATION',
     title: 'Things change. Your plan adapts instantly.',
     lead: 'Real life doesn’t follow a static spreadsheet.',
-    body: 'Running 45 minutes late? Rain clouds moving in? Friends want coffee instead of dessert? Tell OpsOS conversationally. The engine calculates the minimal diff, shifts downstream times, and prevents schedule collapse.',
+    body: 'Running 45 minutes late? Rain clouds moving in? Friends want coffee instead of dessert? Tell Dayform conversationally. The engine calculates the minimal diff, shifts downstream times, and prevents schedule collapse.',
     keyTakeaway: 'Dynamic recalculation with minimal disruption to your day.',
   },
   {
@@ -80,7 +80,7 @@ const CHAPTERS: StoryChapter[] = [
     tag: 'EXECUTION',
     title: 'Direct action in the real world.',
     lead: 'From decision to reality in a single tap.',
-    body: 'Every confirmed stop includes one-tap directions in Google Maps, direct venue contacts, and live schedule health monitoring. When things shift on the ground, OpsOS highlights proposed adjustments.',
+    body: 'Every confirmed stop includes one-tap directions in Google Maps, direct venue contacts, and live schedule health monitoring. When things shift on the ground, Dayform highlights proposed adjustments.',
     keyTakeaway: 'Directions in Google Maps, live schedule monitoring, and instant tweaks.',
   },
 ];
@@ -142,7 +142,7 @@ export const LandingStory: React.FC<LandingStoryProps> = ({ onStartPlanning }) =
         <p className="story-intro-lead">
           Traditional travel and booking apps expect you to do all the heavy lifting: search 20 places,
           check each website’s operating hours, calculate driving times, and maintain a mental budget.
-          OpsOS turns that upside down.
+          Dayform turns that upside down.
         </p>
       </div>
 
@@ -205,7 +205,7 @@ export const LandingStory: React.FC<LandingStoryProps> = ({ onStartPlanning }) =
                 </div>
                 <div className="stage-title-pill">
                   <span className="stage-pulse-dot" />
-                  <span>OpsOS Engine · {CHAPTERS[activeStep].tag}</span>
+                  <span>Dayform · {CHAPTERS[activeStep].tag}</span>
                 </div>
                 <div className="stage-step-tag">
                   0{activeStep + 1} / 06
