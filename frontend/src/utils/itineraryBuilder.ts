@@ -28,6 +28,7 @@ export interface ProposedItinerary {
   timeSpanDisplay?: string;
   adaptationSummary?: string;
   isAdaptationProposal?: boolean;
+  tradeOffSummary?: string | null;
   removedItems?: Array<{ name: string; reason: string }>;
 }
 
@@ -345,7 +346,8 @@ export function buildProposedItinerary(
   budgetMax: number | null,
   _intentText: string = '',
   groupSize: number = 1,
-  understanding?: UnderstandingRead | null
+  understanding?: UnderstandingRead | null,
+  tradeOffSummary?: string | null
 ): ProposedItinerary {
   let eligible = candidates.filter((c) => c.is_eligible);
 
@@ -353,6 +355,12 @@ export function buildProposedItinerary(
   if (understanding?.exclusions && understanding.exclusions.length > 0) {
     if (understanding.exclusions.includes('no_outdoors')) {
       eligible = eligible.filter((c) => c.category !== 'nature');
+    }
+    if (understanding.exclusions.includes('no_alcohol')) {
+      eligible = eligible.filter((c) => {
+        const nameLower = c.name.toLowerCase();
+        return !nameLower.includes('bar') && !nameLower.includes('cocktail') && !nameLower.includes('pub') && !nameLower.includes('brewery');
+      });
     }
     if (understanding.exclusions.includes('not_too_fancy')) {
       eligible = eligible.filter((c) => {
@@ -370,7 +378,8 @@ export function buildProposedItinerary(
       estimatedTotal: 0,
       remainingBudget: budgetMax,
       isOverBudget: false,
-      narrativeSubheading: 'Explore options to build your plan.',
+      narrativeSubheading: tradeOffSummary || 'Explore options to build your plan.',
+      tradeOffSummary: tradeOffSummary || null,
     };
   }
 
@@ -476,6 +485,7 @@ export function buildProposedItinerary(
     freshness,
     totalDurationMinutes,
     timeSpanDisplay,
+    tradeOffSummary: tradeOffSummary || null,
   };
 }
 

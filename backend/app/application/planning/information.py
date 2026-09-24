@@ -15,6 +15,8 @@ class OptionSearchCriteria:
     maximum_cost: Decimal | None = None
     group_size: int | None = None
     maximum_duration_minutes: int | None = None
+    geographic_anchor: str = "Cape Town"
+    query_terms: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.maximum_cost is not None and self.maximum_cost < 0:

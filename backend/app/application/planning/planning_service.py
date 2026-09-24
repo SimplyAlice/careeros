@@ -157,6 +157,27 @@ class PlanningService:
                     value=f"exclude:{excl}",
                 )
             )
+        for desc in understanding.semantic_descriptors:
+            constraints.append(
+                ConstraintInput(
+                    type=ConstraintType.PREFERENCE,
+                    value=f"descriptor:{desc}",
+                )
+            )
+        if understanding.setting_preference:
+            constraints.append(
+                ConstraintInput(
+                    type=ConstraintType.REQUIREMENT,
+                    value=f"setting:{understanding.setting_preference}",
+                )
+            )
+        if understanding.weather_context:
+            constraints.append(
+                ConstraintInput(
+                    type=ConstraintType.REQUIREMENT,
+                    value=f"weather:{understanding.weather_context}",
+                )
+            )
         if understanding.date_spec:
             constraints.append(
                 ConstraintInput(

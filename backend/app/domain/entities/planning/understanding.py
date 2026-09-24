@@ -43,6 +43,9 @@ class PlanningUnderstanding:
     preferences: tuple[str, ...] = field(default_factory=tuple)
     exclusions: tuple[str, ...] = field(default_factory=tuple)
     activity_types: tuple[InformationCategory, ...] = field(default_factory=tuple)
+    semantic_descriptors: tuple[str, ...] = field(default_factory=tuple)
+    setting_preference: str | None = None
+    weather_context: str | None = None
     ambiguities: tuple[str, ...] = field(default_factory=tuple)
     provenance: dict[str, str] = field(default_factory=dict)
 

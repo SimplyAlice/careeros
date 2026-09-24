@@ -79,7 +79,7 @@ export const App: React.FC = () => {
       const groupSize = plan.context?.group_size || 1;
 
       // 4. Assemble coherent proposed itinerary ("Here's what I'd do")
-      const proposal = buildProposedItinerary(allRecs, budgetMax, intent, groupSize, plan.understanding);
+      const proposal = buildProposedItinerary(allRecs, budgetMax, intent, groupSize, plan.understanding, recsResponse.trade_off_summary);
       setProposedItinerary(proposal);
 
       // Smooth scroll to proposal section

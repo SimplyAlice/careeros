@@ -75,7 +75,7 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
             provenance["duration_limit"] = ProvenanceKind.EXPLICIT.value
 
         # 4. Location semantics
-        location, is_inferred, loc_prov = self._extract_location(normalized)
+        location, is_inferred, loc_prov, location_descriptors = self._extract_location(normalized)
         provenance["location"] = loc_prov.value
 
         # 5. Budget semantics
@@ -87,17 +87,23 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
         if exclusions:
             provenance["exclusions"] = ProvenanceKind.EXPLICIT.value
 
-        # 7. Soft preferences
+        # 7. Setting & weather context
+        setting_pref, weather_ctx = self._extract_setting_and_weather(normalized)
+
+        # 8. Soft preferences
         preferences = self._extract_preferences(normalized, exclusions)
         if preferences:
             provenance["preferences"] = ProvenanceKind.EXPLICIT.value
 
-        # 8. Activity categories
+        # 9. Semantic descriptors (open-ended vibes, aesthetics, activities)
+        semantic_descriptors = self._extract_semantic_descriptors(normalized, location_descriptors)
+
+        # 10. Activity categories
         activity_types = self._extract_activity_types(normalized, occasion, preferences)
         if activity_types:
             provenance["activity_types"] = ProvenanceKind.INFERRED.value
 
-        # 9. Goal synthesis
+        # 11. Goal synthesis
         goal = self._extract_goal(normalized, occasion, rel_context)
 
         return PlanningUnderstanding(
@@ -119,6 +125,9 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
             preferences=tuple(preferences),
             exclusions=tuple(exclusions),
             activity_types=tuple(activity_types),
+            semantic_descriptors=tuple(semantic_descriptors),
+            setting_preference=setting_pref,
+            weather_context=weather_ctx,
             ambiguities=tuple(ambiguities),
             provenance=provenance,
         )
@@ -140,7 +149,7 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
             return "birthday", ProvenanceKind.EXPLICIT
         if re.search(r"\b(?:celebration|celebrate|promotion|milestone|party)\b", lower):
             return "celebration", ProvenanceKind.EXPLICIT
-        if re.search(r"\b(?:girls'? day|girls'? night|boys'? night|(?:with|and)\s+(?:my |\d+\s+)?(?:friends|mates)|\b\d+\s+friends\b|\bfriends\b)\b", lower):
+        if re.search(r"\b(?:girls'? day|girls'? night|boys'? night|(?:with|and)\s+(?:my |\d+\s+)?(?:friends|mates)|\b\d+\s+friends\b|\bfriends\b|my friend)\b", lower):
             return "friends", ProvenanceKind.EXPLICIT
         if re.search(r"\b(?:family|with the kids|with parents|for my mom|with my mom|for my dad|with my dad)\b", lower):
             return "family", ProvenanceKind.EXPLICIT
@@ -167,16 +176,28 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
         if match_family_rel:
             rel = match_family_rel.group(1)
 
+        word_to_num = {
+            "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+            "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+        }
+
         # 1. "me and N friends" / "with N friends" -> N + 1
         match_friends_count = re.search(r"\b(?:me and|with)\s+(\d+)\s+friends?\b", lower)
         if match_friends_count:
             return int(match_friends_count.group(1)) + 1, "friends", ProvenanceKind.EXPLICIT, ambiguities
 
-        # 2. Explicit people counts: "maybe 3 people", "about 4 people", "for 5 people", "for four people"
-        word_to_num = {
-            "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
-            "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
-        }
+        # 2. Conversational "N of us" / "the N of us" (e.g. "three of us", "four of us")
+        match_of_us = re.search(
+            r"\b(?:(?:the\s+)?(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+of\s+us)\b",
+            lower,
+        )
+        if match_of_us:
+            raw_cnt = match_of_us.group(1)
+            parsed_count = word_to_num.get(raw_cnt, int(raw_cnt) if raw_cnt.isdigit() else None)
+            if parsed_count is not None:
+                return parsed_count, rel or "group", ProvenanceKind.EXPLICIT, ambiguities
+
+        # 3. Explicit people counts: "maybe 3 people", "about 4 people", "for 5 people", "for four people"
         match_people_count = re.search(
             r"\b(?:(?:maybe|around|about|for)\s+)?(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:people|persons?|guests?)\b",
             lower,
@@ -187,12 +208,34 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
             if parsed_count is not None:
                 return parsed_count, rel or "group", ProvenanceKind.EXPLICIT, ambiguities
 
-        # 3. group of N
+        # 4. group of N
         group_of = re.search(r"\bgroup\s+of\s+(\d+)\b", lower)
         if group_of:
             return int(group_of.group(1)), rel or "group", ProvenanceKind.EXPLICIT, ambiguities
 
-        # 4. Explicit couple / pair references
+        # 5. Conversational "for N" (e.g. "dinner for 4", "lunch for two", "for 6")
+        match_for_num = re.search(
+            r"\bfor\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten)(?!\s*(?:hours?|hrs?|r|rand|bucks|am|pm|days?))\b",
+            lower,
+        )
+        if match_for_num:
+            raw_cnt = match_for_num.group(1)
+            parsed_count = word_to_num.get(raw_cnt, int(raw_cnt) if raw_cnt.isdigit() else None)
+            if parsed_count is not None:
+                return parsed_count, rel or ("couple" if parsed_count == 2 and occasion == "date" else "group"), ProvenanceKind.EXPLICIT, ambiguities
+
+        # 6. Family with kids: "family with 2 kids" -> 2 adults + 2 kids = 4
+        match_fam_kids = re.search(r"\bfamily\s+with\s+(\d+|one|two|three|four)\s+kids?\b", lower)
+        if match_fam_kids:
+            k_raw = match_fam_kids.group(1)
+            k_cnt = word_to_num.get(k_raw, int(k_raw) if k_raw.isdigit() else 2) or 2
+            return 2 + k_cnt, "family", ProvenanceKind.EXPLICIT, ambiguities
+
+        # 6. Friend + we: "my friend doesn't drink and we want..."
+        if re.search(r"\bmy friend\b.*\bwe\b", lower) or re.search(r"\b(?:with a friend|and a friend)\b", lower):
+            return 2, "friends", ProvenanceKind.EXPLICIT, ambiguities
+
+        # 7. Explicit couple / pair references
         if re.search(r"\b(?:me and my (?:boyfriend|girlfriend|partner|husband|wife|friend))\b", lower):
             pair_rel = "boyfriend" if "boyfriend" in lower else "partner"
             if "girlfriend" in lower:
@@ -204,18 +247,18 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
         if re.search(r"\b(?:the two of us|both of us|for two|for 2)\b", lower):
             return 2, "couple" if occasion == "date" else "pair", ProvenanceKind.EXPLICIT, ambiguities
 
-        # 5. Partner or family inferred pair (default to 2 if no explicit count given)
+        # 8. Partner or family inferred pair (default to 2 if no explicit count given)
         if match_partner:
             return 2, rel, ProvenanceKind.INFERRED, ambiguities
 
         if match_family_rel:
             return 2, rel, ProvenanceKind.INFERRED, ambiguities
 
-        # 6. Solo
+        # 9. Solo
         if re.search(r"\b(?:just me|solo|by myself|alone)\b", lower):
             return 1, "solo", ProvenanceKind.EXPLICIT, ambiguities
 
-        # 7. "with my friends" / "with friends" without a count
+        # 10. "with my friends" / "with friends" without a count
         if re.search(r"\b(?:with my friends|with friends|with mates)\b", lower):
             ambiguities.append("Exact group size not specified ('with friends'); planning with flexible group options.")
             return None, "friends", ProvenanceKind.EXPLICIT, ambiguities
@@ -414,8 +457,9 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
         )
 
     @staticmethod
-    def _extract_location(text: str) -> tuple[str, bool, ProvenanceKind]:
+    def _extract_location(text: str) -> tuple[str, bool, ProvenanceKind, list[str]]:
         lower = text.lower()
+        extracted_descriptors: list[str] = []
 
         # Explicit known neighborhoods
         neighborhood_map = {
@@ -429,57 +473,75 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
             "bree street": "Bree Street",
             "constantia": "Constantia",
             "green point": "Green Point",
+            "newlands": "Newlands",
+            "woodstock": "Woodstock",
+            "kalk bay": "Kalk Bay",
         }
         for token, loc_name in neighborhood_map.items():
             if re.search(rf"\b{token}\b", lower):
-                return loc_name, False, ProvenanceKind.EXPLICIT
+                return loc_name, False, ProvenanceKind.EXPLICIT, extracted_descriptors
 
         # Explicit mention of Cape Town
         if re.search(r"\b(?:in|near|around)\s+cape town\b", lower):
-            return "Cape Town", False, ProvenanceKind.EXPLICIT
+            return "Cape Town", False, ProvenanceKind.EXPLICIT, extracted_descriptors
 
         # Conversational / inferred city references
         if re.search(r"\b(?:around town|in town|central|somewhere central|city bowl|near town|close by)\b", lower):
-            return "Cape Town", True, ProvenanceKind.INFERRED
+            return "Cape Town", True, ProvenanceKind.INFERRED, extracted_descriptors
 
-        # General pattern "in [Location]"
+        # General pattern "in/near/around [Candidate]"
         match = re.search(
-            r"\b(?:in|near|around)\s+([A-Za-z][A-Za-z\s-]*?)(?=\s+(?:for|with|on|this|next|around|maybe|under)\b|[,.!?]|$)",
+            r"\b(?:in|near|around)\s+([A-Za-z][A-Za-z\s-]*?)(?=\s+(?:for|with|on|this|next|around|maybe|under|budget)\b|[,.!?]|$)",
             text,
             re.IGNORECASE,
         )
         if match:
             candidate = match.group(1).strip()
-            if candidate.lower() not in {"town", "a date", "the mood"}:
-                return candidate, False, ProvenanceKind.EXPLICIT
+            cand_lower = candidate.lower()
+            is_non_geo = (
+                bool(re.match(r"^(?:a|an|the)\b", cand_lower))
+                or any(noun in cand_lower for noun in ("restaurant", "restaurent", "cafe", "bistro", "pub", "bar", "spot", "place", "venue", "room", "setting"))
+                or any(adj in cand_lower for adj in ("quiet", "dark", "dim", "cozy", "romantic", "indoor", "outdoor", "themed"))
+                or cand_lower in {"town", "a date", "the mood", "mind"}
+            )
+            if not is_non_geo and len(candidate) > 2:
+                return candidate, False, ProvenanceKind.EXPLICIT, extracted_descriptors
+            elif is_non_geo:
+                # Capture the non-geographic candidate as semantic descriptors
+                cleaned_desc = re.sub(r"^(?:a|an|the)\s+", "", cand_lower)
+                cleaned_desc = re.sub(r"\b(?:restaurant|restaurent|cafe|bistro|pub|bar|spot|place|venue)\b", "", cleaned_desc).strip()
+                if cleaned_desc:
+                    extracted_descriptors.append(cleaned_desc)
 
         # Default context
-        return "Cape Town", True, ProvenanceKind.DEFAULTED
+        return "Cape Town", True, ProvenanceKind.DEFAULTED, extracted_descriptors
 
     @staticmethod
     def _extract_budget(text: str) -> tuple[Decimal | None, BudgetKind, ProvenanceKind]:
         lower = text.lower()
 
-        # Free / zero cost
-        if re.search(r"\b(?:free|zero cost|no money|no budget)\b", lower):
-            return Decimal("0"), BudgetKind.HARD_MAX, ProvenanceKind.EXPLICIT
-
-        # Explicit numeric budget extraction (R800, R2,000, R 800, 800 rand, 800 bucks)
+        # 1. Explicit numeric budget extraction (R800, R2,000, R 800, 800 rand, 800 bucks) takes precedence
         match = re.search(r"\bR\s?(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)\b", text, re.IGNORECASE)
         if not match:
             match = re.search(r"\b(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)\s*(?:rand|bucks)\b", text, re.IGNORECASE)
 
         if match:
             amount = Decimal(match.group(1).replace(",", ""))
-            # Determine semantics
             if re.search(r"\b(?:under|max|maximum|at most|up to|cap at|limit)\s*(?:r|rand|bucks)?\s*[\d,]+", lower):
                 return amount, BudgetKind.HARD_MAX, ProvenanceKind.EXPLICIT
             if re.search(r"\b(?:maybe|around|about|roughly|approx|approx\.|~)\s*(?:r|rand|bucks)?\s*[\d,]+", lower):
                 return amount, BudgetKind.APPROXIMATE, ProvenanceKind.EXPLICIT
-            # Conversational single amount defaults to approximate
             return amount, BudgetKind.APPROXIMATE, ProvenanceKind.EXPLICIT
 
-        # Qualitative budget preference without exact number
+        # 2. Free / zero cost financial check (ensuring 'free' is not referring to time: 'hours free', 'free time', 'free tomorrow')
+        is_temporal_free = bool(re.search(r"\b(?:hours?\s+free|free\s+time|time\s+free|free\s+(?:tomorrow|tonight|today|this|saturday|sunday|friday|morning|afternoon|evening)|(?:are|we're|i'm|i\s+am)\s+free)\b", lower))
+        if not is_temporal_free:
+            if re.search(r"\b(?:free of charge|zero cost|no cost|no money|no budget|zero budget|for free|cost nothing)\b", lower):
+                return Decimal("0"), BudgetKind.HARD_MAX, ProvenanceKind.EXPLICIT
+            if re.search(r"\bfree\b", lower) and not re.search(r"\b(?:smoke|sugar|gluten|care|duty|hands)[ -]free\b", lower):
+                return Decimal("0"), BudgetKind.HARD_MAX, ProvenanceKind.EXPLICIT
+
+        # 3. Qualitative budget preference without exact number
         if re.search(r"\b(?:cheap|affordable|budget[ -]friendly|on a budget|not expensive|not too expensive|nothing too expensive|nothing expensive)\b", lower):
             return None, BudgetKind.PREFERENCE, ProvenanceKind.EXPLICIT
 
@@ -493,7 +555,12 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
         if re.search(r"\b(?:nothing too fancy|not too fancy|nothing fancy|not fancy|don't want anything fancy|no fancy)\b", lower):
             exclusions.append("not_too_fancy")
 
-        if re.search(r"\b(?:no outdoor|no outdoors|nothing outdoors|not outdoors|avoid outdoors|no nature)\b", lower):
+        # Alcohol exclusions
+        if re.search(r"\b(?:doesn't drink|don't drink|does not drink|do not drink|no alcohol|non[ -]alcoholic|sober|no booze|no wine|no beer)\b", lower):
+            exclusions.append("no_alcohol")
+
+        # Outdoor exclusions (explicit or weather-driven)
+        if re.search(r"\b(?:no outdoor|no outdoors|nothing outdoors|not outdoors|avoid outdoors|no nature|indoors?|inside|raining|rainy|sheltered|bad weather)\b", lower):
             exclusions.append("no_outdoors")
 
         if re.search(r"\b(?:no clubs|no clubbing|no nightlife|no party|no parties)\b", lower):
@@ -506,6 +573,47 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
             exclusions.append("minimal_walking")
 
         return exclusions
+
+    @staticmethod
+    def _extract_setting_and_weather(text: str) -> tuple[str | None, str | None]:
+        lower = text.lower()
+        setting: str | None = None
+        weather: str | None = None
+
+        if re.search(r"\b(?:indoors?|inside|sheltered|bad weather|raining|rainy)\b", lower):
+            setting = "indoor"
+        elif re.search(r"\b(?:outdoors?|outside|in the sun|open air)\b", lower):
+            setting = "outdoor"
+
+        if re.search(r"\b(?:raining|rainy|rain|bad weather|storm|stormy)\b", lower):
+            weather = "raining"
+
+        return setting, weather
+
+    @staticmethod
+    def _extract_semantic_descriptors(text: str, extra_descriptors: list[str]) -> list[str]:
+        lower = text.lower()
+        descriptors: list[str] = list(extra_descriptors)
+
+        patterns = [
+            (r"\b(?:quiet|peaceful|calm)\b", "quiet"),
+            (r"\b(?:dark themed|dark-themed|dimly lit|moody)\b", "dark themed"),
+            (r"\b(?:dress up|dressing up)\b", "dress up"),
+            (r"\b(?:take photos|take pictures|photoshoot|photogenic|instagrammable)\b", "take photos"),
+            (r"\b(?:coffee|specialty coffee|roastery|cafe)\b", "coffee"),
+            (r"\b(?:reading|read|study|bookstore|books)\b", "reading"),
+            (r"\b(?:romantic|candlelit|intimate)\b", "romantic"),
+            (r"\b(?:scenic|panoramic|views)\b", "scenic"),
+            (r"\b(?:kids|family friendly|children)\b", "family friendly"),
+            (r"\b(?:games|board games|arcade|entertainment)\b", "games"),
+            (r"\b(?:culture|museum|art gallery|heritage)\b", "culture"),
+            (r"\b(?:tasting|wine tasting|food tasting)\b", "tasting"),
+        ]
+        for pattern, label in patterns:
+            if re.search(pattern, lower) and label not in descriptors:
+                descriptors.append(label)
+
+        return descriptors
 
     @staticmethod
     def _extract_preferences(text: str, exclusions: list[str]) -> list[str]:

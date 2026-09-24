@@ -7,6 +7,8 @@ I/O: the same inputs always yield the same ordered output.
 """
 from __future__ import annotations
 
+import re
+from collections.abc import Mapping
 from decimal import Decimal
 
 from app.domain.entities.planning.decision import (
@@ -32,6 +34,7 @@ PREFERENCE_FIT_SCORE = 15
 OCCASION_FIT_SCORE = 15
 ACTIVITY_TYPE_FIT_SCORE = 20
 TEMPORAL_FIT_SCORE = 20
+SEMANTIC_MATCH_SCORE = 15
 
 
 def decide(
@@ -60,12 +63,14 @@ def decide(
     is_live = any(c.freshness == "live" for c in candidates)
     freshness = "live" if is_live else (candidates[0].freshness if candidates else "fixture")
     attribution = "© OpenStreetMap contributors" if any("openstreetmap" in (c.source or "").lower() for c in candidates) else None
+    trade_off_summary = _generate_trade_off_summary(criteria, ordered)
     return DecisionResult(
         candidates=tuple(ordered),
         source=source,
         is_live=is_live,
         attribution=attribution,
         freshness=freshness,
+        trade_off_summary=trade_off_summary,
     )
 
 
@@ -79,12 +84,23 @@ def evaluate_place(place: Place, criteria: DecisionCriteria) -> DecisionCandidat
         place.minimum_group_size, place.maximum_group_size, criteria.group_size, reasons
     )
     eligible &= _assess_exclusions(
-        place.category, place.name, place.description, place.price_from, {}, criteria.exclusions, reasons
+        place.category,
+        place.name,
+        place.description,
+        place.price_from,
+        dict(place.metadata),
+        criteria.exclusions,
+        reasons,
+        setting_preference=criteria.setting_preference,
+        weather_context=criteria.weather_context,
     )
     eligible &= _assess_opening_hours(
         place.name, place.opening_hours, criteria, reasons, duration_minutes=None
     )
     _assess_place_duration(criteria.duration_limit_minutes, reasons)
+    desc_matched = _assess_semantic_descriptors(
+        place.name, place.description, place.metadata, criteria.semantic_descriptors, reasons
+    )
     pref_matched = _assess_preferences(
         place.category, place.description, criteria.preferences, reasons
     )
@@ -109,6 +125,7 @@ def evaluate_place(place: Place, criteria: DecisionCriteria) -> DecisionCandidat
             pref_matched=pref_matched,
             occasion_matched=occasion_matched,
             temporal_matched=temporal_matched,
+            desc_matched=desc_matched,
         ),
         reasons=tuple(reasons),
         category=place.category,
@@ -149,10 +166,15 @@ def evaluate_activity(activity: Activity, criteria: DecisionCriteria) -> Decisio
         dict(activity.metadata),
         criteria.exclusions,
         reasons,
+        setting_preference=criteria.setting_preference,
+        weather_context=criteria.weather_context,
     )
     act_hours = activity.metadata.get("opening_hours") if activity.metadata else None
     eligible &= _assess_opening_hours(
         activity.name, act_hours, criteria, reasons, duration_minutes=activity.duration_minutes
+    )
+    desc_matched = _assess_semantic_descriptors(
+        activity.name, activity.description, activity.metadata, criteria.semantic_descriptors, reasons
     )
     pref_matched = _assess_preferences(
         activity.category, activity.description, criteria.preferences, reasons
@@ -178,6 +200,7 @@ def evaluate_activity(activity: Activity, criteria: DecisionCriteria) -> Decisio
             pref_matched=pref_matched,
             occasion_matched=occasion_matched,
             temporal_matched=temporal_matched,
+            desc_matched=desc_matched,
         ),
         reasons=tuple(reasons),
         category=activity.category,
@@ -478,6 +501,7 @@ def _score(
     pref_matched: bool = False,
     occasion_matched: bool = False,
     temporal_matched: bool = False,
+    desc_matched: int = 0,
 ) -> int:
     score = 0
     if criteria.category is not None and category is criteria.category:
@@ -510,6 +534,8 @@ def _score(
         score += OCCASION_FIT_SCORE
     if temporal_matched:
         score += TEMPORAL_FIT_SCORE
+    if desc_matched > 0:
+        score += desc_matched * SEMANTIC_MATCH_SCORE
     return score
 
 
@@ -521,19 +547,50 @@ def _assess_exclusions(
     metadata: dict[str, str],
     exclusions: tuple[str, ...],
     reasons: list[DecisionReason],
+    setting_preference: str | None = None,
+    weather_context: str | None = None,
 ) -> bool:
     is_eligible = True
     combined_text = f"{name} {description}".casefold()
     for raw_exclusion in exclusions:
         ex = raw_exclusion.casefold().replace(" ", "_")
         if ex in {"no_outdoors", "no_outdoor", "not_outdoors", "nothing_outdoors"}:
-            is_outdoor = category is InformationCategory.NATURE or metadata.get("weather_sensitive") == "true" or "outdoor" in combined_text
+            is_outdoor = (
+                category is InformationCategory.NATURE
+                or metadata.get("weather_sensitive") == "true"
+                or metadata.get("outdoor") == "true"
+                or "outdoor" in combined_text
+                or "trail" in combined_text
+                or "hike" in combined_text
+                or "mountain" in combined_text
+                or "beach" in combined_text
+            )
             if is_outdoor:
                 reasons.append(
                     DecisionReason(
-                        ReasonType.GENERAL,
+                        ReasonType.EXCLUSION,
                         ReasonOutcome.VIOLATED,
                         "Excluded: outdoor activity violates constraint",
+                    )
+                )
+                is_eligible = False
+        elif ex in {"no_alcohol", "non_alcoholic", "sober", "no_drinking"}:
+            is_alcohol = (
+                "bar" in combined_text.split()
+                or "cocktails" in combined_text
+                or "cocktail" in combined_text
+                or "brewery" in combined_text
+                or "pub" in combined_text.split()
+                or "wine tasting" in combined_text
+                or "wine bar" in combined_text
+                or metadata.get("alcohol") in {"true", "only"}
+            )
+            if is_alcohol:
+                reasons.append(
+                    DecisionReason(
+                        ReasonType.EXCLUSION,
+                        ReasonOutcome.VIOLATED,
+                        "Excluded: alcohol-centered venue violates non-drinking constraint",
                     )
                 )
                 is_eligible = False
@@ -542,7 +599,7 @@ def _assess_exclusions(
             if is_fancy:
                 reasons.append(
                     DecisionReason(
-                        ReasonType.GENERAL,
+                        ReasonType.EXCLUSION,
                         ReasonOutcome.VIOLATED,
                         "Excluded: upscale / formal venue violates constraint",
                     )
@@ -552,12 +609,34 @@ def _assess_exclusions(
             if "club" in combined_text or "nightclub" in combined_text:
                 reasons.append(
                     DecisionReason(
-                        ReasonType.GENERAL,
+                        ReasonType.EXCLUSION,
                         ReasonOutcome.VIOLATED,
                         "Excluded: clubs or party venues violate constraint",
                     )
                 )
                 is_eligible = False
+
+    if setting_preference == "indoor" or weather_context == "raining":
+        is_outdoor = (
+            category is InformationCategory.NATURE
+            or metadata.get("weather_sensitive") == "true"
+            or metadata.get("outdoor") == "true"
+            or "outdoor" in combined_text
+            or "trail" in combined_text
+            or "hike" in combined_text
+            or "mountain" in combined_text
+            or "beach" in combined_text
+        )
+        if is_outdoor and is_eligible:
+            reasons.append(
+                DecisionReason(
+                    ReasonType.SETTING,
+                    ReasonOutcome.VIOLATED,
+                    "Excluded: outdoor venue violates indoor/weather constraint",
+                )
+            )
+            is_eligible = False
+
     return is_eligible
 
 
@@ -697,3 +776,92 @@ def _assess_occasion(
             )
             return True
     return False
+
+
+def _assess_semantic_descriptors(
+    name: str,
+    description: str,
+    metadata: Mapping[str, str],
+    descriptors: tuple[str, ...],
+    reasons: list[DecisionReason],
+) -> int:
+    if not descriptors:
+        return 0
+    matched_count = 0
+    combined_text = f"{name} {description}".casefold()
+    meta_values = " ".join(metadata.values()).casefold() if metadata else ""
+    full_text = f"{combined_text} {meta_values}"
+    stopwords = {"and", "the", "for", "with", "themed", "vibe", "style", "setting"}
+
+    for descriptor in descriptors:
+        desc_clean = descriptor.strip().casefold()
+        if not desc_clean:
+            continue
+        if desc_clean in full_text:
+            matched_count += 1
+            reasons.append(
+                DecisionReason(
+                    ReasonType.SEMANTIC_MATCH,
+                    ReasonOutcome.SUPPORTED,
+                    f"Supports requested '{descriptor}' vibe",
+                )
+            )
+            continue
+
+        tokens = [t for t in re.findall(r"\w+", desc_clean) if len(t) > 2 and t not in stopwords]
+        if tokens and all(t in full_text for t in tokens):
+            matched_count += 1
+            reasons.append(
+                DecisionReason(
+                    ReasonType.SEMANTIC_MATCH,
+                    ReasonOutcome.SUPPORTED,
+                    f"Supports requested '{descriptor}' vibe ({', '.join(tokens)})",
+                )
+            )
+        else:
+            reasons.append(
+                DecisionReason(
+                    ReasonType.SEMANTIC_MATCH,
+                    ReasonOutcome.NEUTRAL,
+                    f"'{descriptor}' aesthetic could not be verified from public registry",
+                )
+            )
+    return matched_count
+
+
+def _generate_trade_off_summary(
+    criteria: DecisionCriteria,
+    candidates: list[DecisionCandidate],
+) -> str | None:
+    if not candidates:
+        return None
+    eligible = [c for c in candidates if c.is_eligible]
+    if not eligible:
+        return None
+    top_candidates = eligible[:3]
+
+    notes: list[str] = []
+    if criteria.semantic_descriptors:
+        unverified: list[str] = []
+        for desc in criteria.semantic_descriptors:
+            supported = any(
+                any(
+                    r.type is ReasonType.SEMANTIC_MATCH
+                    and r.outcome is ReasonOutcome.SUPPORTED
+                    and desc.casefold() in r.message.casefold()
+                    for r in c.reasons
+                )
+                for c in top_candidates
+            )
+            if not supported:
+                unverified.append(desc)
+        if unverified:
+            desc_str = ", ".join(f"'{d}'" for d in unverified)
+            notes.append(
+                f"Public registry listings do not currently verify {desc_str} decor/ambiance; recommendations were prioritized for quality and constraints in Cape Town."
+            )
+
+    if notes:
+        return " ".join(notes)
+    return None
+

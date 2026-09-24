@@ -678,11 +678,33 @@ class OpenStreetMapInformationProvider(PlanningInformationProvider):
 
         # 2. Query the verified real-world catalog
         matched = [place for place in PLACES_CATALOG if _matches_place(place, criteria)]
+        if not matched and criteria.location:
+            fallback_criteria = OptionSearchCriteria(
+                location=criteria.geographic_anchor or "Cape Town",
+                category=criteria.category,
+                maximum_cost=criteria.maximum_cost,
+                group_size=criteria.group_size,
+                maximum_duration_minutes=criteria.maximum_duration_minutes,
+                geographic_anchor=criteria.geographic_anchor,
+                query_terms=criteria.query_terms,
+            )
+            matched = [place for place in PLACES_CATALOG if _matches_place(place, fallback_criteria)]
         return matched
 
     async def find_activities(self, criteria: OptionSearchCriteria) -> list[Activity]:
         """Find activities matching criteria from the verified real-world catalog."""
         matched = [activity for activity in ACTIVITIES_CATALOG if _matches_activity(activity, criteria)]
+        if not matched and criteria.location:
+            fallback_criteria = OptionSearchCriteria(
+                location=criteria.geographic_anchor or "Cape Town",
+                category=criteria.category,
+                maximum_cost=criteria.maximum_cost,
+                group_size=criteria.group_size,
+                maximum_duration_minutes=criteria.maximum_duration_minutes,
+                geographic_anchor=criteria.geographic_anchor,
+                query_terms=criteria.query_terms,
+            )
+            matched = [activity for activity in ACTIVITIES_CATALOG if _matches_activity(activity, fallback_criteria)]
         return matched
 
     async def get_place(self, place_id: UUID) -> Place | None:

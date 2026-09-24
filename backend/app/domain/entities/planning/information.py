@@ -66,6 +66,7 @@ class Place:
     source_url: str | None = None
     phone: str | None = None
     reservation_url: str | None = None
+    metadata: Mapping[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not self.name.strip():

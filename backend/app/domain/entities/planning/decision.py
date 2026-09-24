@@ -25,6 +25,9 @@ class ReasonType(str, Enum):
     TIME_WINDOW = "time_window"
     OPENING_HOURS = "opening_hours"
     SCHEDULE_CONFLICT = "schedule_conflict"
+    SEMANTIC_MATCH = "semantic_match"
+    EXCLUSION = "exclusion"
+    SETTING = "setting"
 
 
 class ReasonOutcome(str, Enum):
@@ -88,6 +91,7 @@ class DecisionResult:
     is_live: bool = False
     attribution: str | None = None
     freshness: str = "fixture"
+    trade_off_summary: str | None = None
 
     @property
     def eligible(self) -> tuple[DecisionCandidate, ...]:
@@ -112,6 +116,9 @@ class DecisionCriteria:
     preferences: tuple[str, ...] = ()
     exclusions: tuple[str, ...] = ()
     activity_types: tuple[InformationCategory, ...] = ()
+    semantic_descriptors: tuple[str, ...] = ()
+    setting_preference: str | None = None
+    weather_context: str | None = None
 
     day_of_week: str | None = None
     start_time: str | None = None

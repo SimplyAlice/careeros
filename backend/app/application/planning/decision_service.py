@@ -50,6 +50,7 @@ class PlanningDecisionService:
             is_live=self._information.source.is_live,
             attribution=attr,
             freshness=self._information.source.freshness,
+            trade_off_summary=result.trade_off_summary,
         )
 
 
@@ -63,4 +64,9 @@ def _search_criteria(criteria: DecisionCriteria) -> OptionSearchCriteria:
     decision layer. The engine therefore evaluates the hard constraints
     itself and produces eligible and ineligible candidates with reasons.
     """
-    return OptionSearchCriteria(location=criteria.location, category=criteria.category)
+    return OptionSearchCriteria(
+        location=criteria.location,
+        category=criteria.category,
+        geographic_anchor="Cape Town",
+        query_terms=criteria.semantic_descriptors,
+    )

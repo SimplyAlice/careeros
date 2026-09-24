@@ -169,6 +169,9 @@ class UnderstandingRead(BaseModel):
     preferences: list[str] = Field(default_factory=list)
     exclusions: list[str] = Field(default_factory=list)
     activity_types: list[str] = Field(default_factory=list)
+    semantic_descriptors: list[str] = Field(default_factory=list)
+    setting_preference: str | None = None
+    weather_context: str | None = None
     ambiguities: list[str] = Field(default_factory=list)
     provenance: dict[str, str] = Field(default_factory=dict)
 
@@ -192,6 +195,9 @@ class UnderstandingRead(BaseModel):
             preferences=list(u.preferences),
             exclusions=list(u.exclusions),
             activity_types=[cat.value for cat in u.activity_types],
+            semantic_descriptors=list(u.semantic_descriptors),
+            setting_preference=u.setting_preference,
+            weather_context=u.weather_context,
             ambiguities=list(u.ambiguities),
             provenance=dict(u.provenance),
         )
@@ -682,6 +688,7 @@ async def get_plan_recommendations(
         is_live=result.is_live,
         attribution=result.attribution,
         freshness=result.freshness,
+        trade_off_summary=result.trade_off_summary,
         candidates=[DecisionCandidateRead.from_candidate(candidate) for candidate in result.candidates],
     )
 

@@ -139,6 +139,7 @@ class DecisionCandidateRead(BaseModel):
 
 class RecommendationResponse(SearchResponse):
     candidates: list[DecisionCandidateRead]
+    trade_off_summary: str | None = None
 
 
 def _envelope(source: InformationSource) -> dict[str, object]:
@@ -216,5 +217,6 @@ async def recommend_options(
         is_live=result.is_live,
         attribution=result.attribution,
         freshness=result.freshness,
+        trade_off_summary=result.trade_off_summary,
         candidates=[DecisionCandidateRead.from_candidate(candidate) for candidate in result.candidates],
     )

@@ -38,6 +38,11 @@ export type ReasonType =
   | 'time_window'
   | 'opening_hours'
   | 'schedule_conflict'
+  | 'preference'
+  | 'occasion'
+  | 'semantic_match'
+  | 'exclusion'
+  | 'setting'
   | 'general';
 
 export type ReasonOutcome = 'supported' | 'neutral' | 'violated';
@@ -73,6 +78,7 @@ export interface RecommendationResponse {
   attribution?: string | null;
   freshness?: 'live' | 'recently_verified' | 'cached' | 'fixture' | string | null;
   candidates: DecisionCandidateRead[];
+  trade_off_summary?: string | null;
 }
 
 export interface ContextRead {
@@ -129,6 +135,9 @@ export interface UnderstandingRead {
   preferences: string[];
   exclusions: string[];
   activity_types: string[];
+  semantic_descriptors?: string[];
+  setting_preference?: string | null;
+  weather_context?: string | null;
   ambiguities: string[];
   provenance: Record<string, string>;
 }
