@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: dayform-api
+    env: python
+    plan: free
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: ENVIRONMENT
+        value: production
+      - key: PROJECT_NAME
+        value: Dayform
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dayform-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: dayform-redis
+          property: connectionString
+      - key: BACKEND_CORS_ORIGINS
+        value: '["https://dayform-live.vercel.app"]'
+      - key: LOG_LEVEL
+        value: INFO
+      - key: PLANNING_PROVIDER
+        value: openstreetmap
+
+databases:
+  - name: dayform-db
+    databaseName: dayform
+    user: dayform
+    plan: free
+
+redis:
+  - name: dayform-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru

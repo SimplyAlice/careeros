@@ -5,7 +5,7 @@
  * for local development, JSON parsing, and friendly error reporting.
  */
 
-const API_BASE = '/api/v1';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 let authToken: string | null =
   localStorage.getItem('dayform_access_token') ||
@@ -28,7 +28,7 @@ export async function ensureAuthToken(): Promise<string> {
     });
   } catch (netErr) {
     console.error('Network failure during authentication:', netErr);
-    throw new Error('Unable to connect to Dayform backend. Ensure backend is running on port 8000.');
+    throw new Error('Unable to connect to API backend.');
   }
 
   if (!response.ok) {
@@ -45,7 +45,7 @@ export async function ensureAuthToken(): Promise<string> {
       });
     } catch (netErr) {
       console.error('Network failure during demo registration:', netErr);
-      throw new Error('Unable to connect to Dayform backend. Ensure backend is running on port 8000.');
+      throw new Error('Unable to connect to API backend.');
     }
 
     if (regRes.ok || regRes.status === 409 || regRes.status === 422) {
@@ -61,7 +61,7 @@ export async function ensureAuthToken(): Promise<string> {
         });
       } catch (netErr) {
         console.error('Network failure during login retry:', netErr);
-        throw new Error('Unable to connect to Dayform backend. Ensure backend is running on port 8000.');
+        throw new Error('Unable to connect to API backend.');
       }
 
       if (retryLogin.ok) {

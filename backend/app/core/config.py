@@ -58,7 +58,7 @@ class Settings(BaseSettings):
     )
 
     # --- Application identity -------------------------------------------------
-    project_name: str = "CareerOS"
+    project_name: str = "Dayform"
     api_v1_prefix: str = "/api/v1"
     version: str = "0.1.0"
 
@@ -92,7 +92,7 @@ class Settings(BaseSettings):
     redis_url: str = Field(default="redis://redis:6379/0")
 
     # --- CORS ------------------------------------------------------------------
-    backend_cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173"])
+    backend_cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173", "https://dayform-live.vercel.app"])
 
     # --- Planning information provider (Milestone 3) ---------------------------
     # Configures the active real-world planning information provider.

@@ -19,7 +19,7 @@
 
 <br/>
 
-### **[👉 Try Dayform Live → https://dayform-live.vercel.app](https://dayform-live.vercel.app)**
+### **[Experience Dayform Live → https://dayform-live.vercel.app](https://dayform-live.vercel.app)**
 **[View Source on GitHub → https://github.com/SimplyAlice/dayform](https://github.com/SimplyAlice/dayform)**
 
 <br/>
@@ -277,9 +277,9 @@ pip install -e .
 alembic upgrade head
 
 # Start development server
-uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8000 --reload
+uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8000 --reload
 ```
-API endpoints will be online at `http://127.0.0.1:8000/` (Interactive OpenAPI docs at `/docs`).
+API endpoints will be online at `http://localhost:8000/` (Interactive OpenAPI docs at `/docs`).
 
 ### 3. Frontend Setup
 ```bash
