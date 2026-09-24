@@ -1,4 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useImperativeHandle, forwardRef } from 'react';
+import { IconArrowRight, IconSparkles, IconArrowDown } from './Icons';
+
+export interface IntentInputHandle {
+  focus: () => void;
+  setIntent: (text: string) => void;
+}
 
 interface IntentInputProps {
   onSubmit: (intent: string) => void;
@@ -8,112 +14,196 @@ interface IntentInputProps {
 
 interface ExamplePrompt {
   label: string;
+  subtitle: string;
   prompt: string;
+  category: string;
 }
 
 const EXAMPLE_PROMPTS: ExamplePrompt[] = [
   {
+    label: 'Birthday celebration',
+    category: 'Celebration',
+    subtitle: '5 people · Cape Town · Sat evening · ~R1500',
+    prompt: 'I want to plan a birthday dinner for 5 people in Cape Town on Saturday evening, around R1500.',
+  },
+  {
     label: 'Plan a date',
-    prompt: 'I want a nice date with my partner in Cape Town under R800.',
+    category: 'Romance',
+    subtitle: '2 people · Romantic dinner & stroll under R800',
+    prompt: 'I want a nice date with my partner in Cape Town under R800, good food and unhurried pace.',
   },
   {
-    label: 'Plan a day out',
-    prompt: 'Something fun with 3 friends in Cape Town under R500.',
+    label: 'Day out with friends',
+    category: 'Social',
+    subtitle: '4 people · Fun, relaxed & scenic under R500',
+    prompt: 'Something fun with 3 friends in Cape Town under R500, casual vibe with good spots.',
   },
   {
-    label: 'Plan a birthday',
-    prompt: 'A relaxed birthday celebration with 4 friends under R1000 with good food.',
+    label: 'Culture & food walk',
+    category: 'Discovery',
+    subtitle: 'Solo / duo · Local art, history and bites',
+    prompt: 'An afternoon exploring local culture, historic streets, and craft food markets.',
   },
   {
-    label: 'Find something fun',
-    prompt: 'An active and scenic afternoon for 2 people in Cape Town.',
+    label: 'Dinner with friends',
+    category: 'Dining',
+    subtitle: '4 people · Relaxed social evening under R600',
+    prompt: 'Dinner and a relaxed social evening with friends under R600 total.',
   },
   {
-    label: 'Plan dinner',
-    prompt: 'Dinner and a relaxed social evening with friends under R600.',
-  },
-  {
-    label: 'Plan a weekend',
-    prompt: 'A relaxing weekend day exploring local culture and food.',
+    label: 'Active & scenic day',
+    category: 'Outdoors',
+    subtitle: '2 people · Ocean breeze & panoramic views',
+    prompt: 'An active and scenic afternoon for 2 people in Cape Town with light food after.',
   },
 ];
 
-export const IntentInput: React.FC<IntentInputProps> = ({
-  onSubmit,
-  isLoading,
-  defaultValue = 'Something fun with 3 friends in Cape Town under R500',
-}) => {
-  const [intent, setIntent] = useState(defaultValue);
+export const IntentInput = forwardRef<IntentInputHandle, IntentInputProps>(
+  ({ onSubmit, isLoading, defaultValue = '' }, ref) => {
+    const [intent, setIntent] = useState(defaultValue);
+    const [isFocused, setIsFocused] = useState(false);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!intent.trim() || isLoading) return;
-    onSubmit(intent.trim());
-  };
+    useImperativeHandle(ref, () => ({
+      focus: () => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          textareaRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      },
+      setIntent: (text: string) => {
+        setIntent(text);
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+        }
+      },
+    }));
 
-  const handleSelectPrompt = (promptText: string) => {
-    setIntent(promptText);
-  };
+    const handleSubmit = (e?: React.FormEvent) => {
+      if (e) e.preventDefault();
+      if (!intent.trim() || isLoading) return;
+      onSubmit(intent.trim());
+    };
 
-  return (
-    <div className="hero-intent-card">
-      <div className="hero-header">
-        <span className="hero-tag">Intelligent Real-World Planning</span>
-        <h1 className="hero-title">
-          Tell me what you want to do.
-          <span className="hero-title-accent"> I’ll figure out the rest.</span>
-        </h1>
-        <p className="hero-subtitle">
-          Whether it’s a date, a birthday, dinner, or a day out with friends—describe your intention, and OpsOS will work through the options to propose a coherent, budget-aware plan.
-        </p>
-      </div>
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSubmit();
+      }
+    };
 
-      <form onSubmit={handleSubmit} className="hero-form">
-        <div className="hero-input-wrapper">
-          <textarea
-            className="hero-textarea"
-            rows={3}
-            value={intent}
-            onChange={(e) => setIntent(e.target.value)}
-            placeholder="e.g. I want to take my boyfriend somewhere nice this Saturday. We have R800 and neither of us drinks."
-            disabled={isLoading}
-          />
+    const handleSelectPrompt = (promptText: string) => {
+      setIntent(promptText);
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    };
+
+    const handleScrollDown = () => {
+      const elem = document.getElementById('how-it-works');
+      elem?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    return (
+      <div id="hero-input" className="hero-section">
+        {/* Brand & Editorial Hero Headline */}
+        <div className="hero-content">
+          <div className="hero-eyebrow animate-fade-in">
+            <IconSparkles size={14} className="eyebrow-icon" />
+            <span>OPSOS · REAL-WORLD PLANNING ENGINE</span>
+          </div>
+
+          <h1 className="hero-heading animate-fade-up">
+            Tell me what you want to do.
+            <br />
+            <span className="hero-heading-secondary">I’ll figure out the rest.</span>
+          </h1>
+
+          <p className="hero-description animate-fade-up delay-1">
+            No 15 open tabs. No manual spreadsheet of opening times. No guesswork on whether 5 friends
+            can actually get dinner for R1500 on a Saturday night. Describe your intention in plain words—OpsOS
+            evaluates real places, verified operating hours, and live budgets to propose a coherent, timed itinerary.
+          </p>
         </div>
 
-        <div className="hero-form-footer">
-          <div className="hero-presets">
-            <span className="presets-label">Try an example:</span>
-            <div className="presets-pills">
-              {EXAMPLE_PROMPTS.map((item) => (
+        {/* Premium Command Surface */}
+        <div className={`command-surface-wrapper ${isFocused ? 'focused' : ''} animate-fade-up delay-2`}>
+          <form onSubmit={handleSubmit} className="command-surface-form">
+            <div className="command-input-container">
+              <textarea
+                ref={textareaRef}
+                className="command-textarea"
+                rows={3}
+                value={intent}
+                onChange={(e) => setIntent(e.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                onKeyDown={handleKeyDown}
+                placeholder="e.g. Birthday dinner for 5 in Cape Town on Saturday evening around R1500, or a quiet date under R800..."
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="command-surface-footer">
+              <div className="command-helper-text">
+                <span className="keyboard-hint">Press ↵ Enter to plan</span>
+              </div>
+
+              <button
+                type="submit"
+                className="command-submit-button"
+                disabled={isLoading || !intent.trim()}
+                aria-label="Generate plan"
+              >
+                {isLoading ? (
+                  <span className="button-loading-state">
+                    <span className="loading-spinner" />
+                    <span>Thinking...</span>
+                  </span>
+                ) : (
+                  <span className="button-label-state">
+                    <span>Plan it</span>
+                    <IconArrowRight size={16} className="button-arrow" />
+                  </span>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Curated Suggestion Chips */}
+        <div className="suggestion-section animate-fade-up delay-3">
+          <div className="suggestion-label">Or explore an intention:</div>
+          <div className="suggestion-grid">
+            {EXAMPLE_PROMPTS.map((item) => {
+              const isSelected = intent === item.prompt;
+              return (
                 <button
                   key={item.label}
                   type="button"
-                  className={`preset-pill ${intent === item.prompt ? 'active' : ''}`}
+                  className={`suggestion-card ${isSelected ? 'selected' : ''}`}
                   onClick={() => handleSelectPrompt(item.prompt)}
                   disabled={isLoading}
                 >
-                  {item.label}
+                  <div className="suggestion-card-header">
+                    <span className="suggestion-title">{item.label}</span>
+                    <span className="suggestion-category-tag">{item.category}</span>
+                  </div>
+                  <span className="suggestion-subtitle">{item.subtitle}</span>
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
-
-          <button
-            type="submit"
-            className="hero-submit-button"
-            disabled={isLoading || !intent.trim()}
-          >
-            {isLoading ? (
-              <span className="spinner-wrap">
-                <span className="spinner" />
-                Planning...
-              </span>
-            ) : (
-              'Plan it'
-            )}
-          </button>
         </div>
-      </form>
-    </div>
-  );
-};
+
+        {/* Scroll Cue */}
+        <div className="hero-scroll-cue" onClick={handleScrollDown} role="button" tabIndex={0}>
+          <span className="cue-label">Explore how OpsOS works</span>
+          <IconArrowDown size={14} className="cue-arrow-icon" />
+        </div>
+      </div>
+    );
+  }
+);
+
+IntentInput.displayName = 'IntentInput';

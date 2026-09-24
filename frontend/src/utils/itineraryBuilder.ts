@@ -35,16 +35,16 @@ export interface ProposedItinerary {
  * Category icons for consumer editorial feel.
  */
 export const CATEGORY_ICONS: Record<InformationCategory | string, string> = {
-  nature: '🌿',
-  culture: '🎨',
-  food: '🍽️',
-  entertainment: '🎟️',
-  wellness: '🧘',
-  shopping: '🛍️',
+  nature: 'Nature',
+  culture: 'Culture',
+  food: 'Dining',
+  entertainment: 'Entertainment',
+  wellness: 'Wellness',
+  shopping: 'Shopping',
 };
 
 export function getCategoryIcon(category: string): string {
-  return CATEGORY_ICONS[category.toLowerCase()] || '✨';
+  return CATEGORY_ICONS[category.toLowerCase()] || 'Place';
 }
 
 /**
@@ -169,70 +169,75 @@ export function humanizeCandidateReasons(
   const humanReasons: string[] = [];
   const cost = parseCandidateCost(candidate.cost);
 
-  // 1. Budget rationale
+  // 1. Budget rationale (warm, consumer wording)
   if (candidate.cost === null || candidate.cost === undefined) {
-    humanReasons.push('Price not listed — menu or admission prices vary.');
+    humanReasons.push('Menu or admission prices vary by choice.');
   } else if (cost === 0) {
     humanReasons.push('Free to enjoy — zero impact on your budget.');
   } else if (budgetMax !== null && cost <= budgetMax) {
     humanReasons.push(`Fits comfortably within your ${formatCurrency(budgetMax)} budget.`);
   }
 
-  // 2. Real opening hours & temporal rationale from decision engine
+  // 2. Real opening hours & temporal rationale from decision engine (filter out robotic weather/rules text)
   if (candidate.reasons) {
     for (const r of candidate.reasons) {
-      if (r.type === 'opening_hours') {
-        if (r.outcome === 'supported' && r.message) {
+      if (r.type === 'opening_hours' && r.outcome === 'supported' && r.message) {
+        // Only include if not robotic
+        if (!r.message.toLowerCase().includes('weather forecast') && !r.message.toLowerCase().includes('indoor venue')) {
           humanReasons.push(r.message);
-        } else if (r.outcome === 'neutral') {
-          humanReasons.push('Opening hours unlisted — check ahead before visiting.');
         }
       } else if (r.type === 'time_window' && r.outcome === 'supported' && r.message) {
-        humanReasons.push(r.message);
+        if (!r.message.toLowerCase().includes('weather forecast')) {
+          humanReasons.push(r.message);
+        }
       }
     }
   }
 
-  if (candidate.opening_hours && !humanReasons.some((h) => h.includes('Open') || h.includes('Hours:'))) {
-    humanReasons.push(`Hours: ${candidate.opening_hours}`);
-  }
-
   // 3. Occasion rationale
   if (understanding?.occasion === 'date') {
-    humanReasons.push('A great, relaxed setting for a date.');
+    humanReasons.push('Romantic and relaxed atmosphere for two.');
   } else if (understanding?.occasion === 'birthday') {
-    humanReasons.push('A celebratory spot for a special day.');
+    humanReasons.push('A celebratory setting well suited for a special occasion.');
   } else if (understanding?.occasion === 'friends') {
-    humanReasons.push('Fun, easygoing setting for a group of friends.');
+    humanReasons.push('Lively, easygoing setting for a group of friends.');
   }
 
   // 4. Group suitability
-  if (groupSize > 1) {
-    humanReasons.push(`Well suited for a group of ${groupSize}.`);
+  if (groupSize > 1 && !humanReasons.some((h) => h.includes('group'))) {
+    humanReasons.push(`Comfortable table space and flow for ${groupSize} guests.`);
   }
 
   // 5. Category context
-  if (candidate.category === 'nature') {
-    humanReasons.push('Offers a scenic, relaxed outdoor start.');
-  } else if (candidate.category === 'culture') {
-    humanReasons.push('Adds a rich cultural dimension to your plan.');
-  } else if (candidate.category === 'food') {
-    humanReasons.push('Great spot for group conversation and food.');
+  if (candidate.category === 'nature' && !humanReasons.some((h) => h.includes('scenic') || h.includes('outdoor'))) {
+    humanReasons.push('Scenic, open-air setting to take in the surroundings.');
+  } else if (candidate.category === 'culture' && !humanReasons.some((h) => h.includes('cultural'))) {
+    humanReasons.push('Adds a rich cultural highlight to your day.');
+  } else if (candidate.category === 'food' && !humanReasons.some((h) => h.includes('food') || h.includes('cuisine') || h.includes('dinner'))) {
+    humanReasons.push('Standout local kitchen known for memorable food and hospitality.');
   }
 
-  // Fallback to any positive message from backend reasons if human list is small
+  // Fallback to any positive message from backend reasons if filtered list is small
   if (candidate.reasons) {
     for (const r of candidate.reasons) {
       if (r.outcome === 'supported' && r.message) {
         const cleanMsg = r.message.replace(/R0\.00/g, 'R0');
-        if (!humanReasons.includes(cleanMsg)) {
+        const lower = cleanMsg.toLowerCase();
+        // Strict filter against robotic internal text
+        if (
+          !lower.includes('weather forecast') &&
+          !lower.includes('indoor venue') &&
+          !lower.includes('budget constraint met') &&
+          !lower.includes('score') &&
+          !humanReasons.includes(cleanMsg)
+        ) {
           humanReasons.push(cleanMsg);
         }
       }
     }
   }
 
-  return humanReasons.slice(0, 3);
+  return humanReasons.slice(0, 2);
 }
 
 /**

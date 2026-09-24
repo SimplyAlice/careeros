@@ -1,6 +1,7 @@
 import React from 'react';
 import type { PlanRead } from '../types/planning';
 import { formatCurrency } from '../utils/itineraryBuilder';
+import { IconMapPin, IconCalendar, IconUsers, IconWallet, IconInfo, IconSparkles } from './Icons';
 
 interface UnderstandingCardProps {
   plan: PlanRead;
@@ -12,39 +13,38 @@ export const UnderstandingCard: React.FC<UnderstandingCardProps> = ({ plan, budg
 
   // Occasion label
   const occasionMap: Record<string, string> = {
-    date: '🥂 Date',
-    birthday: '🎂 Birthday',
-    celebration: '🎉 Celebration',
-    friends: '👥 Outing with Friends',
-    casual_hangout: '☕ Casual Hangout',
-    family: '🏡 Family Outing',
-    solo: '👤 Solo Outing',
+    date: 'Date with Partner',
+    birthday: 'Birthday Celebration',
+    celebration: 'Celebration',
+    friends: 'Outing with Friends',
+    casual_hangout: 'Casual Hangout',
+    family: 'Family Outing',
+    solo: 'Solo Exploration',
   };
-  const occasionLabel = u?.occasion ? occasionMap[u.occasion] || `✨ ${u.occasion}` : null;
+  const occasionTitle = u?.occasion ? occasionMap[u.occasion] || u.occasion : 'Custom Itinerary';
 
-  // People & Group
+  // Group size & relationship
   const groupSize = u?.people_count ?? plan.context?.group_size ?? 1;
   const relContext = u?.relationship_context;
-  let groupLabel = groupSize > 1 ? `${groupSize} people` : 'Solo';
+  let groupSummary = groupSize > 1 ? `${groupSize} people` : '1 person';
   if (relContext && groupSize === 2) {
-    if (relContext === 'boyfriend') groupLabel = '2 people · Boyfriend';
-    else if (relContext === 'girlfriend') groupLabel = '2 people · Girlfriend';
-    else if (relContext === 'partner') groupLabel = '2 people · Partner';
-    else if (relContext === 'couple') groupLabel = 'Couple (2)';
-  } else if (relContext && relContext === 'friends') {
-    groupLabel = groupSize > 1 ? `${groupSize} friends` : 'Friends';
+    if (['partner', 'boyfriend', 'girlfriend', 'couple'].includes(relContext)) {
+      groupSummary = '2 people · Partner';
+    }
+  } else if (relContext === 'friends') {
+    groupSummary = groupSize > 1 ? `${groupSize} friends` : 'Friends';
   }
 
-  // Date and Timing
+  // Timing
   const dateSpec = u?.date_spec;
   const timeWindow = u?.time_window;
-  let timeLabel: string | null = null;
+  let timeSummary = 'Flexible timing';
   if (dateSpec && timeWindow) {
-    timeLabel = `${dateSpec} · ${timeWindow.charAt(0).toUpperCase() + timeWindow.slice(1)}`;
+    timeSummary = `${dateSpec} · ${timeWindow.charAt(0).toUpperCase() + timeWindow.slice(1)}`;
   } else if (dateSpec) {
-    timeLabel = dateSpec;
+    timeSummary = dateSpec;
   } else if (timeWindow) {
-    timeLabel = timeWindow.charAt(0).toUpperCase() + timeWindow.slice(1);
+    timeSummary = timeWindow.charAt(0).toUpperCase() + timeWindow.slice(1);
   }
 
   // Location
@@ -52,112 +52,131 @@ export const UnderstandingCard: React.FC<UnderstandingCardProps> = ({ plan, budg
   const locationIsDefault = u ? u.location_is_inferred : false;
 
   // Budget
-  let budgetLabel: string | null = null;
+  let budgetSummary = 'Flexible budget';
   const budgetVal = u?.budget_amount ? Number(u.budget_amount) : budgetMax;
   if (budgetVal !== null && budgetVal > 0) {
     if (u?.budget_kind === 'approximate') {
-      budgetLabel = `~${formatCurrency(budgetVal)} (approx)`;
+      budgetSummary = `Around ${formatCurrency(budgetVal)}`;
     } else {
-      budgetLabel = `Under ${formatCurrency(budgetVal)}`;
+      budgetSummary = `Under ${formatCurrency(budgetVal)}`;
     }
   } else if (u?.budget_kind === 'preference') {
-    budgetLabel = 'Budget-conscious';
+    budgetSummary = 'Budget-conscious';
   }
 
-  // Keeping it pills (Preferences + Exclusions)
-  const keepingItPoints: { label: string; isExclusion?: boolean }[] = [];
-
-  // Exclusions first (hard constraints)
-  if (u?.exclusions && u.exclusions.length > 0) {
-    for (const excl of u.exclusions) {
-      if (excl === 'not_too_fancy') keepingItPoints.push({ label: 'Nothing too fancy', isExclusion: true });
-      else if (excl === 'no_outdoors') keepingItPoints.push({ label: 'No outdoor activities', isExclusion: true });
-      else if (excl === 'no_clubs') keepingItPoints.push({ label: 'No clubs / nightlife', isExclusion: true });
-      else if (excl === 'nothing_expensive') keepingItPoints.push({ label: 'Not expensive', isExclusion: true });
-      else keepingItPoints.push({ label: excl.replace(/_/g, ' '), isExclusion: true });
-    }
-  }
-
-  // Soft preferences
+  // Looking for (preferences + occasion highlights)
+  const lookingForItems: string[] = [];
   if (u?.preferences && u.preferences.length > 0) {
     for (const pref of u.preferences) {
-      if (pref === 'casual') keepingItPoints.push({ label: 'Casual & relaxed vibe' });
-      else if (pref === 'nice') keepingItPoints.push({ label: 'Somewhere nice & pleasant' });
-      else if (pref === 'romantic') keepingItPoints.push({ label: 'Romantic atmosphere' });
-      else if (pref === 'food_focused') keepingItPoints.push({ label: 'Food-forward focus' });
-      else if (pref === 'aesthetic') keepingItPoints.push({ label: 'Scenic / aesthetic spot' });
-      else if (pref === 'outdoors') keepingItPoints.push({ label: 'Outdoor setting' });
-      else if (pref === 'cultural') keepingItPoints.push({ label: 'Cultural highlights' });
-      else keepingItPoints.push({ label: pref });
+      if (pref === 'casual') lookingForItems.push('Relaxed, casual vibe');
+      else if (pref === 'nice') lookingForItems.push('Pleasant, inviting setting');
+      else if (pref === 'romantic') lookingForItems.push('Intimate & atmospheric');
+      else if (pref === 'food_focused') lookingForItems.push('Food-forward with great dining');
+      else if (pref === 'aesthetic') lookingForItems.push('Scenic, visually captivating');
+      else if (pref === 'outdoors') lookingForItems.push('Open-air & outdoor elements');
+      else if (pref === 'cultural') lookingForItems.push('Local culture & craft');
+      else lookingForItems.push(pref.replace(/_/g, ' '));
     }
+  } else {
+    if (u?.occasion === 'birthday') lookingForItems.push('Celebratory atmosphere with good food');
+    else if (u?.occasion === 'date') lookingForItems.push('Thoughtful, memorable date experience');
+    else lookingForItems.push('Balanced, well-paced local experience');
   }
 
-  // Fallback defaults if no preferences were stated
-  if (keepingItPoints.length === 0) {
-    if (budgetVal !== null) {
-      keepingItPoints.push({ label: `Under ${formatCurrency(budgetVal)}` });
+  // Keeping in mind (hard exclusions + constraints)
+  const keepingInMindItems: string[] = [];
+  if (u?.exclusions && u.exclusions.length > 0) {
+    for (const excl of u.exclusions) {
+      if (excl === 'not_too_fancy') keepingInMindItems.push('Nothing overly formal or stiff');
+      else if (excl === 'no_outdoors') keepingInMindItems.push('Sheltered / indoor options only');
+      else if (excl === 'no_clubs') keepingInMindItems.push('No loud clubs or nightlife');
+      else if (excl === 'nothing_expensive') keepingInMindItems.push('High value, non-expensive');
+      else keepingInMindItems.push(`Avoid ${excl.replace(/_/g, ' ')}`);
     }
-    keepingItPoints.push({ label: `Suitable for ${groupLabel.toLowerCase()}` });
-    if (location) {
-      keepingItPoints.push({ label: `In ${location}` });
-    }
-    keepingItPoints.push({ label: 'Balanced and unhurried' });
   }
+  if (budgetVal !== null && budgetVal > 0) {
+    keepingInMindItems.push(`Total cost capped around ${formatCurrency(budgetVal)}`);
+  }
+  keepingInMindItems.push(`Tailored sequence for ${groupSummary.toLowerCase()}`);
 
   return (
-    <div className="understanding-card">
-      <div className="understanding-top">
-        <span className="understanding-badge">Understood</span>
-        <h3 className="understanding-heading">Got it. Here’s what I’m working with:</h3>
+    <div className="understanding-brief-section">
+      <div className="brief-header">
+        <div className="brief-badge">
+          <IconSparkles size={13} className="brief-badge-icon" />
+          <span>HERE’S WHAT I UNDERSTOOD</span>
+        </div>
+        <h2 className="brief-title">{occasionTitle}</h2>
       </div>
 
-      {/* Inferred & Structured Context Chips */}
-      <div className="understanding-chips">
-        {occasionLabel && <span className="context-chip occasion">{occasionLabel}</span>}
-        {timeLabel && <span className="context-chip time">📅 {timeLabel}</span>}
-        {location && (
-          <span className="context-chip location">
-            📍 {location} {locationIsDefault && <small style={{ opacity: 0.7 }}>(inferred)</small>}
+      {/* Structured Context Metadata Ribbon */}
+      <div className="brief-meta-ribbon">
+        <div className="meta-ribbon-item">
+          <IconUsers size={15} className="ribbon-icon" />
+          <span className="ribbon-text">{groupSummary}</span>
+        </div>
+        <div className="ribbon-divider" />
+        <div className="meta-ribbon-item">
+          <IconCalendar size={15} className="ribbon-icon" />
+          <span className="ribbon-text">{timeSummary}</span>
+        </div>
+        <div className="ribbon-divider" />
+        <div className="meta-ribbon-item">
+          <IconMapPin size={15} className="ribbon-icon" />
+          <span className="ribbon-text">
+            {location}
+            {locationIsDefault && <span className="inferred-tag"> (inferred)</span>}
           </span>
-        )}
-        <span className="context-chip group">👥 {groupLabel}</span>
-        {budgetLabel && <span className="context-chip budget">💰 {budgetLabel}</span>}
+        </div>
+        <div className="ribbon-divider" />
+        <div className="meta-ribbon-item">
+          <IconWallet size={15} className="ribbon-icon" />
+          <span className="ribbon-text">{budgetSummary}</span>
+        </div>
       </div>
 
-      {/* Synthesis */}
-      <div className="understanding-body">
-        <div className="understanding-field">
-          <span className="field-label">You want</span>
-          <p className="field-quote">“{plan.intention}”</p>
-        </div>
-
-        <div className="understanding-field">
-          <span className="field-label">Parameters & vibe</span>
-          <div className="keeping-it-pills">
-            {keepingItPoints.map((point, idx) => (
-              <span
-                key={idx}
-                className={`keeping-pill ${point.isExclusion ? 'exclusion-pill' : ''}`}
-                style={point.isExclusion ? { borderColor: '#e0a0a0', color: '#883333' } : undefined}
-              >
-                {point.isExclusion ? '⊘ ' : '✓ '}
-                {point.label}
-              </span>
-            ))}
+      {/* Editorial Synthesis: Two-column clean focus */}
+      <div className="brief-grid">
+        <div className="brief-column">
+          <div className="brief-column-label">Looking for</div>
+          <div className="brief-column-content">
+            <ul className="brief-list">
+              {lookingForItems.map((item, idx) => (
+                <li key={idx} className="brief-list-item">
+                  <span className="brief-bullet" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 
-        {/* Ambiguities / Helpful clarifying transparency */}
-        {u?.ambiguities && u.ambiguities.length > 0 && (
-          <div className="understanding-ambiguity-notice" style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: 'var(--text-muted, #71717a)' }}>
+        <div className="brief-column">
+          <div className="brief-column-label">Keeping in mind</div>
+          <div className="brief-column-content">
+            <ul className="brief-list">
+              {keepingInMindItems.map((item, idx) => (
+                <li key={idx} className="brief-list-item">
+                  <span className="brief-bullet neutral" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Ambiguities / Planner Notes */}
+      {u?.ambiguities && u.ambiguities.length > 0 && (
+        <div className="brief-notes">
+          <IconInfo size={14} className="notes-icon" />
+          <div className="notes-content">
             {u.ambiguities.map((note, idx) => (
-              <div key={idx} className="ambiguity-line">
-                💡 <span style={{ fontStyle: 'italic' }}>{note}</span>
-              </div>
+              <span key={idx} className="note-text">{note}</span>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

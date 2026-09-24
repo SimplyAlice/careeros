@@ -1,12 +1,29 @@
 import React, { useState, useRef } from 'react';
+import { Navigation } from './components/Navigation';
 import { IntentInput } from './components/IntentInput';
+import type { IntentInputHandle } from './components/IntentInput';
+import { LandingStory } from './components/LandingStory';
+import { CapabilitiesSection } from './components/CapabilitiesSection';
 import { UnderstandingCard } from './components/UnderstandingCard';
 import { ProposedPlan } from './components/ProposedPlan';
 import { PlanSummary } from './components/PlanSummary';
-import { createPlanFromIntent, getPlan, getPlanRecommendations, addOptionToPlan, proposePlanAdaptation, applyPlanAdaptation } from './api/planning';
-import { buildProposedItinerary, getCategoryIcon, buildItemSubtitle, parseCandidateCost } from './utils/itineraryBuilder';
+import {
+  createPlanFromIntent,
+  getPlan,
+  getPlanRecommendations,
+  addOptionToPlan,
+  proposePlanAdaptation,
+  applyPlanAdaptation,
+} from './api/planning';
+import {
+  buildProposedItinerary,
+  getCategoryIcon,
+  buildItemSubtitle,
+  parseCandidateCost,
+} from './utils/itineraryBuilder';
 import type { ProposedItinerary, ProposedItineraryItem } from './utils/itineraryBuilder';
 import type { DecisionCandidateRead, InformationCategory, PlanRead, PlanAdaptationRead } from './types/planning';
+import { IconSparkles, IconAlertCircle, IconX, IconArrowLeft, IconPlus } from './components/Icons';
 import './styles.css';
 
 export const App: React.FC = () => {
@@ -14,6 +31,9 @@ export const App: React.FC = () => {
   const [candidates, setCandidates] = useState<DecisionCandidateRead[]>([]);
   const [proposedItinerary, setProposedItinerary] = useState<ProposedItinerary | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const [submittedIntent, setSubmittedIntent] = useState<string>('');
+
+  const [viewMode, setViewMode] = useState<'landing' | 'workspace'>('landing');
 
   const [isAdaptationReview, setIsAdaptationReview] = useState(false);
   const [proposedAdaptation, setProposedAdaptation] = useState<PlanAdaptationRead | null>(null);
@@ -25,7 +45,7 @@ export const App: React.FC = () => {
   const [isTweaking, setIsTweaking] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const inputRef = useRef<HTMLDivElement>(null);
+  const intentInputRef = useRef<IntentInputHandle>(null);
   const proposalRef = useRef<HTMLDivElement>(null);
 
   // Flow Step 1: User submits an intention
@@ -34,6 +54,11 @@ export const App: React.FC = () => {
     setErrorMessage(null);
     setIsConfirmed(false);
     setProposedItinerary(null);
+    setSubmittedIntent(intent);
+    setViewMode('workspace');
+
+    // Scroll cleanly to the workspace view
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
     try {
       // 1. Create plan aggregate from intent (POST /api/v1/planning/requests)
@@ -60,7 +85,7 @@ export const App: React.FC = () => {
       // Smooth scroll to proposal section
       setTimeout(() => {
         proposalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
+      }, 150);
     } catch (err: unknown) {
       console.error('Planning error:', err);
       const msg = err instanceof Error ? err.message : 'Failed to create plan.';
@@ -157,7 +182,7 @@ export const App: React.FC = () => {
 
       setProposedItinerary(adaptedProposal);
       setIsAdaptationReview(true);
-      setIsConfirmed(false); // bring user back to review proposal
+      setIsConfirmed(false);
 
       setTimeout(() => {
         proposalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -239,11 +264,6 @@ export const App: React.FC = () => {
     }
   };
 
-  // User wants to modify request or start over
-  const handleModifyIntent = () => {
-    inputRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   const handleStartNew = () => {
     setCurrentPlan(null);
     setProposedItinerary(null);
@@ -252,7 +272,20 @@ export const App: React.FC = () => {
     setIsAdaptationReview(false);
     setProposedAdaptation(null);
     setErrorMessage(null);
+    setSubmittedIntent('');
+    setViewMode('landing');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleFocusHeroInput = () => {
+    if (viewMode === 'workspace') {
+      setViewMode('landing');
+      setTimeout(() => {
+        intentInputRef.current?.focus();
+      }, 100);
+    } else {
+      intentInputRef.current?.focus();
+    }
   };
 
   const budgetConstraint = currentPlan?.constraints?.find((c) => c.type === 'budget_max');
@@ -260,92 +293,204 @@ export const App: React.FC = () => {
     ? parseFloat(String(budgetConstraint.numeric_value))
     : null;
 
-  return (
-    <div className="app-container">
-      {/* Header */}
-      <header className="app-header">
-        <div className="header-inner">
-          <div className="brand-logo" onClick={handleStartNew} style={{ cursor: 'pointer' }}>
-            <h1 className="brand-name">OpsOS</h1>
-            <span className="brand-tagline">Intelligent Real-World Planning</span>
-          </div>
-          <div className="header-status">
-            <span className="status-dot" />
-            <span>Ready to Plan</span>
-          </div>
-        </div>
-      </header>
+  const hasActivePlan = Boolean(currentPlan || isPlanning);
 
-      {/* Main Content */}
-      <main className="app-main">
-        {/* Error notification */}
+  return (
+    <div className="product-canvas">
+      {/* Top Floating Navigation */}
+      <Navigation
+        hasActivePlan={hasActivePlan}
+        isPlanning={isPlanning}
+        onNewPlan={handleStartNew}
+        onFocusInput={handleFocusHeroInput}
+        viewMode={viewMode}
+        onSwitchView={(mode) => setViewMode(mode)}
+      />
+
+      {/* Main Experience Flow */}
+      <main className="product-main">
+        {/* Error Notification Toast */}
         {errorMessage && (
-          <div className="error-banner">
-            <span>{errorMessage}</span>
+          <div className="editorial-error-toast" role="alert">
+            <div className="error-toast-content">
+              <IconAlertCircle size={18} className="error-toast-icon" />
+              <span>{errorMessage}</span>
+            </div>
             <button
               type="button"
-              className="error-close"
+              className="error-toast-close"
               onClick={() => setErrorMessage(null)}
+              aria-label="Dismiss error"
             >
-              ✕
+              <IconX size={15} />
             </button>
           </div>
         )}
 
-        {/* Step 1: Homepage Hero & Natural Language Input */}
-        <div ref={inputRef}>
-          <IntentInput
-            onSubmit={handleIntentSubmit}
-            isLoading={isPlanning}
-          />
-        </div>
+        {/* =========================================================================
+            VIEW MODE 1: CINEMATIC LANDING EXPERIENCE
+            ========================================================================= */}
+        {viewMode === 'landing' && (
+          <div className="landing-view-container">
+            {/* Active Plan Resumption Banner (if user navigated to overview while a plan is active) */}
+            {hasActivePlan && (
+              <div className="active-plan-banner" onClick={() => setViewMode('workspace')}>
+                <div className="active-plan-banner-text">
+                  <span className="live-status-dot" />
+                  <span>You have an active plan in progress: <strong>“{submittedIntent}”</strong></span>
+                </div>
+                <button type="button" className="active-plan-banner-btn">
+                  <span>Resume plan</span>
+                  <span className="banner-arrow">→</span>
+                </button>
+              </div>
+            )}
 
-        {/* Planning Loading State */}
-        {isPlanning && (
-          <div className="planning-loading-card">
-            <div className="spinner large" />
-            <h3 className="planning-loading-title">Figuring out your plan...</h3>
-            <p className="planning-loading-subtitle">
-              Analyzing constraints, group size, and local options to assemble a great sequence.
-            </p>
+            {/* Cinematic Hero & Command Surface */}
+            <IntentInput
+              ref={intentInputRef}
+              onSubmit={handleIntentSubmit}
+              isLoading={isPlanning}
+            />
+
+            {/* Sticky Scroll Storytelling Section (6 Chapters) */}
+            <LandingStory onStartPlanning={handleFocusHeroInput} />
+
+            {/* Engine Architecture & Capabilities Grid */}
+            <CapabilitiesSection onStartPlanning={handleFocusHeroInput} />
+
+            {/* Editorial Footer */}
+            <footer className="editorial-footer">
+              <div className="footer-container">
+                <div className="footer-top-row">
+                  <div className="footer-brand-col">
+                    <span className="footer-logo">OpsOS</span>
+                    <p className="footer-tagline">
+                      Real-world planning intelligence. Designed for humans who live in the physical world.
+                    </p>
+                  </div>
+
+                  <div className="footer-links-col">
+                    <span className="footer-col-title">Navigation</span>
+                    <button type="button" className="footer-link" onClick={handleFocusHeroInput}>Plan an intention</button>
+                    <a href="#how-it-works" className="footer-link">How it works</a>
+                    <a href="#capabilities" className="footer-link">Capabilities</a>
+                  </div>
+
+                  <div className="footer-links-col">
+                    <span className="footer-col-title">Engine</span>
+                    <span className="footer-meta-item">Version 0.1.0</span>
+                    <span className="footer-meta-item">Milestones M1–M7</span>
+                    <span className="footer-meta-item">Live Intelligence Active</span>
+                  </div>
+                </div>
+
+                <div className="footer-bottom-row">
+                  <span className="footer-copy">© 2026 OpsOS. Built with verified places and real-world logic.</span>
+                  <div className="footer-system-status">
+                    <span className="live-status-dot" />
+                    <span>All services operational</span>
+                  </div>
+                </div>
+              </div>
+            </footer>
           </div>
         )}
 
-        {/* Step 2: Understanding Card & Proposed Plan */}
-        {!isPlanning && currentPlan && proposedItinerary && !isConfirmed && (
-          <div ref={proposalRef} className="proposal-section-wrapper">
-            <UnderstandingCard
-              plan={currentPlan}
-              budgetMax={budgetMax}
-            />
+        {/* =========================================================================
+            VIEW MODE 2: FOCUSED PLANNING WORKSPACE
+            ========================================================================= */}
+        {viewMode === 'workspace' && (
+          <div className="workspace-view-container animate-fade-in">
+            {/* Workspace Top Action Bar / Context Header */}
+            <div className="workspace-top-bar">
+              <button
+                type="button"
+                className="workspace-back-btn"
+                onClick={() => setViewMode('landing')}
+                title="Return to the overview"
+              >
+                <IconArrowLeft size={15} />
+                <span>Overview</span>
+              </button>
 
-            <ProposedPlan
-              key={`${currentPlan.id}-${currentPlan.updated_at || ''}-${proposedItinerary.estimatedTotal}-${isAdaptationReview ? 'review' : 'normal'}`}
-              plan={currentPlan}
-              initialItinerary={proposedItinerary}
-              allCandidates={candidates}
-              budgetMax={budgetMax}
-              onConfirm={handleConfirmPlan}
-              isSaving={isSaving}
-              onModifyIntent={handleModifyIntent}
-              onTweakPlan={handleTweakPlan}
-              isTweaking={isTweaking}
-              isAdaptationReview={isAdaptationReview}
-              adaptationSummary={proposedAdaptation?.narrative_summary}
-              onAcceptAdaptation={handleAcceptAdaptation}
-              onRejectAdaptation={handleRejectAdaptation}
-            />
+              <div className="workspace-intent-display">
+                <span className="intent-display-badge">INTENTION</span>
+                <span className="intent-display-text" title={submittedIntent}>
+                  “{submittedIntent}”
+                </span>
+              </div>
+
+              <button
+                type="button"
+                className="workspace-new-plan-btn"
+                onClick={handleStartNew}
+                title="Start a new plan from scratch"
+              >
+                <IconPlus size={14} />
+                <span>New plan</span>
+              </button>
+            </div>
+
+            {/* Assembling / Thinking State */}
+            {isPlanning && (
+              <div className="thinking-stage-container animate-fade-in">
+                <div className="thinking-pulse-core">
+                  <IconSparkles size={24} className="thinking-sparkle" />
+                </div>
+                <h3 className="thinking-title">Assembling your plan</h3>
+                <p className="thinking-subtitle">
+                  Evaluating local venues, live opening hours, and budget limits to curate a coherent sequence.
+                </p>
+                <div className="thinking-step-row">
+                  <span className="thinking-step active">Parsing context</span>
+                  <span className="thinking-sep">→</span>
+                  <span className="thinking-step active">Checking places</span>
+                  <span className="thinking-sep">→</span>
+                  <span className="thinking-step active">Sequencing timeline</span>
+                </div>
+              </div>
+            )}
+
+            {/* Proposed Plan Stage */}
+            {!isPlanning && currentPlan && proposedItinerary && !isConfirmed && (
+              <div ref={proposalRef} className="proposal-stage-container animate-fade-in">
+                <UnderstandingCard
+                  plan={currentPlan}
+                  budgetMax={budgetMax}
+                />
+
+                <ProposedPlan
+                  key={`${currentPlan.id}-${currentPlan.updated_at || ''}-${proposedItinerary.estimatedTotal}-${isAdaptationReview ? 'review' : 'normal'}`}
+                  plan={currentPlan}
+                  initialItinerary={proposedItinerary}
+                  allCandidates={candidates}
+                  budgetMax={budgetMax}
+                  onConfirm={handleConfirmPlan}
+                  isSaving={isSaving}
+                  onModifyIntent={handleStartNew}
+                  onTweakPlan={handleTweakPlan}
+                  isTweaking={isTweaking}
+                  isAdaptationReview={isAdaptationReview}
+                  adaptationSummary={proposedAdaptation?.narrative_summary}
+                  onAcceptAdaptation={handleAcceptAdaptation}
+                  onRejectAdaptation={handleRejectAdaptation}
+                />
+              </div>
+            )}
+
+            {/* Confirmed / Saved Plan Stage */}
+            {!isPlanning && currentPlan && isConfirmed && (
+              <div className="saved-stage-container animate-fade-in">
+                <PlanSummary
+                  plan={currentPlan}
+                  onStartNew={handleStartNew}
+                  onTweakPlan={handleTweakPlan}
+                  isTweaking={isTweaking}
+                />
+              </div>
+            )}
           </div>
-        )}
-
-        {/* Step 3: Confirmed / Saved Plan Summary */}
-        {!isPlanning && currentPlan && isConfirmed && (
-          <PlanSummary
-            plan={currentPlan}
-            onStartNew={handleStartNew}
-            onTweakPlan={handleTweakPlan}
-            isTweaking={isTweaking}
-          />
         )}
       </main>
     </div>
