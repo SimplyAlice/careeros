@@ -1,7 +1,7 @@
 """Redis client management.
 
 Provides a process-wide async Redis client and a FastAPI dependency for
-request-scoped access. Redis serves two roles in CareerOS (per
+request-scoped access. Redis serves two roles in Dayform (per
 `docs/adr/0004-redis-celery.md`): the Celery broker/result backend (wired
 up starting Milestone 8) and short-lived caching (used starting Milestone
 3+). This module provides the shared client either role builds on.

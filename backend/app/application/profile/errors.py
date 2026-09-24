@@ -17,7 +17,7 @@ class ProfileNotFoundError(Exception):
 class ProfileAlreadyExistsError(Exception):
     """Raised on an attempt to create a profile when one already exists.
 
-    CareerOS supports exactly one local profile at this milestone (see
+    Dayform supports exactly one local profile at this milestone (see
     `docs/adr/0012-profile-management.md`) — this is the enforcement of
     that rule at the use-case boundary; `SqlAlchemyProfileRepository`
     additionally enforces it at the database level via a singleton unique

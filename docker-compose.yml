@@ -13,20 +13,20 @@ services:
     ports:
       - "8000:8000"
     networks:
-      - careeros
+      - dayform
 
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-careeros}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-careeros}
-      POSTGRES_DB: ${POSTGRES_DB:-careeros}
+      POSTGRES_USER: ${POSTGRES_USER:-dayform}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dayform}
+      POSTGRES_DB: ${POSTGRES_DB:-dayform}
     volumes:
-      - careeros_postgres_data:/var/lib/postgresql/data
+      - dayform_postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-careeros}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dayform}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -43,11 +43,11 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      - careeros
+      - dayform
 
 volumes:
-  careeros_postgres_data:
+  dayform_postgres_data:
 
 networks:
-  careeros:
+  dayform:
     driver: bridge

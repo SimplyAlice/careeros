@@ -15,9 +15,9 @@ jobs:
       postgres:
         image: postgres:15-alpine
         env:
-          POSTGRES_USER: careeros
+          POSTGRES_USER: dayform
           POSTGRES_PASSWORD: changeme
-          POSTGRES_DB: careeros
+          POSTGRES_DB: dayform
         ports:
           - 5432:5432
         options: >-
@@ -53,7 +53,7 @@ jobs:
 
       - name: Run Planning Unit Tests
         env:
-          DATABASE_URL: postgresql+asyncpg://careeros:changeme@localhost:5432/careeros
+          DATABASE_URL: postgresql+asyncpg://dayform:changeme@localhost:5432/dayform
           REDIS_URL: redis://localhost:6379/0
           SECRET_KEY: ci-test-secret-key-dayform
         run: |

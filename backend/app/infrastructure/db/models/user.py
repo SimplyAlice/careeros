@@ -1,6 +1,6 @@
 """User model.
 
-Represents the CareerOS account owner. Milestone 2 defined only the
+Represents the Dayform account owner. Milestone 2 defined only the
 identity/timestamp shape; Milestone 7 adds `password_hash` — the field
 this table was always going to need for JWT authentication (see
 `docs/adr/0015-authentication.md`).
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 
 class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """A CareerOS account."""
+    """A Dayform account."""
 
     __tablename__ = "users"
 

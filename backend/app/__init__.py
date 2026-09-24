@@ -1,1 +1,1 @@
-"""CareerOS backend application package."""
+"""Dayform backend application package."""

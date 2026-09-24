@@ -56,7 +56,7 @@ class _MatchResponseSchema(BaseModel):
     missing_skills: list[str] = Field(default_factory=list)
 
 
-_SYSTEM_PROMPT = """You are a career-matching assistant for CareerOS. You compare a \
+_SYSTEM_PROMPT = """You are a career-matching assistant for Dayform. You compare a \
 candidate's profile against a job posting and produce an honest, specific compatibility \
 assessment. Be direct about gaps — an overly generous score helps no one.
 

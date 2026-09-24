@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "careeros-backend"
+name = "dayform-backend"
 version = "0.1.0"
-description = "CareerOS backend — AI-powered career operations platform."
+description = "Dayform backend — Intelligent real-world planning system."
 requires-python = ">=3.12"
 
 # Dependency versions are pinned in requirements.txt / requirements-dev.txt
@@ -55,7 +55,7 @@ asyncio_default_fixture_loop_scope = "function"
 env = [
     "D:ENVIRONMENT=testing",
     "D:SECRET_KEY=test-secret-key-do-not-use-in-production",
-    "D:DATABASE_URL=postgresql+asyncpg://careeros:careeros@postgres:5432/careeros_test",
+    "D:DATABASE_URL=postgresql+asyncpg://dayform:dayform@postgres:5432/dayform_test",
     "D:REDIS_URL=redis://redis:6379/1",
 ]
 

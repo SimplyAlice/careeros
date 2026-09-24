@@ -1,4 +1,4 @@
-# CareerOS backend — single-stage image, appropriate for this project's
+# Dayform backend — single-stage image, appropriate for this project's
 # scale. A multi-stage build (separate builder/runtime stages) is a
 # documented option once the dependency set grows large enough that build
 # tooling meaningfully bloats the final image — not needed yet.
@@ -27,9 +27,9 @@ COPY . .
 
 # Run as a non-root user — a basic container security practice (see
 # `docs/architecture/security.md`), not a stopgap for later.
-RUN useradd --create-home --uid 1000 careeros \
-    && chown -R careeros:careeros /app
-USER careeros
+RUN useradd --create-home --uid 1000 dayform \
+    && chown -R dayform:dayform /app
+USER dayform
 
 EXPOSE 8000
 

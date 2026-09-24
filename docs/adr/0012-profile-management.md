@@ -38,7 +38,7 @@ common-case round trip; the database constraint is the real guarantee).
 
 ### Why a single profile exists
 
-CareerOS's product value (AI job matching, resume tailoring) needs *some*
+Dayform's product value (AI job matching, resume tailoring) needs *some*
 profile data to operate against, and building that experience end-to-end
 is more valuable right now than building multi-user infrastructure that
 has no users yet. A single, unauthenticated local profile is the smallest

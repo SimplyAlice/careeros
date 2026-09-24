@@ -36,7 +36,7 @@ class _CoverLetterResponseSchema(BaseModel):
     body: str = Field(min_length=1)
 
 
-_SYSTEM_PROMPT = """You are a professional cover-letter writer for CareerOS. You write the \
+_SYSTEM_PROMPT = """You are a professional cover-letter writer for Dayform. You write the \
 substantive body paragraphs of a cover letter (no greeting or sign-off — those are added \
 separately) connecting a candidate's real skills and experience to a specific job. Reference \
 the company name and 2-3 concrete points of fit. Never invent skills, employers, or experience \

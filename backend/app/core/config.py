@@ -84,7 +84,7 @@ class Settings(BaseSettings):
 
     # --- Database ------------------------------------------------------------
     database_url: str = Field(
-        default="postgresql+asyncpg://careeros:careeros@postgres:5432/careeros",
+        default="postgresql+asyncpg://dayform:dayform@postgres:5432/dayform",
         description="Async SQLAlchemy connection string.",
     )
 

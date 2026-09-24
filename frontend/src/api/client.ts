@@ -8,8 +8,7 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 let authToken: string | null =
-  localStorage.getItem('dayform_access_token') ||
-  localStorage.getItem('opsos_access_token');
+  localStorage.getItem('dayform_access_token');
 
 export async function ensureAuthToken(): Promise<string> {
   if (authToken) {
@@ -22,7 +21,7 @@ export async function ensureAuthToken(): Promise<string> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        email: 'demo@opsos.local',
+        email: 'demo@dayform.local',
         password: 'DemoPassword123',
       }),
     });
@@ -39,7 +38,7 @@ export async function ensureAuthToken(): Promise<string> {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: 'demo@opsos.local',
+          email: 'demo@dayform.local',
           password: 'DemoPassword123',
         }),
       });
@@ -55,7 +54,7 @@ export async function ensureAuthToken(): Promise<string> {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            email: 'demo@opsos.local',
+            email: 'demo@dayform.local',
             password: 'DemoPassword123',
           }),
         });
