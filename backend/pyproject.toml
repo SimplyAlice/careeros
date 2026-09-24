@@ -1,14 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "careeros-backend"
 version = "0.1.0"
 description = "CareerOS backend — AI-powered career operations platform."
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 
 # Dependency versions are pinned in requirements.txt / requirements-dev.txt
 # rather than here — this file's [project] table exists to give tools
 # (ruff, black, pytest) a project root and Python-version context, not to
 # manage installs. See ADR discussion in `docs/adr/` for the reasoning
 # behind the overall tech stack.
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+exclude = ["alembic*", "tests*"]
+
 
 [tool.ruff]
 target-version = "py313"
