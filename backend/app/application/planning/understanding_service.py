@@ -47,16 +47,32 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
             provenance["relationship_context"] = people_prov.value
 
         # 3. Date & time windows
-        date_spec, time_window, date_prov, time_ambiguities = self._extract_date_and_time(normalized)
+        (
+            date_spec,
+            time_window,
+            start_time,
+            end_time,
+            time_confidence,
+            duration_limit,
+            date_prov,
+            time_prov,
+            time_ambiguities,
+        ) = self._extract_date_and_time(normalized)
         ambiguities.extend(time_ambiguities)
         if date_spec:
             provenance["date"] = date_prov.value
         else:
             provenance["date"] = ProvenanceKind.UNKNOWN.value
         if time_window:
-            provenance["time_window"] = date_prov.value
+            provenance["time_window"] = time_prov.value
         else:
             provenance["time_window"] = ProvenanceKind.UNKNOWN.value
+        if start_time:
+            provenance["start_time"] = time_prov.value
+        if end_time:
+            provenance["end_time"] = time_prov.value
+        if duration_limit:
+            provenance["duration_limit"] = ProvenanceKind.EXPLICIT.value
 
         # 4. Location semantics
         location, is_inferred, loc_prov = self._extract_location(normalized)
@@ -92,6 +108,10 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
             relationship_context=rel_context,
             date_spec=date_spec,
             time_window=time_window,
+            start_time=start_time,
+            end_time=end_time,
+            time_confidence=time_confidence,
+            duration_limit_minutes=duration_limit,
             location=location,
             location_is_inferred=is_inferred,
             budget_amount=budget_amount,
@@ -137,54 +157,55 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
         lower = text.lower()
         ambiguities: list[str] = []
 
-        # Explicit couple references
+        # Check for relationship mention
+        rel: str | None = None
         match_partner = re.search(r"\b(?:take|taking|with|for)\s+my\s+(boyfriend|girlfriend|partner|husband|wife)\b", lower)
         if match_partner:
             rel = match_partner.group(1)
-            return 2, rel, ProvenanceKind.INFERRED, ambiguities
 
-        # Family references (e.g. for my mom)
-        match_family_rel = re.search(r"\b(?:for|with)\s+my\s+(mom|mother|dad|father|sister|brother)\b", lower)
+        match_family_rel = re.search(r"\b(?:(?:for|with)\s+my|my)\s+(mom|mother|dad|father|sister|brother)(?:'s|\b)", lower)
         if match_family_rel:
             rel = match_family_rel.group(1)
-            return 2, rel, ProvenanceKind.INFERRED, ambiguities
 
-        if re.search(r"\b(?:me and my (?:boyfriend|girlfriend|partner|husband|wife|friend))\b", lower):
-            rel = "boyfriend" if "boyfriend" in lower else "partner"
-            if "girlfriend" in lower:
-                rel = "girlfriend"
-            elif "friend" in lower:
-                rel = "friends"
-            return 2, rel, ProvenanceKind.EXPLICIT, ambiguities
-
-        # "me and N friends" / "with N friends" -> N + 1
+        # 1. "me and N friends" / "with N friends" -> N + 1
         match_friends_count = re.search(r"\b(?:me and|with)\s+(\d+)\s+friends?\b", lower)
         if match_friends_count:
             return int(match_friends_count.group(1)) + 1, "friends", ProvenanceKind.EXPLICIT, ambiguities
 
+        # 2. Explicit people counts: "maybe 3 people", "about 4 people", "for 5 people", "3 people"
+        match_people_count = re.search(r"\b(?:(?:maybe|around|about|for)\s+)?(\d+)\s+(?:people|persons?|guests?)\b", lower)
+        if match_people_count:
+            return int(match_people_count.group(1)), rel or "group", ProvenanceKind.EXPLICIT, ambiguities
+
+        # 3. group of N
+        group_of = re.search(r"\bgroup\s+of\s+(\d+)\b", lower)
+        if group_of:
+            return int(group_of.group(1)), rel or "group", ProvenanceKind.EXPLICIT, ambiguities
+
+        # 4. Explicit couple / pair references
+        if re.search(r"\b(?:me and my (?:boyfriend|girlfriend|partner|husband|wife|friend))\b", lower):
+            pair_rel = "boyfriend" if "boyfriend" in lower else "partner"
+            if "girlfriend" in lower:
+                pair_rel = "girlfriend"
+            elif "friend" in lower:
+                pair_rel = "friends"
+            return 2, pair_rel, ProvenanceKind.EXPLICIT, ambiguities
+
         if re.search(r"\b(?:the two of us|both of us|for two|for 2)\b", lower):
             return 2, "couple" if occasion == "date" else "pair", ProvenanceKind.EXPLICIT, ambiguities
 
-        # Solo
+        # 5. Partner or family inferred pair (default to 2 if no explicit count given)
+        if match_partner:
+            return 2, rel, ProvenanceKind.INFERRED, ambiguities
+
+        if match_family_rel:
+            return 2, rel, ProvenanceKind.INFERRED, ambiguities
+
+        # 6. Solo
         if re.search(r"\b(?:just me|solo|by myself|alone)\b", lower):
             return 1, "solo", ProvenanceKind.EXPLICIT, ambiguities
 
-        # with N friends -> N + 1
-        with_friends = re.search(r"\bwith\s+(\d+)\s+friends?\b", lower)
-        if with_friends:
-            return int(with_friends.group(1)) + 1, "friends", ProvenanceKind.EXPLICIT, ambiguities
-
-        # for N people / persons
-        for_people = re.search(r"\bfor\s+(\d+)\s+(?:people|persons?)\b", lower)
-        if for_people:
-            return int(for_people.group(1)), "group", ProvenanceKind.EXPLICIT, ambiguities
-
-        # group of N
-        group_of = re.search(r"\bgroup\s+of\s+(\d+)\b", lower)
-        if group_of:
-            return int(group_of.group(1)), "group", ProvenanceKind.EXPLICIT, ambiguities
-
-        # "with my friends" / "with friends" without a count
+        # 7. "with my friends" / "with friends" without a count
         if re.search(r"\b(?:with my friends|with friends|with mates)\b", lower):
             ambiguities.append("Exact group size not specified ('with friends'); planning with flexible group options.")
             return None, "friends", ProvenanceKind.EXPLICIT, ambiguities
@@ -197,55 +218,190 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
         return None, None, ProvenanceKind.UNKNOWN, ambiguities
 
     @staticmethod
+    def _normalize_clock_time(time_val: str, meridiem: str | None = None, is_deadline: bool = False) -> str:
+        if ":" in time_val:
+            parts = time_val.split(":")
+            h, m = int(parts[0]), int(parts[1])
+        else:
+            h, m = int(time_val), 0
+
+        if meridiem == "pm" and h < 12:
+            h += 12
+        elif meridiem == "am" and h == 12:
+            h = 0
+        elif meridiem is None:
+            if is_deadline:
+                if 1 <= h <= 11:
+                    h += 12
+            else:
+                if 1 <= h <= 6:
+                    h += 12
+
+        return f"{h:02d}:{m:02d}"
+
+    @staticmethod
     def _extract_date_and_time(
         text: str,
-    ) -> tuple[str | None, str | None, ProvenanceKind, list[str]]:
+    ) -> tuple[
+        str | None,
+        str | None,
+        str | None,
+        str | None,
+        str,
+        int | None,
+        ProvenanceKind,
+        ProvenanceKind,
+        list[str],
+    ]:
         lower = text.lower()
         ambiguities: list[str] = []
 
         date_spec: str | None = None
         time_window: str | None = None
-        prov = ProvenanceKind.UNKNOWN
+        start_time: str | None = None
+        end_time: str | None = None
+        time_confidence = "unknown"
+        duration_limit_minutes: int | None = None
+        date_prov = ProvenanceKind.UNKNOWN
+        time_prov = ProvenanceKind.UNKNOWN
 
-        # Days of week
+        # 1. Days of week / relative dates
         for day in ("saturday", "sunday", "friday", "thursday", "wednesday", "tuesday", "monday"):
             if re.search(rf"\b{day}\b", lower):
                 date_spec = day.capitalize()
-                prov = ProvenanceKind.EXPLICIT
+                date_prov = ProvenanceKind.EXPLICIT
                 break
 
         if not date_spec:
             if re.search(r"\bthis weekend|the weekend\b", lower):
                 date_spec = "This weekend"
-                prov = ProvenanceKind.EXPLICIT
+                date_prov = ProvenanceKind.EXPLICIT
             elif re.search(r"\bnext weekend\b", lower):
                 date_spec = "Next weekend"
-                prov = ProvenanceKind.EXPLICIT
+                date_prov = ProvenanceKind.EXPLICIT
             elif re.search(r"\btomorrow\b", lower):
                 date_spec = "Tomorrow"
-                prov = ProvenanceKind.EXPLICIT
+                date_prov = ProvenanceKind.EXPLICIT
             elif re.search(r"\btoday|tonight\b", lower):
                 date_spec = "Today"
-                prov = ProvenanceKind.EXPLICIT
+                date_prov = ProvenanceKind.EXPLICIT
 
-        # Time windows
+        # 2. Duration limit
+        num_map = {
+            "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
+            "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6,
+        }
+        m_dur = re.search(r"\b(?:only have|have|for)\s+(\d+|one|two|three|four|five|six)\s+hours?\b", lower)
+        if not m_dur:
+            m_dur = re.search(r"\b(\d+|one|two|three|four|five|six)\s+hours?\b", lower)
+        if m_dur:
+            dur_val = m_dur.group(1).lower()
+            hours_count = num_map.get(dur_val) or (int(dur_val) if dur_val.isdigit() else None)
+            if hours_count:
+                duration_limit_minutes = hours_count * 60
+                ambiguities.append(f"Itinerary time constraint: limited to approximately {hours_count} hours.")
+
+        # 3. Time spans and start/end clock times
+        m_span = re.search(
+            r"\bfrom\s+(\d{1,2}(?::\d{2})?)\s*(am|pm)?\s+to\s+(\d{1,2}(?::\d{2})?)\s*(am|pm)?\b",
+            lower,
+        )
+        if m_span:
+            start_time = DeterministicUnderstandingEngine._normalize_clock_time(m_span.group(1), m_span.group(2))
+            end_time = DeterministicUnderstandingEngine._normalize_clock_time(m_span.group(3), m_span.group(4), is_deadline=True)
+            time_confidence = "exact"
+            time_prov = ProvenanceKind.EXPLICIT
+            time_window = f"{start_time}-{end_time}"
+        else:
+            m_start_approx = re.search(
+                r"\b(?:start\s+around|start\s+about|around|about|approx(?:imately)?)\s+(\d{1,2}(?::\d{2})?)\s*(am|pm)?\b",
+                lower,
+            )
+            m_start_exact = re.search(r"\b(?:start\s+at|at)\s+(\d{1,2}(?::\d{2})?)\s*(am|pm)?\b", lower)
+
+            if m_start_approx:
+                start_time = DeterministicUnderstandingEngine._normalize_clock_time(m_start_approx.group(1), m_start_approx.group(2))
+                time_confidence = "approximate"
+                time_prov = ProvenanceKind.EXPLICIT
+                ambiguities.append(f"Start time is approximate (~{start_time}); scheduled with flexibility.")
+            elif m_start_exact:
+                start_time = DeterministicUnderstandingEngine._normalize_clock_time(m_start_exact.group(1), m_start_exact.group(2))
+                time_confidence = "exact"
+                time_prov = ProvenanceKind.EXPLICIT
+
+            m_end = re.search(
+                r"\b(?:until|to|home by|be home by|finish by|by)\s+(\d{1,2}(?::\d{2})?)\s*(am|pm)?\b",
+                lower,
+            )
+            if m_end:
+                end_time = DeterministicUnderstandingEngine._normalize_clock_time(m_end.group(1), m_end.group(2), is_deadline=True)
+                time_prov = ProvenanceKind.EXPLICIT
+                ambiguities.append(f"Requested end time: home/done by {end_time}.")
+
+        # 4. Period keywords
+        period: str | None = None
         if re.search(r"\b(?:morning|breakfast)\b", lower):
-            time_window = "morning"
+            period = "morning"
         elif re.search(r"\b(?:afternoon|lunchtime|lunch)\b", lower):
-            time_window = "afternoon"
+            period = "afternoon"
         elif re.search(r"\b(?:evening|dinner time|dinner)\b", lower):
-            time_window = "evening"
+            period = "evening"
         elif re.search(r"\b(?:night|tonight|late night)\b", lower):
-            time_window = "night"
+            period = "night"
         elif re.search(r"\bafter work\b", lower):
-            time_window = "after_work"
-        elif re.search(r"\ball day\b", lower):
-            time_window = "all_day"
+            period = "after_work"
+        elif re.search(r"\ball day|whole day\b", lower):
+            period = "all_day"
 
-        if date_spec and not time_window:
+        if start_time and end_time:
+            time_window = f"{start_time}-{end_time}"
+        elif period and not start_time and not end_time:
+            time_window = period
+            time_confidence = "inferred"
+            time_prov = ProvenanceKind.INFERRED
+            if period == "morning":
+                start_time = "09:00"
+                end_time = "12:30"
+            elif period == "afternoon":
+                start_time = "12:30"
+                end_time = "17:30"
+            elif period == "evening":
+                start_time = "18:00"
+                end_time = "22:00"
+            elif period == "night":
+                start_time = "20:00"
+                end_time = "23:30"
+            elif period == "after_work":
+                start_time = "17:30"
+                end_time = "21:30"
+            elif period == "all_day":
+                start_time = "09:00"
+                end_time = "20:00"
+        elif period and start_time and not end_time:
+            time_window = period
+            if period == "morning":
+                end_time = "12:30"
+            elif period == "afternoon":
+                end_time = "17:30"
+            elif period in {"evening", "night"}:
+                end_time = "22:00"
+        elif start_time and not time_window:
+            time_window = f"from_{start_time}"
+
+        if date_spec and not time_window and not start_time:
             ambiguities.append(f"Specific time window on {date_spec} not stated; planning for a flexible schedule.")
 
-        return date_spec, time_window, prov, ambiguities
+        return (
+            date_spec,
+            time_window,
+            start_time,
+            end_time,
+            time_confidence,
+            duration_limit_minutes,
+            date_prov,
+            time_prov,
+            ambiguities,
+        )
 
     @staticmethod
     def _extract_location(text: str) -> tuple[str, bool, ProvenanceKind]:

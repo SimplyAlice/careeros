@@ -19,6 +19,7 @@ from app.domain.entities.planning.decision import (
     ReasonType,
 )
 from app.domain.entities.planning.information import Activity, InformationCategory, Place
+from app.domain.entities.planning.temporal import parse_opening_hours
 
 # Transparent, additive weights. They tally preference fit, not confidence.
 CATEGORY_MATCH_SCORE = 40
@@ -30,6 +31,7 @@ PLACE_DURATION_NEUTRAL_SCORE = 5
 PREFERENCE_FIT_SCORE = 15
 OCCASION_FIT_SCORE = 15
 ACTIVITY_TYPE_FIT_SCORE = 20
+TEMPORAL_FIT_SCORE = 20
 
 
 def decide(
@@ -79,11 +81,18 @@ def evaluate_place(place: Place, criteria: DecisionCriteria) -> DecisionCandidat
     eligible &= _assess_exclusions(
         place.category, place.name, place.description, place.price_from, {}, criteria.exclusions, reasons
     )
+    eligible &= _assess_opening_hours(
+        place.name, place.opening_hours, criteria, reasons, duration_minutes=None
+    )
+    _assess_place_duration(criteria.duration_limit_minutes, reasons)
     pref_matched = _assess_preferences(
         place.category, place.description, criteria.preferences, reasons
     )
     occasion_matched = _assess_occasion(
         place.category, place.description, criteria.occasion, reasons
+    )
+    temporal_matched = any(
+        r.type is ReasonType.OPENING_HOURS and r.outcome is ReasonOutcome.SUPPORTED for r in reasons
     )
     reasons = _ensure_reasons(reasons, "place")
     return DecisionCandidate(
@@ -99,6 +108,7 @@ def evaluate_place(place: Place, criteria: DecisionCriteria) -> DecisionCandidat
             None,
             pref_matched=pref_matched,
             occasion_matched=occasion_matched,
+            temporal_matched=temporal_matched,
         ),
         reasons=tuple(reasons),
         category=place.category,
@@ -123,7 +133,10 @@ def evaluate_activity(activity: Activity, criteria: DecisionCriteria) -> Decisio
         activity.minimum_group_size, activity.maximum_group_size, criteria.group_size, reasons
     )
     eligible &= _assess_duration(
-        activity.duration_minutes, criteria.maximum_duration_minutes, reasons
+        activity.duration_minutes,
+        criteria.maximum_duration_minutes,
+        reasons,
+        limit=criteria.duration_limit_minutes,
     )
     eligible &= _assess_exclusions(
         activity.category,
@@ -134,11 +147,18 @@ def evaluate_activity(activity: Activity, criteria: DecisionCriteria) -> Decisio
         criteria.exclusions,
         reasons,
     )
+    act_hours = activity.metadata.get("opening_hours") if activity.metadata else None
+    eligible &= _assess_opening_hours(
+        activity.name, act_hours, criteria, reasons, duration_minutes=activity.duration_minutes
+    )
     pref_matched = _assess_preferences(
         activity.category, activity.description, criteria.preferences, reasons
     )
     occasion_matched = _assess_occasion(
         activity.category, activity.description, criteria.occasion, reasons
+    )
+    temporal_matched = any(
+        r.type is ReasonType.OPENING_HOURS and r.outcome is ReasonOutcome.SUPPORTED for r in reasons
     )
     reasons = _ensure_reasons(reasons, "activity")
     return DecisionCandidate(
@@ -154,6 +174,7 @@ def evaluate_activity(activity: Activity, criteria: DecisionCriteria) -> Decisio
             activity.duration_minutes,
             pref_matched=pref_matched,
             occasion_matched=occasion_matched,
+            temporal_matched=temporal_matched,
         ),
         reasons=tuple(reasons),
         category=activity.category,
@@ -327,17 +348,108 @@ def _assess_group(
     return True
 
 
-def _assess_duration(
-    duration_minutes: int | None, maximum: int | None, reasons: list[DecisionReason]
+def _assess_opening_hours(
+    name: str,
+    opening_hours: str | None,
+    criteria: DecisionCriteria,
+    reasons: list[DecisionReason],
+    duration_minutes: int | None = None,
 ) -> bool:
-    if maximum is None or duration_minutes is None:
+    if criteria.day_of_week is None and criteria.start_time is None and criteria.time_window is None:
         return True
-    if duration_minutes <= maximum:
+
+    if not opening_hours or not opening_hours.strip():
+        reasons.append(
+            DecisionReason(
+                ReasonType.OPENING_HOURS,
+                ReasonOutcome.NEUTRAL,
+                "Opening hours could not be verified from official records. We recommend checking before visiting.",
+            )
+        )
+        return True
+
+    sched = parse_opening_hours(opening_hours)
+    accommodate = sched.can_accommodate(
+        criteria.day_of_week,
+        criteria.start_time,
+        duration_minutes=duration_minutes,
+    )
+
+    if accommodate is None:
+        reasons.append(
+            DecisionReason(
+                ReasonType.OPENING_HOURS,
+                ReasonOutcome.NEUTRAL,
+                f"Opening hours ({opening_hours}) could not be fully verified for the requested time.",
+            )
+        )
+        return True
+
+    time_ctx = f" around {criteria.start_time}" if criteria.start_time else ""
+    if criteria.day_of_week:
+        day_val = criteria.day_of_week.value if hasattr(criteria.day_of_week, "value") else str(criteria.day_of_week)
+        day_name = day_val.capitalize()
+    else:
+        day_name = None
+    day_ctx = f"on {day_name}" if day_name else "for the requested window"
+
+    if accommodate is False:
+        reasons.append(
+            DecisionReason(
+                ReasonType.OPENING_HOURS,
+                ReasonOutcome.VIOLATED,
+                f"Closed {day_ctx}{time_ctx} (Hours: {opening_hours}).",
+            )
+        )
+        return False
+
+    reasons.append(
+        DecisionReason(
+            ReasonType.OPENING_HOURS,
+            ReasonOutcome.SUPPORTED,
+            f"Open {day_ctx}{time_ctx} ({opening_hours}).",
+        )
+    )
+    return True
+
+
+
+def _assess_place_duration(
+    duration_limit_minutes: int | None,
+    reasons: list[DecisionReason],
+) -> None:
+    if duration_limit_minutes is not None:
+        reasons.append(
+            DecisionReason(
+                ReasonType.DURATION,
+                ReasonOutcome.NEUTRAL,
+                f"Visit duration for this venue is flexible and fits your {duration_limit_minutes}-minute window.",
+            )
+        )
+
+
+def _assess_duration(
+    duration_minutes: int | None,
+    maximum: int | None,
+    reasons: list[DecisionReason],
+    limit: int | None = None,
+) -> bool:
+    cap = None
+    if maximum is not None and limit is not None:
+        cap = min(maximum, limit)
+    elif maximum is not None:
+        cap = maximum
+    elif limit is not None:
+        cap = limit
+
+    if cap is None or duration_minutes is None:
+        return True
+    if duration_minutes <= cap:
         reasons.append(
             DecisionReason(
                 ReasonType.DURATION,
                 ReasonOutcome.SUPPORTED,
-                f"Duration of {duration_minutes} minutes fits the {maximum}-minute maximum",
+                f"Duration of {duration_minutes} minutes fits the {cap}-minute time limit",
             )
         )
         return True
@@ -345,7 +457,7 @@ def _assess_duration(
         DecisionReason(
             ReasonType.DURATION,
             ReasonOutcome.VIOLATED,
-            f"Duration of {duration_minutes} minutes exceeds the {maximum}-minute maximum",
+            f"Duration of {duration_minutes} minutes exceeds the {cap}-minute time limit",
         )
     )
     return False
@@ -359,6 +471,7 @@ def _score(
     duration_minutes: int | None,
     pref_matched: bool = False,
     occasion_matched: bool = False,
+    temporal_matched: bool = False,
 ) -> int:
     score = 0
     if criteria.category is not None and category is criteria.category:
@@ -380,10 +493,17 @@ def _score(
             score += PLACE_DURATION_NEUTRAL_SCORE
         elif duration_minutes <= criteria.maximum_duration_minutes:
             score += DURATION_FIT_SCORE
+    elif criteria.duration_limit_minutes is not None:
+        if duration_minutes is None:
+            score += PLACE_DURATION_NEUTRAL_SCORE
+        elif duration_minutes <= criteria.duration_limit_minutes:
+            score += DURATION_FIT_SCORE
     if pref_matched:
         score += PREFERENCE_FIT_SCORE
     if occasion_matched:
         score += OCCASION_FIT_SCORE
+    if temporal_matched:
+        score += TEMPORAL_FIT_SCORE
     return score
 
 

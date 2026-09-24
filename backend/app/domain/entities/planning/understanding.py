@@ -32,6 +32,10 @@ class PlanningUnderstanding:
     relationship_context: str | None = None
     date_spec: str | None = None
     time_window: str | None = None
+    start_time: str | None = None
+    end_time: str | None = None
+    time_confidence: str = "unknown"
+    duration_limit_minutes: int | None = None
     location: str | None = None
     location_is_inferred: bool = False
     budget_amount: Decimal | None = None
@@ -51,3 +55,5 @@ class PlanningUnderstanding:
             raise ValueError("People count must be at least 1.")
         if self.budget_amount is not None and self.budget_amount < Decimal("0"):
             raise ValueError("Budget amount cannot be negative.")
+        if self.duration_limit_minutes is not None and self.duration_limit_minutes <= 0:
+            raise ValueError("Duration limit minutes must be positive.")

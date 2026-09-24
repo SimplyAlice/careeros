@@ -321,3 +321,59 @@ def test_decide_populates_real_source_and_attribution() -> None:
     assert c.address == "Rhodes Dr, Newlands, Cape Town"
     assert c.opening_hours == "Daily 08:00-18:00"
     assert c.freshness == "recently_verified"
+
+
+def test_evaluate_place_opening_hours_supported() -> None:
+    place = _place(name="Kirstenbosch", opening_hours="Daily 08:00-18:00")
+    criteria = DecisionCriteria(day_of_week="Saturday", start_time="11:00")
+    candidate = evaluate_place(place, criteria)
+
+    assert candidate.is_eligible is True
+    oh_reason = next(r for r in candidate.reasons if r.type is ReasonType.OPENING_HOURS)
+    assert oh_reason.outcome is ReasonOutcome.SUPPORTED
+    assert "Open on Saturday around 11:00" in oh_reason.message
+    assert candidate.score >= 20  # TEMPORAL_FIT_SCORE included
+
+
+def test_evaluate_place_closed_during_time_violates() -> None:
+    place = _place(name="Night Club", opening_hours="Mon-Sat 09:00-16:00")
+    criteria = DecisionCriteria(day_of_week="Saturday", start_time="19:00")
+    candidate = evaluate_place(place, criteria)
+
+    assert candidate.is_eligible is False
+    oh_reason = next(r for r in candidate.reasons if r.type is ReasonType.OPENING_HOURS)
+    assert oh_reason.outcome is ReasonOutcome.VIOLATED
+    assert "Closed on Saturday around 19:00" in oh_reason.message
+
+
+def test_evaluate_place_unknown_opening_hours_neutral() -> None:
+    place = _place(name="Secret Spot", opening_hours=None)
+    criteria = DecisionCriteria(day_of_week="Saturday", start_time="14:00")
+    candidate = evaluate_place(place, criteria)
+
+    assert candidate.is_eligible is True
+    oh_reason = next(r for r in candidate.reasons if r.type is ReasonType.OPENING_HOURS)
+    assert oh_reason.outcome is ReasonOutcome.NEUTRAL
+    assert "Opening hours could not be verified" in oh_reason.message
+
+
+def test_evaluate_activity_duration_limit_exceeded_violates() -> None:
+    act = _activity(name="Full Day Hike", duration_minutes=360)
+    criteria = DecisionCriteria(duration_limit_minutes=180)
+    candidate = evaluate_activity(act, criteria)
+
+    assert candidate.is_eligible is False
+    dur_reason = next(r for r in candidate.reasons if r.type is ReasonType.DURATION)
+    assert dur_reason.outcome is ReasonOutcome.VIOLATED
+    assert "exceeds the 180-minute time limit" in dur_reason.message
+
+
+def test_evaluate_activity_duration_limit_fits() -> None:
+    act = _activity(name="Quick Museum Tour", duration_minutes=90)
+    criteria = DecisionCriteria(duration_limit_minutes=180)
+    candidate = evaluate_activity(act, criteria)
+
+    assert candidate.is_eligible is True
+    dur_reason = next(r for r in candidate.reasons if r.type is ReasonType.DURATION)
+    assert dur_reason.outcome is ReasonOutcome.SUPPORTED
+    assert "fits the 180-minute time limit" in dur_reason.message

@@ -9,6 +9,7 @@ from app.application.planning.planning_service import PlanningService
 from app.domain.entities.planning.constraint import ConstraintType
 from app.domain.entities.planning.plan import Plan, PlanStatus
 from app.domain.entities.planning.plan_item import PlanItem, PlanItemType
+from app.domain.entities.planning.understanding import PlanningUnderstanding
 
 
 class FakePlanRepository:
@@ -225,3 +226,88 @@ async def test_modify_plan_cheaper_and_exclusions() -> None:
     modified_plan_2 = await service.modify_plan(user_id, plan.id, "No outdoors, and add 2 people")
     assert modified_plan_2.context.group_size == 4
     assert any(c.value == "exclude:no_outdoors" for c in modified_plan_2.constraints)
+
+
+@pytest.mark.asyncio
+async def test_create_plan_temporal_persistence() -> None:
+    repository = FakePlanRepository()
+    service = PlanningService(repository)
+    user_id = uuid4()
+
+    understanding = PlanningUnderstanding(
+        raw_request="Saturday around 11 until 7 budget R800",
+        goal="Plan Saturday",
+        date_spec="Saturday",
+        start_time="11:00",
+        end_time="19:00",
+        duration_limit_minutes=None,
+    )
+    plan = await service.create_plan_from_understanding(user_id, understanding)
+    assert plan.context is not None
+    assert plan.context.start_time is not None
+    assert plan.context.start_time.hour == 11
+    assert plan.context.end_time is not None
+    assert plan.context.end_time.hour == 19
+
+    c_vals = {c.value for c in plan.constraints}
+    assert "start_time:11:00" in c_vals
+    assert "end_time:19:00" in c_vals
+    assert "date:Saturday" in c_vals
+
+
+@pytest.mark.asyncio
+async def test_modify_plan_temporal_adjustments() -> None:
+    repository = FakePlanRepository()
+    service = PlanningService(repository)
+    user_id = uuid4()
+
+    understanding = PlanningUnderstanding(
+        raw_request="Saturday at 11 until 7",
+        goal="Plan Saturday",
+        date_spec="Saturday",
+        start_time="11:00",
+        end_time="19:00",
+    )
+    plan = await service.create_plan_from_understanding(user_id, understanding)
+
+    # 1. Modify: start later
+    mod1 = await service.modify_plan(user_id, plan.id, "Make it start later")
+    c_vals1 = {c.value for c in mod1.constraints}
+    assert "start_time:13:00" in c_vals1
+    assert mod1.context.start_time.hour == 13
+
+    # 2. Modify: home by 6
+    mod2 = await service.modify_plan(user_id, plan.id, "I need to be home by 6")
+    c_vals2 = {c.value for c in mod2.constraints}
+    assert "end_time:18:00" in c_vals2
+    assert mod2.context.end_time.hour == 18
+
+    # 3. Modify: only have 3 hours
+    mod3 = await service.modify_plan(user_id, plan.id, "We only have three hours")
+    dur_c = next(c for c in mod3.constraints if c.type is ConstraintType.TIME_MAX)
+    assert dur_c.numeric_value == Decimal("180")
+
+
+@pytest.mark.asyncio
+async def test_build_plan_understanding_read_temporal() -> None:
+    from app.api.v1.planning.router import _build_plan_understanding_read, UnderstandingRead
+    repository = FakePlanRepository()
+    service = PlanningService(repository)
+    user_id = uuid4()
+
+    understanding = PlanningUnderstanding(
+        raw_request="Saturday around 11 until 7 budget R800",
+        goal="Plan Saturday",
+        date_spec="Saturday",
+        start_time="11:00",
+        end_time="19:00",
+        duration_limit_minutes=180,
+    )
+    plan = await service.create_plan_from_understanding(user_id, understanding)
+    u_read = _build_plan_understanding_read(plan)
+
+    assert isinstance(u_read, UnderstandingRead)
+    assert u_read.start_time == "11:00"
+    assert u_read.end_time == "19:00"
+    assert u_read.duration_limit_minutes == 180
+    assert u_read.date_spec == "Saturday"

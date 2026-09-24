@@ -35,6 +35,9 @@ export type ReasonType =
   | 'group_size'
   | 'category'
   | 'duration'
+  | 'time_window'
+  | 'opening_hours'
+  | 'schedule_conflict'
   | 'general';
 
 export type ReasonOutcome = 'supported' | 'neutral' | 'violated';
@@ -114,6 +117,10 @@ export interface UnderstandingRead {
   relationship_context: string | null;
   date_spec: string | null;
   time_window: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  time_confidence?: 'approximate' | 'exact' | 'inferred' | string;
+  duration_limit_minutes?: number | null;
   location: string | null;
   location_is_inferred: boolean;
   budget_amount: string | number | null;

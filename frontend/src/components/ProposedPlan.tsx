@@ -49,10 +49,10 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
       icon: getCategoryIcon(newCandidate.category),
       subtitle: buildItemSubtitle(newCandidate),
       costNumber: parseCandidateCost(newCandidate.cost),
-      rationale: humanizeCandidateReasons(newCandidate, budgetMax, groupSize),
+      rationale: humanizeCandidateReasons(newCandidate, budgetMax, groupSize, plan.understanding),
     };
 
-    const recalculated = recalculateItinerary(updatedItems, allCandidates, budgetMax);
+    const recalculated = recalculateItinerary(updatedItems, allCandidates, budgetMax, plan.understanding);
     setItinerary(recalculated);
     setSwappingIndex(null);
   };
@@ -60,7 +60,7 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
   // Remove an item from the proposed itinerary
   const handleRemove = (slotIndex: number) => {
     const updatedItems = itinerary.items.filter((_, idx) => idx !== slotIndex);
-    const recalculated = recalculateItinerary(updatedItems, allCandidates, budgetMax);
+    const recalculated = recalculateItinerary(updatedItems, allCandidates, budgetMax, plan.understanding);
     setItinerary(recalculated);
     if (swappingIndex === slotIndex) {
       setSwappingIndex(null);
@@ -74,10 +74,10 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
       icon: getCategoryIcon(candidate.category),
       subtitle: buildItemSubtitle(candidate),
       costNumber: parseCandidateCost(candidate.cost),
-      rationale: humanizeCandidateReasons(candidate, budgetMax, groupSize),
+      rationale: humanizeCandidateReasons(candidate, budgetMax, groupSize, plan.understanding),
     };
     const updatedItems = [...itinerary.items, newItem];
-    const recalculated = recalculateItinerary(updatedItems, allCandidates, budgetMax);
+    const recalculated = recalculateItinerary(updatedItems, allCandidates, budgetMax, plan.understanding);
     setItinerary(recalculated);
     setShowAddMenu(false);
   };
@@ -92,7 +92,15 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
       {/* Editorial Header */}
       <div className="proposal-header">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-          <span className="proposal-badge">Proposed Itinerary</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="proposal-badge">Proposed Itinerary</span>
+            {plan.understanding?.date_spec && (
+              <span style={{ fontSize: '0.8125rem', color: '#6366f1', fontWeight: 600, background: '#eef2ff', padding: '2px 8px', borderRadius: '4px' }}>
+                📅 {plan.understanding.date_spec}
+                {itinerary.timeSpanDisplay ? ` · ${itinerary.timeSpanDisplay}` : ''}
+              </span>
+            )}
+          </div>
           {itinerary.freshness === 'live' ? (
             <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 500 }}>
               ● Live information
@@ -131,6 +139,11 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
               <div key={item.candidate.option_id} className="timeline-step">
                 <div className="step-indicator">
                   <div className="step-circle">{stepNumber}</div>
+                  {item.startTime && (
+                    <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#4f46e5', marginTop: '4px', textAlign: 'center' }}>
+                      {item.startTime}
+                    </div>
+                  )}
                   {idx < itinerary.items.length - 1 && <div className="step-line" />}
                 </div>
 
@@ -139,7 +152,16 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
                     <div className="step-header">
                       <div className="step-title-area">
                         <span className="step-icon">{item.icon}</span>
-                        <h3 className="step-name">{item.candidate.name}</h3>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <h3 className="step-name" style={{ margin: 0 }}>{item.candidate.name}</h3>
+                            {item.startTime && item.endTime && (
+                              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#4338ca', background: '#eef2ff', padding: '1px 6px', borderRadius: '4px', border: '1px solid #c7d2fe' }}>
+                                ⏱️ {item.startTime} – {item.endTime} ({item.durationMinutes}m)
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                       <div className="step-cost-area">
                         <span className="step-cost">
@@ -149,6 +171,7 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
                     </div>
 
                     <div className="step-subtitle">{item.subtitle}</div>
+
 
                     {item.candidate.opening_hours && (
                       <div style={{ fontSize: '0.75rem', color: '#52525b', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>

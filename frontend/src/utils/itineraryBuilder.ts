@@ -6,6 +6,10 @@ export interface ProposedItineraryItem {
   subtitle: string;
   costNumber: number;
   rationale: string[];
+  startTime?: string;
+  endTime?: string;
+  durationMinutes?: number;
+  isApproximate?: boolean;
 }
 
 export interface ProposedItinerary {
@@ -17,6 +21,8 @@ export interface ProposedItinerary {
   narrativeSubheading: string;
   attribution?: string | null;
   freshness?: string | null;
+  totalDurationMinutes?: number;
+  timeSpanDisplay?: string;
 }
 
 /**
@@ -87,6 +93,64 @@ export function formatCurrency(amount: number | string | null | undefined): stri
 }
 
 /**
+ * Time calculation and slotting helpers.
+ */
+export function parseTimeToMinutes(timeStr: string): number {
+  const parts = timeStr.split(':').map((s) => parseInt(s, 10));
+  return (parts[0] || 0) * 60 + (parts[1] || 0);
+}
+
+export function formatMinutesToTime(totalMins: number): string {
+  const norm = ((totalMins % 1440) + 1440) % 1440;
+  const h = Math.floor(norm / 60);
+  const m = norm % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+export function getBaseStartTimeMinutes(understanding?: UnderstandingRead | null): { minutes: number; isApproximate: boolean } {
+  if (understanding?.start_time) {
+    return {
+      minutes: parseTimeToMinutes(understanding.start_time),
+      isApproximate: understanding.time_confidence === 'approximate',
+    };
+  }
+  if (understanding?.time_window) {
+    const win = understanding.time_window.toLowerCase();
+    if (win === 'morning') return { minutes: 9 * 60 + 30, isApproximate: true };
+    if (win === 'lunch' || win === 'noon') return { minutes: 12 * 60, isApproximate: true };
+    if (win === 'afternoon') return { minutes: 13 * 60 + 30, isApproximate: true };
+    if (win === 'evening') return { minutes: 18 * 60, isApproximate: true };
+    if (win === 'night') return { minutes: 20 * 60, isApproximate: true };
+  }
+  return { minutes: 11 * 60, isApproximate: true };
+}
+
+export function assignTimeSlots(
+  items: ProposedItineraryItem[],
+  understanding?: UnderstandingRead | null
+): ProposedItineraryItem[] {
+  if (items.length === 0) return [];
+  const base = getBaseStartTimeMinutes(understanding);
+  let currentCursor = base.minutes;
+
+  return items.map((item) => {
+    const dur = item.candidate.duration_minutes || (item.candidate.option_type === 'place' ? 90 : 60);
+    const startStr = formatMinutesToTime(currentCursor);
+    const endCursor = currentCursor + dur;
+    const endStr = formatMinutesToTime(endCursor);
+    currentCursor = endCursor;
+
+    return {
+      ...item,
+      startTime: startStr,
+      endTime: endStr,
+      durationMinutes: dur,
+      isApproximate: base.isApproximate,
+    };
+  });
+}
+
+/**
  * Humanizes backend machine decision reasons into warm, conversational explanations.
  * Eliminates machine scores, internal IDs, and technical provenance.
  */
@@ -108,8 +172,22 @@ export function humanizeCandidateReasons(
     humanReasons.push(`Fits comfortably within your ${formatCurrency(budgetMax)} budget.`);
   }
 
-  // 2. Real opening hours if known
-  if (candidate.opening_hours) {
+  // 2. Real opening hours & temporal rationale from decision engine
+  if (candidate.reasons) {
+    for (const r of candidate.reasons) {
+      if (r.type === 'opening_hours') {
+        if (r.outcome === 'supported' && r.message) {
+          humanReasons.push(r.message);
+        } else if (r.outcome === 'neutral') {
+          humanReasons.push('Opening hours unlisted — check ahead before visiting.');
+        }
+      } else if (r.type === 'time_window' && r.outcome === 'supported' && r.message) {
+        humanReasons.push(r.message);
+      }
+    }
+  }
+
+  if (candidate.opening_hours && !humanReasons.some((h) => h.includes('Open') || h.includes('Hours:'))) {
     humanReasons.push(`Hours: ${candidate.opening_hours}`);
   }
 
@@ -122,12 +200,12 @@ export function humanizeCandidateReasons(
     humanReasons.push('Fun, easygoing setting for a group of friends.');
   }
 
-  // 3. Group suitability
+  // 4. Group suitability
   if (groupSize > 1) {
     humanReasons.push(`Well suited for a group of ${groupSize}.`);
   }
 
-  // 4. Category context
+  // 5. Category context
   if (candidate.category === 'nature') {
     humanReasons.push('Offers a scenic, relaxed outdoor start.');
   } else if (candidate.category === 'culture') {
@@ -185,6 +263,21 @@ export function buildProposalNarrative(
 ): string {
   const categories = new Set(items.map((i) => i.candidate.category));
 
+  if (understanding?.duration_limit_minutes) {
+    const hours = Math.round(understanding.duration_limit_minutes / 60);
+    const hrsStr = hours === 1 ? '1-hour' : `${hours}-hour`;
+    if (understanding.occasion === 'date') {
+      return `A focused ${hrsStr} date outing tailored for the two of you.`;
+    }
+    if (understanding.occasion === 'birthday') {
+      return `A celebratory ${hrsStr} birthday plan tailored to your time limit.`;
+    }
+    if (understanding.occasion === 'friends') {
+      return `A fun ${hrsStr} plan for your group, perfectly sized for your time.`;
+    }
+    return `A concise ${hrsStr} sequence designed to fit your exact time window.`;
+  }
+
   if (understanding?.occasion === 'date') {
     if (remainingBudget !== null && remainingBudget > 0) {
       return `A romantic outing designed for the two of you, with ${formatCurrency(remainingBudget)} left to spare.`;
@@ -225,6 +318,7 @@ export function buildProposalNarrative(
 
   return 'A thoughtful sequence designed to make the most of your time and budget.';
 }
+
 
 /**
  * Assembles a coherent proposed itinerary from ranked recommendation candidates.
@@ -269,67 +363,77 @@ export function buildProposedItinerary(
     };
   }
 
+  const durationLimit = understanding?.duration_limit_minutes || null;
+  const deadlineMins = understanding?.end_time ? parseTimeToMinutes(understanding.end_time) : null;
+  const baseStart = getBaseStartTimeMinutes(understanding).minutes;
+
   const selectedCandidates: DecisionCandidateRead[] = [];
   const selectedOptionIds = new Set<string>();
   const selectedCategories = new Set<string>();
   let currentCost = 0;
+  let accumulatedDuration = 0;
+
+  const canAddCandidate = (candidate: DecisionCandidateRead): boolean => {
+    const cost = parseCandidateCost(candidate.cost);
+    if (budgetMax !== null && currentCost + cost > budgetMax) {
+      return false;
+    }
+    const dur = candidate.duration_minutes || (candidate.option_type === 'place' ? 90 : 60);
+    if (durationLimit !== null && accumulatedDuration + dur > durationLimit) {
+      return false;
+    }
+    if (deadlineMins !== null && baseStart + accumulatedDuration + dur > deadlineMins) {
+      return false;
+    }
+    return true;
+  };
+
+  const addCandidate = (candidate: DecisionCandidateRead) => {
+    selectedCandidates.push(candidate);
+    selectedOptionIds.add(candidate.option_id);
+    selectedCategories.add(candidate.category);
+    currentCost += parseCandidateCost(candidate.cost);
+    const dur = candidate.duration_minutes || (candidate.option_type === 'place' ? 90 : 60);
+    accumulatedDuration += dur;
+  };
 
   // 1. If user has a strong focus or activity_type preference, pick top candidate from that category first
   const preferredCats = understanding?.activity_types || [];
   if (preferredCats.length > 0) {
     for (const cat of preferredCats) {
       const match = eligible.find((c) => c.category === cat && !selectedOptionIds.has(c.option_id));
-      if (match) {
-        const cost = parseCandidateCost(match.cost);
-        if (budgetMax === null || currentCost + cost <= budgetMax) {
-          selectedCandidates.push(match);
-          selectedOptionIds.add(match.option_id);
-          selectedCategories.add(match.category);
-          currentCost += cost;
-          break;
-        }
+      if (match && canAddCandidate(match)) {
+        addCandidate(match);
+        break;
       }
     }
   }
 
-  // 2. Add candidates with category diversity up to 3 items, staying within budget
+  // 2. Add candidates with category diversity up to 3 items, staying within budget & time
   const maxItems = 3;
   for (const candidate of eligible) {
     if (selectedCandidates.length >= maxItems) break;
     if (selectedOptionIds.has(candidate.option_id)) continue;
-
-    const candidateCost = parseCandidateCost(candidate.cost);
-    if (budgetMax !== null && currentCost + candidateCost > budgetMax) {
-      continue;
-    }
+    if (!canAddCandidate(candidate)) continue;
 
     if (!selectedCategories.has(candidate.category) || selectedCandidates.length === 0) {
-      selectedCandidates.push(candidate);
-      selectedOptionIds.add(candidate.option_id);
-      selectedCategories.add(candidate.category);
-      currentCost += candidateCost;
+      addCandidate(candidate);
     }
   }
 
-  // 3. Fallback: if we still have room and budget, fill with any remaining eligible items
+  // 3. Fallback: if we still have room, budget, and time, fill with any remaining eligible items
   if (selectedCandidates.length < maxItems) {
     for (const candidate of eligible) {
       if (selectedCandidates.length >= maxItems) break;
       if (selectedOptionIds.has(candidate.option_id)) continue;
+      if (!canAddCandidate(candidate)) continue;
 
-      const candidateCost = parseCandidateCost(candidate.cost);
-      if (budgetMax !== null && currentCost + candidateCost > budgetMax) {
-        continue;
-      }
-
-      selectedCandidates.push(candidate);
-      selectedOptionIds.add(candidate.option_id);
-      currentCost += candidateCost;
+      addCandidate(candidate);
     }
   }
 
   // Map selected candidates to itinerary items with humanized rationale
-  const items: ProposedItineraryItem[] = selectedCandidates.map((candidate) => ({
+  const rawItems: ProposedItineraryItem[] = selectedCandidates.map((candidate) => ({
     candidate,
     icon: getCategoryIcon(candidate.category),
     subtitle: buildItemSubtitle(candidate),
@@ -337,12 +441,18 @@ export function buildProposedItinerary(
     rationale: humanizeCandidateReasons(candidate, budgetMax, groupSize, understanding),
   }));
 
+  const items = assignTimeSlots(rawItems, understanding);
+
   const alternatives = eligible.filter((c) => !selectedOptionIds.has(c.option_id));
   const remainingBudget = budgetMax !== null ? budgetMax - currentCost : null;
   const isOverBudget = remainingBudget !== null && remainingBudget < 0;
   const narrativeSubheading = buildProposalNarrative(items, budgetMax, remainingBudget, understanding);
   const attribution = candidates.find((c) => c.attribution)?.attribution || null;
   const freshness = candidates.find((c) => c.freshness)?.freshness || null;
+  const totalDurationMinutes = items.reduce((sum, i) => sum + (i.durationMinutes || 0), 0);
+  const timeSpanDisplay = items.length > 0 && items[0].startTime && items[items.length - 1].endTime
+    ? `${items[0].startTime} – ${items[items.length - 1].endTime}`
+    : undefined;
 
   return {
     items,
@@ -353,28 +463,36 @@ export function buildProposedItinerary(
     narrativeSubheading,
     attribution,
     freshness,
+    totalDurationMinutes,
+    timeSpanDisplay,
   };
 }
 
 /**
- * Recalculates totals and narrative when items are swapped or removed.
+ * Recalculates totals, time slots, and narrative when items are swapped or removed.
  */
 export function recalculateItinerary(
   items: ProposedItineraryItem[],
   allEligibleCandidates: DecisionCandidateRead[],
-  budgetMax: number | null
+  budgetMax: number | null,
+  understanding?: UnderstandingRead | null
 ): ProposedItinerary {
-  const currentCost = items.reduce((sum, item) => sum + item.costNumber, 0);
-  const selectedIds = new Set(items.map((i) => i.candidate.option_id));
+  const slottedItems = assignTimeSlots(items, understanding);
+  const currentCost = slottedItems.reduce((sum, item) => sum + item.costNumber, 0);
+  const selectedIds = new Set(slottedItems.map((i) => i.candidate.option_id));
   const alternatives = allEligibleCandidates.filter((c) => !selectedIds.has(c.option_id));
   const remainingBudget = budgetMax !== null ? budgetMax - currentCost : null;
   const isOverBudget = remainingBudget !== null && remainingBudget < 0;
-  const narrativeSubheading = buildProposalNarrative(items, budgetMax, remainingBudget);
+  const narrativeSubheading = buildProposalNarrative(slottedItems, budgetMax, remainingBudget, understanding);
   const attribution = allEligibleCandidates.find((c) => c.attribution)?.attribution || null;
   const freshness = allEligibleCandidates.find((c) => c.freshness)?.freshness || null;
+  const totalDurationMinutes = slottedItems.reduce((sum, i) => sum + (i.durationMinutes || 0), 0);
+  const timeSpanDisplay = slottedItems.length > 0 && slottedItems[0].startTime && slottedItems[slottedItems.length - 1].endTime
+    ? `${slottedItems[0].startTime} – ${slottedItems[slottedItems.length - 1].endTime}`
+    : undefined;
 
   return {
-    items,
+    items: slottedItems,
     alternatives,
     estimatedTotal: currentCost,
     remainingBudget,
@@ -382,5 +500,7 @@ export function recalculateItinerary(
     narrativeSubheading,
     attribution,
     freshness,
+    totalDurationMinutes,
+    timeSpanDisplay,
   };
 }

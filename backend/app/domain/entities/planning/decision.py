@@ -22,6 +22,9 @@ class ReasonType(str, Enum):
     GENERAL = "general"
     PREFERENCE = "preference"
     OCCASION = "occasion"
+    TIME_WINDOW = "time_window"
+    OPENING_HOURS = "opening_hours"
+    SCHEDULE_CONFLICT = "schedule_conflict"
 
 
 class ReasonOutcome(str, Enum):
@@ -107,6 +110,12 @@ class DecisionCriteria:
     exclusions: tuple[str, ...] = ()
     activity_types: tuple[InformationCategory, ...] = ()
 
+    day_of_week: str | None = None
+    start_time: str | None = None
+    end_time: str | None = None
+    time_window: str | None = None
+    duration_limit_minutes: int | None = None
+
     def __post_init__(self) -> None:
         if self.maximum_cost is not None and self.maximum_cost < 0:
             raise ValueError("Maximum cost cannot be negative.")
@@ -114,3 +123,5 @@ class DecisionCriteria:
             raise ValueError("Group size must be at least 1.")
         if self.maximum_duration_minutes is not None and self.maximum_duration_minutes <= 0:
             raise ValueError("Maximum duration must be positive.")
+        if self.duration_limit_minutes is not None and self.duration_limit_minutes <= 0:
+            raise ValueError("Duration limit must be positive.")

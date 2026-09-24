@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-import re
+from datetime import datetime
 from decimal import Decimal
+import re
 from typing import Any
 from uuid import UUID
 
 from app.application.planning.dtos import ConstraintInput, CreatePlanData, PlanItemData, PlanningIntent
 from app.application.planning.errors import PlanItemNotFoundError, PlanningNotFoundError
 from app.application.planning.ports import PlanRepository
+from app.application.planning.understanding_service import DeterministicUnderstandingEngine
 from app.domain.entities.planning.constraint import Constraint, ConstraintType
 from app.domain.entities.planning.context import PlanningContext
 from app.domain.entities.planning.plan import Plan
@@ -169,6 +171,31 @@ class PlanningService:
                     value=f"time:{understanding.time_window}",
                 )
             )
+        if understanding.start_time:
+            constraints.append(
+                ConstraintInput(
+                    type=ConstraintType.REQUIREMENT,
+                    value=f"start_time:{understanding.start_time}",
+                )
+            )
+        if understanding.end_time:
+            constraints.append(
+                ConstraintInput(
+                    type=ConstraintType.REQUIREMENT,
+                    value=f"end_time:{understanding.end_time}",
+                )
+            )
+        if understanding.duration_limit_minutes:
+            constraints.append(
+                ConstraintInput(
+                    type=ConstraintType.TIME_MAX,
+                    value=f"{understanding.duration_limit_minutes}m",
+                    numeric_value=Decimal(understanding.duration_limit_minutes),
+                )
+            )
+
+        start_dt = _resolve_iso_datetime(understanding.date_spec, understanding.start_time)
+        end_dt = _resolve_iso_datetime(understanding.date_spec, understanding.end_time)
 
         group_size = understanding.people_count if understanding.people_count is not None else 1
         title = _generate_plan_title(understanding)
@@ -178,6 +205,8 @@ class PlanningService:
                 intention=understanding.raw_request,
                 title=title,
                 location=understanding.location,
+                start_time=start_dt,
+                end_time=end_dt,
                 group_size=group_size,
                 constraints=constraints,
             )
@@ -273,24 +302,77 @@ class PlanningService:
                 )
                 break
 
+        # 6. Start time modifications: "make it start later", "start around 1pm", "start at 13:00"
+        m_start_later = re.search(r"\b(?:start\s+later|make\s+it\s+start\s+later|move\s+later)\b", mod_lower)
+        m_new_start = re.search(r"\b(?:start\s+(?:at|around)\s+|at\s+)(\d{1,2}(?::\d{2})?)\s*(am|pm)?\b", mod_lower)
+        if m_new_start:
+            new_time_val = m_new_start.group(1)
+            mer = m_new_start.group(2)
+            parsed_start = DeterministicUnderstandingEngine._normalize_clock_time(new_time_val, mer)
+            new_constraints = [c for c in new_constraints if not (c.type is ConstraintType.REQUIREMENT and c.value.startswith("start_time:"))]
+            new_constraints.append(ConstraintInput(type=ConstraintType.REQUIREMENT, value=f"start_time:{parsed_start}"))
+        elif m_start_later:
+            curr_start_c = next((c for c in new_constraints if c.type is ConstraintType.REQUIREMENT and c.value.startswith("start_time:")), None)
+            if curr_start_c:
+                try:
+                    curr_time = curr_start_c.value.split(":", 1)[1]
+                    curr_h = int(curr_time.split(":")[0])
+                    shifted_h = min(22, curr_h + 2)
+                    shifted_time = f"{shifted_h:02d}:00"
+                except Exception:
+                    shifted_time = "13:00"
+            else:
+                shifted_time = "13:00"
+            new_constraints = [c for c in new_constraints if not (c.type is ConstraintType.REQUIREMENT and c.value.startswith("start_time:"))]
+            new_constraints.append(ConstraintInput(type=ConstraintType.REQUIREMENT, value=f"start_time:{shifted_time}"))
+
+        # 7. End time / deadline modifications: "home by 6", "need to be home by 6", "be home by 7", "until 5"
+        m_deadline = re.search(r"\b(?:home\s+by|be\s+home\s+by|need\s+to\s+be\s+home\s+by|finish\s+by|until)\s+(\d{1,2}(?::\d{2})?)\s*(am|pm)?\b", mod_lower)
+        if m_deadline:
+            end_val = m_deadline.group(1)
+            end_mer = m_deadline.group(2)
+            parsed_end = DeterministicUnderstandingEngine._normalize_clock_time(end_val, end_mer, is_deadline=True)
+            new_constraints = [c for c in new_constraints if not (c.type is ConstraintType.REQUIREMENT and c.value.startswith("end_time:"))]
+            new_constraints.append(ConstraintInput(type=ConstraintType.REQUIREMENT, value=f"end_time:{parsed_end}"))
+
+        # 8. Duration limit modifications: "only have 3 hours", "we only have three hours", "have 2 hours"
+        m_mod_dur = re.search(r"\b(?:only\s+have|have|limit\s+to)\s+(\d+|one|two|three|four|five)\s+hours?\b", mod_lower)
+        if m_mod_dur:
+            dur_word = m_mod_dur.group(1).lower()
+            num_map = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5}
+            dur_hrs = num_map.get(dur_word) or (int(dur_word) if dur_word.isdigit() else 3)
+            dur_mins = dur_hrs * 60
+            new_constraints = [c for c in new_constraints if c.type is not ConstraintType.TIME_MAX]
+            new_constraints.append(ConstraintInput(type=ConstraintType.TIME_MAX, value=f"{dur_mins}m", numeric_value=Decimal(dur_mins)))
+
+        start_c = next((c for c in new_constraints if c.type is ConstraintType.REQUIREMENT and c.value.startswith("start_time:")), None)
+        end_c = next((c for c in new_constraints if c.type is ConstraintType.REQUIREMENT and c.value.startswith("end_time:")), None)
+        date_c = next((c for c in new_constraints if c.type is ConstraintType.REQUIREMENT and c.value.startswith("date:")), None)
+        day_spec = date_c.value.split(":", 1)[1] if date_c else None
+
+        new_start_dt = _resolve_iso_datetime(day_spec, start_c.value.split(":", 1)[1] if start_c else None) or current_context.start_time
+        new_end_dt = _resolve_iso_datetime(day_spec, end_c.value.split(":", 1)[1] if end_c else None) or current_context.end_time
+
         plan.replace_context(
             PlanningContext(
                 plan_id=plan.id,
                 location=new_location,
-                start_time=current_context.start_time,
-                end_time=current_context.end_time,
+                start_time=new_start_dt,
+                end_time=new_end_dt,
                 group_size=new_group_size,
                 transport_mode=current_context.transport_mode,
             )
         )
-        # Synchronize plan title with updated budget or date
+        # Synchronize plan title with updated budget, date, or time
         budget_c = next((c for c in new_constraints if c.type is ConstraintType.BUDGET_MAX), None)
-        date_c = next((c for c in new_constraints if c.type is ConstraintType.REQUIREMENT and c.value.startswith("date:")), None)
         base_title = plan.title.split(" · ")[0] if plan.title else "Plan"
         if budget_c and budget_c.numeric_value:
             plan.title = f"{base_title} · ~R{budget_c.numeric_value}"
+        elif date_c and start_c:
+            plan.title = f"{base_title} · {date_c.value.split(':', 1)[1]} ~{start_c.value.split(':', 1)[1]}"
         elif date_c:
-            plan.title = f"{base_title} · {date_c.value.split(':')[1]}"
+            plan.title = f"{base_title} · {date_c.value.split(':', 1)[1]}"
+
 
         plan.replace_constraints(_constraints_from_inputs(plan.id, new_constraints))
         return await self._repository.update(plan)
@@ -339,3 +421,32 @@ def _context_from_data(plan_id: UUID, data: CreatePlanData) -> PlanningContext:
 
 def _constraints_from_inputs(plan_id: UUID, inputs: list[ConstraintInput]) -> list[Constraint]:
     return [Constraint(plan_id=plan_id, type=item.type, value=item.value, numeric_value=item.numeric_value) for item in inputs]
+
+
+def _resolve_iso_datetime(date_str: str | None, time_str: str | None) -> datetime | None:
+    if not time_str:
+        return None
+    try:
+        parts = time_str.split(":")
+        hour, minute = int(parts[0]), int(parts[1])
+    except Exception:
+        return None
+
+    # Base reference date: 2026-09-26 is a Saturday
+    weekday_offsets = {
+        "monday": 0,
+        "tuesday": 1,
+        "wednesday": 2,
+        "thursday": 3,
+        "friday": 4,
+        "saturday": 5,
+        "sunday": 6,
+    }
+    base_year, base_month, base_day = 2026, 9, 21  # 2026-09-21 was Monday
+    if date_str:
+        clean_date = date_str.lower().strip()
+        offset = weekday_offsets.get(clean_date)
+        if offset is not None:
+            day = base_day + offset
+            return datetime(base_year, base_month, day, hour, minute)
+    return datetime(2026, 9, 26, hour, minute)

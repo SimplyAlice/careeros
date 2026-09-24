@@ -136,6 +136,10 @@ class UnderstandingRead(BaseModel):
     relationship_context: str | None = None
     date_spec: str | None = None
     time_window: str | None = None
+    start_time: str | None = None
+    end_time: str | None = None
+    time_confidence: str = "approximate"
+    duration_limit_minutes: int | None = None
     location: str | None = None
     location_is_inferred: bool = False
     budget_amount: Decimal | None = None
@@ -155,6 +159,10 @@ class UnderstandingRead(BaseModel):
             relationship_context=u.relationship_context,
             date_spec=u.date_spec,
             time_window=u.time_window,
+            start_time=u.start_time,
+            end_time=u.end_time,
+            time_confidence=u.time_confidence,
+            duration_limit_minutes=u.duration_limit_minutes,
             location=u.location,
             location_is_inferred=u.location_is_inferred,
             budget_amount=u.budget_amount,
@@ -286,6 +294,9 @@ def _build_plan_understanding_read(plan: Plan) -> UnderstandingRead:
     stored_occasion: str | None = None
     stored_date: str | None = None
     stored_time: str | None = None
+    stored_start_time: str | None = None
+    stored_end_time: str | None = None
+    stored_duration_limit: int | None = None
 
     for c in plan.constraints:
         if c.type is ConstraintType.REQUIREMENT:
@@ -295,11 +306,22 @@ def _build_plan_understanding_read(plan: Plan) -> UnderstandingRead:
                 stored_date = c.value.split(":", 1)[1]
             elif c.value.startswith("time:"):
                 stored_time = c.value.split(":", 1)[1]
+            elif c.value.startswith("start_time:"):
+                stored_start_time = c.value.split(":", 1)[1]
+            elif c.value.startswith("end_time:"):
+                stored_end_time = c.value.split(":", 1)[1]
         elif c.type is ConstraintType.PREFERENCE:
             if c.value.startswith("occasion:"):
                 stored_occasion = c.value.split(":", 1)[1]
             else:
                 stored_preferences.append(c.value)
+        elif c.type is ConstraintType.TIME_MAX:
+            if c.numeric_value is not None:
+                stored_duration_limit = int(c.numeric_value)
+            else:
+                digits = "".join(filter(str.isdigit, c.value))
+                if digits:
+                    stored_duration_limit = int(digits)
 
     budget_c = next((c for c in plan.constraints if c.type is ConstraintType.BUDGET_MAX), None)
     budget_amount = budget_c.numeric_value if budget_c else (parsed.budget_amount if parsed else None)
@@ -311,6 +333,9 @@ def _build_plan_understanding_read(plan: Plan) -> UnderstandingRead:
     merged_exclusions = list(dict.fromkeys((list(parsed.exclusions) if parsed else []) + stored_exclusions))
     merged_preferences = list(dict.fromkeys((list(parsed.preferences) if parsed else []) + stored_preferences))
 
+    context_start = plan.context.start_time.strftime("%H:%M") if plan.context and plan.context.start_time else None
+    context_end = plan.context.end_time.strftime("%H:%M") if plan.context and plan.context.end_time else None
+
     return UnderstandingRead(
         goal=plan.title or (parsed.goal if parsed else plan.intention),
         occasion=stored_occasion or (parsed.occasion if parsed else None),
@@ -318,6 +343,10 @@ def _build_plan_understanding_read(plan: Plan) -> UnderstandingRead:
         relationship_context=parsed.relationship_context if parsed else None,
         date_spec=stored_date or (parsed.date_spec if parsed else None),
         time_window=stored_time or (parsed.time_window if parsed else None),
+        start_time=stored_start_time or (parsed.start_time if parsed else context_start),
+        end_time=stored_end_time or (parsed.end_time if parsed else context_end),
+        time_confidence=parsed.time_confidence if parsed else "approximate",
+        duration_limit_minutes=stored_duration_limit or (parsed.duration_limit_minutes if parsed else None),
         location=location,
         location_is_inferred=parsed.location_is_inferred if parsed else True,
         budget_amount=budget_amount,

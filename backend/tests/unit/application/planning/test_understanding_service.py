@@ -126,3 +126,52 @@ def test_inferred_defaults_and_ambiguities(engine: DeterministicUnderstandingEng
 def test_empty_request_rejected(engine: DeterministicUnderstandingEngine) -> None:
     with pytest.raises(ValueError, match="cannot be empty"):
         engine.parse("   ")
+
+
+def test_scenario_a_temporal_understanding(engine: DeterministicUnderstandingEngine) -> None:
+    req = "I want to take my boyfriend somewhere nice Saturday around 11, we have until 7, budget R800."
+    u = engine.parse(req)
+    assert u.date_spec == "Saturday"
+    assert u.start_time == "11:00"
+    assert u.end_time == "19:00"
+    assert u.time_confidence == "approximate"
+    assert u.people_count == 2
+    assert u.relationship_context == "boyfriend"
+    assert u.occasion == "date"
+    assert u.budget_amount == 800
+    assert any("approximate" in a.lower() for a in u.ambiguities)
+    assert any("19:00" in a for a in u.ambiguities)
+
+
+def test_scenario_b_temporal_understanding(engine: DeterministicUnderstandingEngine) -> None:
+    req = "It's my mom's birthday Saturday afternoon. I want lunch and something nice afterwards, around R1000."
+    u = engine.parse(req)
+    assert u.date_spec == "Saturday"
+    assert u.time_window == "afternoon"
+    assert u.start_time == "12:30"
+    assert u.end_time == "17:30"
+    assert u.time_confidence == "inferred"
+    assert u.people_count == 2
+    assert u.relationship_context == "mom"
+    assert u.occasion == "birthday"
+    assert u.budget_amount == 1000
+
+
+def test_scenario_c_duration_limit(engine: DeterministicUnderstandingEngine) -> None:
+    req = "I only have three hours Saturday afternoon."
+    u = engine.parse(req)
+    assert u.date_spec == "Saturday"
+    assert u.time_window == "afternoon"
+    assert u.duration_limit_minutes == 180
+    assert u.provenance["duration_limit"] == ProvenanceKind.EXPLICIT.value
+    assert any("3 hours" in a for a in u.ambiguities)
+
+
+def test_exact_time_span(engine: DeterministicUnderstandingEngine) -> None:
+    req = "Plan something from 2pm to 7pm on Sunday"
+    u = engine.parse(req)
+    assert u.date_spec == "Sunday"
+    assert u.start_time == "14:00"
+    assert u.end_time == "19:00"
+    assert u.time_confidence == "exact"
+    assert u.time_window == "14:00-19:00"

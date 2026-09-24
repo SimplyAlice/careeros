@@ -83,7 +83,7 @@ def criteria_from_plan(plan: Plan) -> DecisionCriteria:
     """Derive decision criteria from the plan's existing context/constraints.
 
     Reuses the plan's own location, group size, category, budget/duration,
-    preferences, exclusions, and occasion constraints.
+    preferences, exclusions, occasion, and temporal constraints.
     """
     location = plan.context.location if plan.context is not None else None
     return DecisionCriteria(
@@ -95,7 +95,57 @@ def criteria_from_plan(plan: Plan) -> DecisionCriteria:
         occasion=_occasion_from_constraints(plan.constraints),
         preferences=_preferences_from_constraints(plan.constraints),
         exclusions=_exclusions_from_constraints(plan.constraints),
+        day_of_week=_day_of_week_from_constraints(plan),
+        start_time=_start_time_from_constraints(plan),
+        end_time=_end_time_from_constraints(plan),
+        time_window=_time_window_from_constraints(plan),
+        duration_limit_minutes=_duration_limit_from_constraints(plan),
     )
+
+
+def _day_of_week_from_constraints(plan: Plan) -> str | None:
+    for constraint in plan.constraints:
+        if constraint.type is ConstraintType.REQUIREMENT and constraint.value.startswith("date:"):
+            return constraint.value.split(":", 1)[1]
+    if plan.context and plan.context.start_time:
+        return plan.context.start_time.strftime("%A")
+    return None
+
+
+def _start_time_from_constraints(plan: Plan) -> str | None:
+    for constraint in plan.constraints:
+        if constraint.type is ConstraintType.REQUIREMENT and constraint.value.startswith("start_time:"):
+            return constraint.value.split(":", 1)[1]
+    if plan.context and plan.context.start_time:
+        return plan.context.start_time.strftime("%H:%M")
+    return None
+
+
+def _end_time_from_constraints(plan: Plan) -> str | None:
+    for constraint in plan.constraints:
+        if constraint.type is ConstraintType.REQUIREMENT and constraint.value.startswith("end_time:"):
+            return constraint.value.split(":", 1)[1]
+    if plan.context and plan.context.end_time:
+        return plan.context.end_time.strftime("%H:%M")
+    return None
+
+
+def _time_window_from_constraints(plan: Plan) -> str | None:
+    for constraint in plan.constraints:
+        if constraint.type is ConstraintType.REQUIREMENT and constraint.value.startswith("time:"):
+            return constraint.value.split(":", 1)[1]
+    return None
+
+
+def _duration_limit_from_constraints(plan: Plan) -> int | None:
+    for constraint in plan.constraints:
+        if constraint.type is ConstraintType.TIME_MAX:
+            if constraint.numeric_value is not None:
+                return int(constraint.numeric_value)
+            digits = "".join(filter(str.isdigit, constraint.value))
+            if digits:
+                return int(digits)
+    return None
 
 
 def _occasion_from_constraints(constraints: list[Constraint]) -> str | None:
