@@ -88,6 +88,15 @@ class Settings(BaseSettings):
         description="Async SQLAlchemy connection string.",
     )
 
+    @field_validator("database_url")
+    @classmethod
+    def _validate_database_url(cls, value: str) -> str:
+        if value.startswith("postgres://"):
+            return value.replace("postgres://", "postgresql+asyncpg://", 1)
+        if value.startswith("postgresql://") and not value.startswith("postgresql+asyncpg://"):
+            return value.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return value
+
     # --- Redis ---------------------------------------------------------------
     redis_url: str = Field(default="redis://redis:6379/0")
 
