@@ -172,10 +172,20 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
         if match_friends_count:
             return int(match_friends_count.group(1)) + 1, "friends", ProvenanceKind.EXPLICIT, ambiguities
 
-        # 2. Explicit people counts: "maybe 3 people", "about 4 people", "for 5 people", "3 people"
-        match_people_count = re.search(r"\b(?:(?:maybe|around|about|for)\s+)?(\d+)\s+(?:people|persons?|guests?)\b", lower)
+        # 2. Explicit people counts: "maybe 3 people", "about 4 people", "for 5 people", "for four people"
+        word_to_num = {
+            "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+            "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+        }
+        match_people_count = re.search(
+            r"\b(?:(?:maybe|around|about|for)\s+)?(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:people|persons?|guests?)\b",
+            lower,
+        )
         if match_people_count:
-            return int(match_people_count.group(1)), rel or "group", ProvenanceKind.EXPLICIT, ambiguities
+            raw_cnt = match_people_count.group(1)
+            parsed_count = word_to_num.get(raw_cnt, int(raw_cnt) if raw_cnt.isdigit() else None)
+            if parsed_count is not None:
+                return parsed_count, rel or "group", ProvenanceKind.EXPLICIT, ambiguities
 
         # 3. group of N
         group_of = re.search(r"\bgroup\s+of\s+(\d+)\b", lower)
@@ -454,17 +464,17 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
         if re.search(r"\b(?:free|zero cost|no money|no budget)\b", lower):
             return Decimal("0"), BudgetKind.HARD_MAX, ProvenanceKind.EXPLICIT
 
-        # Explicit numeric budget extraction (R800, R 800, 800 rand, 800 bucks)
-        match = re.search(r"\bR\s?(\d+(?:[.,]\d{1,2})?)\b", text, re.IGNORECASE)
+        # Explicit numeric budget extraction (R800, R2,000, R 800, 800 rand, 800 bucks)
+        match = re.search(r"\bR\s?(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)\b", text, re.IGNORECASE)
         if not match:
-            match = re.search(r"\b(\d+(?:[.,]\d{1,2})?)\s*(?:rand|bucks)\b", text, re.IGNORECASE)
+            match = re.search(r"\b(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)\s*(?:rand|bucks)\b", text, re.IGNORECASE)
 
         if match:
-            amount = Decimal(match.group(1).replace(",", "."))
+            amount = Decimal(match.group(1).replace(",", ""))
             # Determine semantics
-            if re.search(r"\b(?:under|max|maximum|at most|up to|cap at|limit)\s*(?:r|rand|bucks)?\s*\d+", lower):
+            if re.search(r"\b(?:under|max|maximum|at most|up to|cap at|limit)\s*(?:r|rand|bucks)?\s*[\d,]+", lower):
                 return amount, BudgetKind.HARD_MAX, ProvenanceKind.EXPLICIT
-            if re.search(r"\b(?:maybe|around|about|roughly|approx|approx\.|~)\s*(?:r|rand|bucks)?\s*\d+", lower):
+            if re.search(r"\b(?:maybe|around|about|roughly|approx|approx\.|~)\s*(?:r|rand|bucks)?\s*[\d,]+", lower):
                 return amount, BudgetKind.APPROXIMATE, ProvenanceKind.EXPLICIT
             # Conversational single amount defaults to approximate
             return amount, BudgetKind.APPROXIMATE, ProvenanceKind.EXPLICIT

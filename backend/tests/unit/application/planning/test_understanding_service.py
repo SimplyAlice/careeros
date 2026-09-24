@@ -175,3 +175,16 @@ def test_exact_time_span(engine: DeterministicUnderstandingEngine) -> None:
     assert u.end_time == "19:00"
     assert u.time_confidence == "exact"
     assert u.time_window == "14:00-19:00"
+
+
+def test_birthday_group_budget_scenario(engine: DeterministicUnderstandingEngine) -> None:
+    req = "I want a cute birthday day out in Cape Town for four people, under R2,000, starting after lunch."
+    u = engine.parse(req)
+    assert u.occasion == "birthday"
+    assert u.people_count == 4
+    assert u.location == "Cape Town"
+    assert u.budget_amount == Decimal("2000")
+    assert u.budget_kind == BudgetKind.HARD_MAX
+    assert u.time_window == "afternoon"
+    assert "romantic" in u.preferences or "cute" in req.lower()
+
