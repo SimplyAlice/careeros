@@ -90,3 +90,40 @@ async def readiness(settings: Annotated[Settings, Depends(get_settings)]) -> Rea
         alembic_head=alembic_head,
         redis=redis_status,
     )
+
+
+class MigrateResponse(BaseModel):
+    """Shape of the migration response."""
+
+    success: bool
+    output: str
+    error: str | None
+
+
+@router.post("/health/migrate", response_model=MigrateResponse, summary="Trigger database migrations")
+async def trigger_migration() -> MigrateResponse:
+    """Run Alembic migrations up to head against the connected database."""
+    import os
+    import subprocess
+    import sys
+
+    alembic_dir = "backend" if os.path.exists("backend/alembic.ini") else "."
+    try:
+        res = subprocess.run(
+            [sys.executable, "-m", "alembic", "upgrade", "head"],
+            cwd=alembic_dir,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        return MigrateResponse(
+            success=res.returncode == 0,
+            output=res.stdout,
+            error=res.stderr if res.returncode != 0 else None,
+        )
+    except Exception as exc:
+        return MigrateResponse(
+            success=False,
+            output="",
+            error=str(exc),
+        )
