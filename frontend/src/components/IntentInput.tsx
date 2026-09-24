@@ -1,5 +1,5 @@
 import React, { useState, useRef, useImperativeHandle, forwardRef } from 'react';
-import { IconArrowRight, IconSparkles, IconArrowDown } from './Icons';
+import { IconArrowRight, IconArrowDown } from './Icons';
 
 export interface IntentInputHandle {
   focus: () => void;
@@ -13,55 +13,48 @@ interface IntentInputProps {
 }
 
 interface ExamplePrompt {
-  label: string;
-  category: string;
-  emoji: string;
-  subtitle: string;
+  tag: string;
+  title: string;
+  meta: string;
   prompt: string;
 }
 
-const EXAMPLE_PROMPTS: ExamplePrompt[] = [
+const EDITORIAL_PROMPTS: ExamplePrompt[] = [
   {
-    label: 'Cute birthday afternoon',
-    category: 'Celebration',
-    emoji: '🎂',
-    subtitle: '4 people · Sat afternoon · Under R1,500',
+    tag: 'CELEBRATION',
+    title: 'Cute birthday dinner for four',
+    meta: 'Sat evening · Cape Town · Under R1,500',
     prompt: 'Plan a cute birthday afternoon for four under R1,500 in Cape Town.',
   },
   {
-    label: 'Relaxed dinner date',
-    category: 'Romance',
-    emoji: '🍷',
-    subtitle: '2 people · Good food & somewhere pretty · R800',
+    tag: 'ROMANCE',
+    title: 'Relaxed dinner date & pretty walk',
+    meta: '2 people · Good food & unhurried · R800',
     prompt: 'A relaxed date with good food and somewhere pretty afterwards under R800.',
   },
   {
-    label: 'Afternoon free & bored',
-    category: 'Solo / Spontaneous',
-    emoji: '📖',
-    subtitle: '1 person · Two hours free · Coffee & read · R300',
+    tag: 'SPONTANEOUS',
+    title: 'Afternoon free, coffee & read',
+    meta: 'Solo · Two hours free · Under R300',
     prompt: 'I’m bored. I have R300 and the afternoon free tomorrow to read somewhere cozy.',
   },
   {
-    label: 'Quiet dark-themed lunch',
-    category: 'Atmosphere',
-    emoji: '🕯️',
-    subtitle: '2 people · Quiet dark themed restaurant · R500',
+    tag: 'ATMOSPHERE',
+    title: 'Quiet dark-themed restaurant',
+    meta: '2 people · Lunch & scenery · Budget R500',
     prompt: 'Lunch for two in a quiet dark themed restaurant, budget R500.',
   },
   {
-    label: 'Rainy Saturday with kids',
-    category: 'Family / Weather',
-    emoji: '☔',
-    subtitle: '4 people · Indoor & sheltered only · R800',
+    tag: 'WEATHER',
+    title: 'Rainy Saturday with 2 kids',
+    meta: '4 people · Sheltered indoors only · R800',
     prompt: 'Family outing with 2 kids this Saturday, indoor activities only because of bad weather, budget R800.',
   },
   {
-    label: 'Scenic morning walk & pastry',
-    category: 'Outdoors',
-    emoji: '🌿',
-    subtitle: 'Solo / duo · Unhurried stroll & bakery · ~R200',
-    prompt: 'Solo morning walk somewhere scenic followed by a quiet pastry, budget R200.',
+    tag: 'CULTURE',
+    title: 'Historic walk & artisan coffee',
+    meta: 'Solo / duo · Local craft & bites · R250',
+    prompt: 'An afternoon exploring local culture, historic streets, and craft food markets.',
   },
 ];
 
@@ -112,35 +105,49 @@ export const IntentInput = forwardRef<IntentInputHandle, IntentInputProps>(
     };
 
     return (
-      <div id="hero-input" className="hero-section">
-        {/* Brand & Editorial Hero Headline */}
-        <div className="hero-content">
-          <div className="hero-eyebrow animate-fade-in">
-            <span className="eyebrow-pill-dot" />
-            <IconSparkles size={13} className="eyebrow-icon" />
-            <span>DAYFORM · GIVE SHAPE TO YOUR DAY</span>
-          </div>
-
-          <h1 className="hero-heading animate-fade-up">
-            Tell me what you want to do.
-            <br />
-            <span className="hero-heading-secondary">I’ll figure out the rest.</span>
-          </h1>
-
-          <p className="hero-description animate-fade-up delay-1">
-            Skip the 15 open browser tabs, the spreadsheet of opening hours, and the budget guesswork.
-            Describe your day in plain human words—Dayform evaluates real places, verified operating hours,
-            transit times, and budgets to build an unhurried, coherent itinerary.
-          </p>
+      <section id="hero-input" className="hero-editorial-stage">
+        {/* Massive Brand Watermark */}
+        <div className="hero-brand-masthead">
+          <span className="masthead-name">DAYFORM</span>
+          <span className="masthead-edition">EDITION 2026 · ISSUE NO. 12</span>
         </div>
 
-        {/* Premium Command Surface */}
-        <div className={`command-surface-wrapper ${isFocused ? 'focused' : ''} animate-fade-up delay-2`}>
-          <form onSubmit={handleSubmit} className="command-surface-form">
-            <div className="command-input-container">
+        {/* Dramatic Hero Content Block */}
+        <div className="hero-headline-block">
+          <div className="hero-tag-row">
+            <span className="hero-tag-pill">REAL-WORLD PLANNING ENGINE</span>
+            <span className="hero-tag-location">CAPE TOWN & SURROUNDS</span>
+          </div>
+
+          <h1 className="hero-editorial-title">
+            Give shape <br />
+            <em>to your day.</em>
+          </h1>
+
+          <div className="hero-promise-callout">
+            <p className="hero-promise-lead">
+              Tell me what you want to do. <br />
+              <span className="hero-promise-accent">I’ll figure out the rest.</span>
+            </p>
+            <p className="hero-promise-sub">
+              No 15 open tabs. No manual spreadsheet of closing times. No budget guesswork.
+              Describe your day in human words—Dayform evaluates real places, verified operating hours,
+              transit times, and budgets to compose an unhurried, coherent journey.
+            </p>
+          </div>
+        </div>
+
+        {/* High-Contrast Command Surface */}
+        <div className={`hero-command-container ${isFocused ? 'focused' : ''}`}>
+          <form onSubmit={handleSubmit} className="hero-command-form">
+            <div className="command-input-slot">
+              <label htmlFor="intent-input" className="command-input-label">
+                ENTER INTENTION / MOOD / CONSTRAINTS:
+              </label>
               <textarea
+                id="intent-input"
                 ref={textareaRef}
-                className="command-textarea"
+                className="hero-command-textarea"
                 rows={3}
                 value={intent}
                 onChange={(e) => setIntent(e.target.value)}
@@ -152,26 +159,24 @@ export const IntentInput = forwardRef<IntentInputHandle, IntentInputProps>(
               />
             </div>
 
-            <div className="command-surface-footer">
-              <div className="command-helper-text">
-                <span className="keyboard-hint">Press ↵ Enter to plan</span>
-              </div>
+            <div className="command-footer-strip">
+              <span className="command-key-hint">PRESS ↵ ENTER TO GENERATE</span>
 
               <button
                 type="submit"
-                className="command-submit-button"
+                className="hero-command-cta"
                 disabled={isLoading || !intent.trim()}
-                aria-label="Generate plan"
+                aria-label="Generate itinerary"
               >
                 {isLoading ? (
-                  <span className="button-loading-state">
-                    <span className="loading-spinner" />
-                    <span>Giving shape...</span>
+                  <span className="cta-loading-state">
+                    <span className="cta-spinner" />
+                    <span>COMPOSING ITINERARY...</span>
                   </span>
                 ) : (
-                  <span className="button-label-state">
-                    <span>Give it shape</span>
-                    <IconArrowRight size={16} className="button-arrow" />
+                  <span className="cta-label-state">
+                    <span>GIVE IT SHAPE</span>
+                    <IconArrowRight size={16} className="cta-arrow" />
                   </span>
                 )}
               </button>
@@ -179,40 +184,42 @@ export const IntentInput = forwardRef<IntentInputHandle, IntentInputProps>(
           </form>
         </div>
 
-        {/* Curated Suggestion Chips */}
-        <div className="suggestion-section animate-fade-up delay-3">
-          <div className="suggestion-label-row">
-            <span className="suggestion-label">Or click an idea to start:</span>
+        {/* Editorial Intention Prompts Grid */}
+        <div className="hero-curated-prompts">
+          <div className="curated-prompts-header">
+            <span className="prompts-kicker">CURATED STARTING POINTS</span>
+            <span className="prompts-rule" />
           </div>
-          <div className="suggestion-grid">
-            {EXAMPLE_PROMPTS.map((item) => {
+
+          <div className="prompts-editorial-grid">
+            {EDITORIAL_PROMPTS.map((item) => {
               const isSelected = intent === item.prompt;
               return (
                 <button
-                  key={item.label}
+                  key={item.title}
                   type="button"
-                  className={`suggestion-card ${isSelected ? 'selected' : ''}`}
+                  className={`editorial-prompt-node ${isSelected ? 'active' : ''}`}
                   onClick={() => handleSelectPrompt(item.prompt)}
                   disabled={isLoading}
                 >
-                  <div className="suggestion-card-header">
-                    <span className="suggestion-emoji">{item.emoji}</span>
-                    <span className="suggestion-title">{item.label}</span>
-                    <span className="suggestion-category-tag">{item.category}</span>
+                  <div className="prompt-node-top">
+                    <span className="prompt-node-tag">{item.tag}</span>
+                    <span className="prompt-node-arrow">→</span>
                   </div>
-                  <span className="suggestion-subtitle">{item.subtitle}</span>
+                  <h3 className="prompt-node-title">{item.title}</h3>
+                  <span className="prompt-node-meta">{item.meta}</span>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Scroll Cue */}
-        <div className="hero-scroll-cue" onClick={handleScrollDown} role="button" tabIndex={0}>
-          <span className="cue-label">See how Dayform thinks</span>
-          <IconArrowDown size={14} className="cue-arrow-icon" />
+        {/* Scroll Cue to Engine Mechanics */}
+        <div className="hero-scroll-trigger" onClick={handleScrollDown} role="button" tabIndex={0}>
+          <span className="scroll-label">HOW THE ENGINE THINKS</span>
+          <IconArrowDown size={14} className="scroll-icon" />
         </div>
-      </div>
+      </section>
     );
   }
 );

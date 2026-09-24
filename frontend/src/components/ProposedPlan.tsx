@@ -9,14 +9,12 @@ import {
   getTradeOffNote,
 } from '../utils/itineraryBuilder';
 import {
-  CategoryIcon,
   IconArrowRight,
   IconClock,
   IconMapPin,
   IconSwap,
   IconTrash,
   IconPlus,
-  IconCheck,
   IconSparkles,
   IconAlertCircle,
   IconX,
@@ -110,121 +108,129 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
     await onConfirm(candidatesToPersist);
   };
 
-  // Budget calculations for clean summary
+  // Financial Rollup Calculations
   const totalCost = itinerary.estimatedTotal;
-  const budgetBudgeted = budgetMax !== null;
+  const budgetBudgeted = budgetMax !== null && budgetMax > 0;
   const remaining = itinerary.remainingBudget;
-  const progressPercent = budgetBudgeted && budgetMax > 0 ? Math.min(100, Math.round((totalCost / budgetMax) * 100)) : 100;
   const perPersonCost = groupSize > 1 ? Math.round(totalCost / groupSize) : null;
+  const progressPercent = budgetBudgeted ? Math.min(100, Math.round((totalCost / budgetMax) * 100)) : 100;
 
   return (
-    <div className="proposed-itinerary-container">
-      {/* Adaptation Review Notice */}
+    <div className="magazine-itinerary-stage">
+      {/* Adaptation Review Callout */}
       {(isAdaptationReview || itinerary.isAdaptationProposal) && (
-        <div className="adaptation-review-banner">
-          <div className="adaptation-banner-header">
-            <div className="adaptation-banner-tag">
-              <IconSparkles size={14} />
-              <span>PLAN ADAPTATION PROPOSED</span>
-            </div>
-            <span className="adaptation-minimal-tag">Context Preserved</span>
+        <div className="magazine-adaptation-banner">
+          <div className="adaptation-banner-tag">
+            <IconSparkles size={14} />
+            <span>ADAPTATION CALCULATED · MINIMAL DIFF</span>
           </div>
-          <p className="adaptation-banner-summary">
+          <p className="adaptation-banner-narrative">
             {adaptationSummary || itinerary.adaptationSummary || 'Adapted itinerary according to your requested change.'}
           </p>
         </div>
       )}
 
-      {/* Editorial Header */}
-      <div className="itinerary-editorial-header">
-        <div className="itinerary-header-top">
-          <div className="itinerary-eyebrow">
-            <span className="eyebrow-dot" />
-            <span>YOUR DAY · PROPOSED ITINERARY</span>
-            {plan.understanding?.date_spec && (
-              <>
-                <span className="eyebrow-sep">·</span>
-                <span>{plan.understanding.date_spec}</span>
-              </>
-            )}
-            {itinerary.timeSpanDisplay && (
-              <>
-                <span className="eyebrow-sep">·</span>
-                <span>{itinerary.timeSpanDisplay}</span>
-              </>
-            )}
-          </div>
-
-          <div className="itinerary-freshness-indicator">
-            <span className="freshness-dot live" />
-            <span className="freshness-text">Verified real-world places</span>
-          </div>
+      {/* Dramatic Magazine Spread Headline */}
+      <div className="magazine-spread-header">
+        <div className="spread-masthead-meta">
+          <span className="spread-flag">DAYFORM / PROPOSED ITINERARY</span>
+          <span className="spread-date">
+            {plan.understanding?.date_spec ? plan.understanding.date_spec.toUpperCase() : 'TODAY / UPCOMING'}
+            {itinerary.timeSpanDisplay && ` · ${itinerary.timeSpanDisplay.toUpperCase()}`}
+          </span>
+          <span className="spread-freshness">✓ VERIFIED LOCAL VENUES</span>
         </div>
 
-        <h2 className="itinerary-main-title">Here’s what I’d do.</h2>
-        <p className="itinerary-narrative-subheading">{itinerary.narrativeSubheading}</p>
+        <h1 className="spread-main-title">
+          YOUR <em>DAY.</em>
+        </h1>
+
+        <div className="spread-intention-quote">
+          <span className="quote-mark">“</span>
+          <span className="quote-text">{plan.intention}</span>
+          <span className="quote-mark">”</span>
+        </div>
+
+        <p className="spread-sub-narrative">
+          {itinerary.narrativeSubheading || 'Here’s what I’d do: a coherent, timed sequence balancing budget, pacing, and atmosphere.'}
+        </p>
       </div>
 
-      {/* Honest Evidence / Planner Note Callout (M11 & Phase 6) */}
+      {/* High-Contrast Editorial Budget Block (Phase 6) */}
+      <div className="editorial-budget-matrix">
+        <div className="budget-stat-cell">
+          <span className="stat-cell-kicker">BUDGET CEILING</span>
+          <span className="stat-cell-value">
+            {budgetBudgeted ? formatCurrency(budgetMax) : 'FLEXIBLE'}
+          </span>
+          <span className="stat-cell-sub">
+            {groupSize > 1 ? `${groupSize} people total` : 'Solo plan'}
+          </span>
+        </div>
+
+        <div className="budget-cell-divider" />
+
+        <div className="budget-stat-cell highlight-used">
+          <span className="stat-cell-kicker">ESTIMATED TOTAL</span>
+          <span className="stat-cell-value coral">{formatCurrency(totalCost)}</span>
+          <span className="stat-cell-sub">
+            {perPersonCost !== null ? `~${formatCurrency(perPersonCost)} / person` : 'Complete outing'}
+          </span>
+        </div>
+
+        <div className="budget-cell-divider" />
+
+        <div className="budget-stat-cell">
+          <span className="stat-cell-kicker">
+            {itinerary.isOverBudget ? 'OVER LIMIT' : 'REMAINING'}
+          </span>
+          <span className={`stat-cell-value ${itinerary.isOverBudget ? 'alert' : 'butter'}`}>
+            {remaining !== null && remaining >= 0
+              ? `${formatCurrency(remaining)}`
+              : remaining !== null
+              ? `+${formatCurrency(Math.abs(remaining))}`
+              : 'IN BUDGET'}
+          </span>
+          <span className="stat-cell-sub">
+            {itinerary.isOverBudget ? 'Exceeds target limit' : 'Left to spare'}
+          </span>
+        </div>
+      </div>
+
+      {budgetBudgeted && (
+        <div className="editorial-budget-track">
+          <div
+            className={`budget-track-fill ${itinerary.isOverBudget ? 'over' : ''}`}
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      )}
+
+      {/* Honest Planner’s Note (Phase 6 Evidence Distinction) */}
       {itinerary.tradeOffSummary && (
-        <div className="trade-off-summary-banner">
-          <div className="trade-off-icon-box">
-            <IconSparkles size={15} />
-          </div>
-          <div className="trade-off-text-wrap">
-            <span className="trade-off-title">Honest planner’s note</span>
-            <p className="trade-off-narrative">{itinerary.tradeOffSummary}</p>
+        <div className="editorial-planner-note">
+          <div className="note-accent-bar" />
+          <div className="note-content">
+            <span className="note-label">✦ TRANSPARENT PLANNING EVIDENCE</span>
+            <p className="note-body">{itinerary.tradeOffSummary}</p>
           </div>
         </div>
       )}
 
-      {/* Refined Budget Bar with per-person breakdown */}
-      <div className="editorial-budget-bar">
-        <div className="budget-bar-labels">
-          <div className="budget-primary-stat">
-            <span className="budget-stat-label">Estimated total:</span>
-            <span className="budget-stat-value">{formatCurrency(totalCost)}</span>
-            {perPersonCost !== null && (
-              <span className="budget-per-person">(~{formatCurrency(perPersonCost)} / person)</span>
-            )}
-          </div>
-          {budgetBudgeted && (
-            <div className="budget-secondary-stat">
-              <span className="budget-stat-label">
-                {itinerary.isOverBudget ? 'Over budget by' : 'Remaining budget:'}
-              </span>
-              <span className={`budget-stat-value ${itinerary.isOverBudget ? 'alert' : 'positive'}`}>
-                {remaining !== null && remaining >= 0
-                  ? `${formatCurrency(remaining)} left to spare`
-                  : `${formatCurrency(Math.abs(remaining || 0))}`}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {budgetBudgeted && (
-          <div className="budget-meter-track">
-            <div
-              className={`budget-meter-fill ${itinerary.isOverBudget ? 'over' : ''}`}
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Editorial Timeline with Connected Milestones */}
-      <div className="editorial-timeline">
+      {/* Magazine Timeline Spread */}
+      <div className="magazine-timeline-stream">
         {itinerary.items.length === 0 ? (
-          <div className="empty-timeline-state">
-            <p className="empty-timeline-text">All stops have been removed from this plan.</p>
+          <div className="empty-stream-state">
+            <h3 className="empty-title">All stops removed from this plan.</h3>
+            <p className="empty-sub">Add a place from alternatives or re-run your intention.</p>
             {itinerary.alternatives.length > 0 && (
               <button
                 type="button"
-                className="btn-editorial-text"
+                className="btn-editorial-outline"
                 onClick={() => setShowAddMenu(true)}
               >
                 <IconPlus size={14} />
-                <span>Add a place to your plan</span>
+                <span>Add a place from alternatives</span>
               </button>
             )}
           </div>
@@ -232,187 +238,169 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
           itinerary.items.map((item, idx) => {
             const isSwapping = swappingIndex === idx;
             const isLast = idx === itinerary.items.length - 1;
-            const categoryName = item.candidate.category.toUpperCase();
             const stepNum = String(idx + 1).padStart(2, '0');
+            const categoryName = item.candidate.category.toUpperCase();
 
             return (
-              <div key={item.candidate.option_id} className={`timeline-node ${isLast ? 'last' : ''}`}>
-                {/* Vertical Spine with Step Number */}
-                <div className="timeline-spine">
-                  <div className="timeline-step-badge">
-                    <span className="step-num">{stepNum}</span>
+              <article key={item.candidate.option_id} className={`journey-entry ${isLast ? 'last' : ''}`}>
+                {/* Asymmetric Left Anchor: Time & Giant Number */}
+                <div className="journey-anchor-col">
+                  <div className="journey-time-box">
+                    <span className="journey-time-val">
+                      {item.startTime || 'FLEX'}
+                    </span>
+                    {item.endTime && (
+                      <span className="journey-time-end">UNTIL {item.endTime}</span>
+                    )}
                   </div>
-                  {!isLast && <div className="timeline-line" />}
+
+                  <div className="journey-num-watermark">
+                    {stepNum}
+                  </div>
                 </div>
 
-                {/* Timeline Content Block */}
-                <div className="timeline-content-card">
-                  {/* Top Meta Line: Time + Category + Cost */}
-                  <div className="timeline-meta-row">
-                    <div className="timeline-time-group">
-                      {item.startTime && item.endTime ? (
-                        <div className="timeline-time-badge">
-                          <IconClock size={13} className="time-icon" />
-                          <span>{item.startTime} – {item.endTime}</span>
-                          {item.durationMinutes && <span className="time-duration">({item.durationMinutes}m)</span>}
-                        </div>
-                      ) : (
-                        <div className="timeline-time-badge subtle">
-                          <IconClock size={13} className="time-icon" />
-                          <span>Flexible time</span>
-                        </div>
-                      )}
+                {/* Vertical Architectural Rail */}
+                <div className="journey-rail">
+                  <div className="rail-marker" />
+                  {!isLast && <div className="rail-line" />}
+                </div>
 
-                      <span className={`timeline-category-tag cat-${item.candidate.category}`}>
-                        <CategoryIcon category={item.candidate.category} size={12} className="tag-icon" />
-                        <span>{categoryName}</span>
+                {/* Main Stop Content Spread */}
+                <div className="journey-content-block">
+                  {/* Top Kicker Bar */}
+                  <div className="journey-kicker-bar">
+                    <div className="journey-tags-group">
+                      <span className={`journey-category-tag tag-${item.candidate.category}`}>
+                        {categoryName}
                       </span>
-
+                      {item.durationMinutes && (
+                        <span className="journey-duration-tag">
+                          <IconClock size={11} />
+                          <span>{item.durationMinutes} MIN</span>
+                        </span>
+                      )}
                       {item.action === 'rescheduled' && (
-                        <span className="timeline-action-badge rescheduled">Rescheduled</span>
+                        <span className="action-tag rescheduled">RESCHEDULED</span>
                       )}
                       {item.action === 'replaced' && (
-                        <span className="timeline-action-badge replaced">
-                          Replaced {item.originalName ? `(${item.originalName})` : ''}
+                        <span className="action-tag replaced">
+                          REPLACED {item.originalName ? `(${item.originalName})` : ''}
                         </span>
                       )}
                       {item.action === 'kept' && (
-                        <span className="timeline-action-badge kept">Kept</span>
+                        <span className="action-tag kept">KEPT</span>
                       )}
                     </div>
 
-                    <div className="timeline-price-tag">
-                      {item.costNumber === 0 ? 'Free entry' : formatCurrency(item.costNumber)}
+                    <div className="journey-price-badge">
+                      {item.costNumber === 0 ? 'FREE ENTRY' : formatCurrency(item.costNumber)}
                     </div>
                   </div>
 
-                  {/* Title & Location */}
-                  <div className="timeline-title-area">
-                    <h3 className="timeline-venue-name">{item.candidate.name}</h3>
-                    {(item.candidate.address || item.candidate.location) && (
-                      <div className="timeline-venue-address">
-                        <IconMapPin size={13} className="address-pin" />
-                        <span>{item.candidate.address || item.candidate.location}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Verification & Fact Pills (Phase 6) */}
-                  <div className="timeline-facts-row">
-                    {item.candidate.opening_hours ? (
-                      <div className="fact-pill verified">
-                        <IconClock size={12} />
-                        <span>{item.candidate.opening_hours}</span>
-                        <span className="fact-check">✓</span>
-                      </div>
-                    ) : (
-                      <div className="fact-pill subtle">
-                        <IconClock size={12} />
-                        <span>Regular hours</span>
-                      </div>
-                    )}
-
-                    <div className="fact-pill verified">
-                      <span>Verified Cape Town location</span>
-                      <span className="fact-check">✓</span>
+                  {/* Headline & Address */}
+                  <h2 className="journey-venue-title">{item.candidate.name}</h2>
+                  {(item.candidate.address || item.candidate.location) && (
+                    <div className="journey-address-line">
+                      <IconMapPin size={13} className="pin-icon" />
+                      <span>{item.candidate.address || item.candidate.location}</span>
                     </div>
+                  )}
 
+                  {/* Verified Evidence Strip */}
+                  <div className="journey-evidence-strip">
+                    {item.candidate.opening_hours && (
+                      <span className="evidence-pill">
+                        <IconClock size={11} />
+                        <span>HOURS: {item.candidate.opening_hours}</span>
+                        <span className="evidence-check">✓</span>
+                      </span>
+                    )}
+                    <span className="evidence-pill">
+                      <span>VERIFIED VENUE</span>
+                      <span className="evidence-check">✓</span>
+                    </span>
                     {budgetMax !== null && item.costNumber <= budgetMax && (
-                      <div className="fact-pill verified">
-                        <span>Fits budget ceiling</span>
-                        <span className="fact-check">✓</span>
-                      </div>
+                      <span className="evidence-pill">
+                        <span>FITS BUDGET</span>
+                        <span className="evidence-check">✓</span>
+                      </span>
                     )}
                   </div>
 
-                  {/* Why this stop fits (Human planner rationale) */}
+                  {/* Editorial Rationale */}
                   {item.rationale && item.rationale.length > 0 && (
-                    <div className="timeline-rationale-box">
-                      <div className="rationale-accent-line" />
-                      <div className="rationale-text-content">
-                        {item.rationale.map((reason, rIdx) => (
-                          <div key={rIdx} className="rationale-line">
-                            {reason}
-                          </div>
-                        ))}
+                    <div className="journey-rationale-section">
+                      <div className="rationale-kicker">WHY THIS STOP:</div>
+                      <div className="rationale-text">
+                        {item.rationale.join(' · ')}
                       </div>
                     </div>
                   )}
 
-                  {/* Secondary Contextual Controls (Swap / Remove) */}
-                  <div className="timeline-controls-row">
+                  {/* Interactive Controls (Swap / Remove) */}
+                  <div className="journey-controls-strip">
                     {itinerary.alternatives.length > 0 && (
                       <button
                         type="button"
-                        className={`timeline-action-btn ${isSwapping ? 'active' : ''}`}
+                        className={`btn-journey-action ${isSwapping ? 'active' : ''}`}
                         onClick={() => setSwappingIndex(isSwapping ? null : idx)}
                         disabled={isSaving}
                       >
                         <IconSwap size={13} />
-                        <span>{isSwapping ? 'Close alternatives' : 'Swap stop'}</span>
+                        <span>{isSwapping ? 'CLOSE ALTERNATIVES' : 'SWAP VENUE'}</span>
                       </button>
                     )}
 
                     <button
                       type="button"
-                      className="timeline-action-btn delete"
+                      className="btn-journey-action delete"
                       onClick={() => handleRemove(idx)}
                       disabled={isSaving}
                     >
                       <IconTrash size={13} />
-                      <span>Remove</span>
+                      <span>REMOVE STOP</span>
                     </button>
                   </div>
 
-                  {/* Inline Swap Alternative Drawer */}
+                  {/* Swap Alternatives Drawer */}
                   {isSwapping && (
-                    <div className="timeline-swap-drawer">
-                      <div className="swap-drawer-header">
-                        <span>Select an alternative for this stop:</span>
+                    <div className="journey-swap-drawer">
+                      <div className="drawer-header-strip">
+                        <span>SELECT ALTERNATIVE FOR STOP {stepNum}:</span>
                         <button
                           type="button"
-                          className="btn-drawer-close"
+                          className="btn-drawer-dismiss"
                           onClick={() => setSwappingIndex(null)}
                         >
                           <IconX size={14} />
                         </button>
                       </div>
 
-                      <div className="swap-drawer-options">
+                      <div className="drawer-options-list">
                         {itinerary.alternatives.map((alt) => {
                           const tradeOff = getTradeOffNote(alt, item.candidate);
                           return (
-                            <div key={alt.option_id} className="swap-drawer-item">
-                              <div className="swap-item-primary">
-                                <div className="swap-item-title-row">
-                                  <span className="swap-item-name">{alt.name}</span>
-                                  <span className="swap-tradeoff-tag">{tradeOff}</span>
+                            <div key={alt.option_id} className="drawer-option-row">
+                              <div className="option-info">
+                                <div className="option-title-row">
+                                  <span className="option-name">{alt.name}</span>
+                                  <span className="option-tradeoff">{tradeOff}</span>
                                 </div>
-                                <div className="swap-item-meta">
-                                  <span>{alt.category}</span>
-                                  <span className="meta-sep">·</span>
+                                <div className="option-meta">
+                                  <span>{alt.category.toUpperCase()}</span>
+                                  <span>·</span>
                                   <span>{formatCurrency(alt.cost)}</span>
-                                  {alt.duration_minutes && (
-                                    <>
-                                      <span className="meta-sep">·</span>
-                                      <span>{alt.duration_minutes}m</span>
-                                    </>
-                                  )}
-                                  {alt.location && (
-                                    <>
-                                      <span className="meta-sep">·</span>
-                                      <span>{alt.location}</span>
-                                    </>
-                                  )}
+                                  {alt.duration_minutes && <span>· {alt.duration_minutes}M</span>}
+                                  {alt.location && <span>· {alt.location}</span>}
                                 </div>
                               </div>
 
                               <button
                                 type="button"
-                                className="btn-select-swap"
+                                className="btn-select-alt"
                                 onClick={() => handleSwap(idx, alt)}
                               >
-                                Replace with this
+                                SELECT
                               </button>
                             </div>
                           );
@@ -421,7 +409,7 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
                     </div>
                   )}
                 </div>
-              </div>
+              </article>
             );
           })
         )}
@@ -429,59 +417,54 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
 
       {/* Add Another Stop Trigger */}
       {itinerary.items.length > 0 && itinerary.items.length < 5 && itinerary.alternatives.length > 0 && !showAddMenu && (
-        <div className="add-stop-container">
+        <div className="journey-add-section">
           <button
             type="button"
-            className="btn-add-stop"
+            className="btn-journey-add"
             onClick={() => setShowAddMenu(true)}
             disabled={isSaving}
           >
             <IconPlus size={15} />
-            <span>Add another stop to your plan</span>
+            <span>ADD ANOTHER STOP TO YOUR DAY</span>
           </button>
         </div>
       )}
 
-      {/* Add Drawer */}
+      {/* Add Alternative Drawer */}
       {showAddMenu && itinerary.alternatives.length > 0 && (
-        <div className="add-options-panel">
-          <div className="swap-drawer-header">
-            <span>Available places to add:</span>
+        <div className="journey-add-drawer">
+          <div className="drawer-header-strip">
+            <span>AVAILABLE LOCAL PLACES TO ADD:</span>
             <button
               type="button"
-              className="btn-drawer-close"
+              className="btn-drawer-dismiss"
               onClick={() => setShowAddMenu(false)}
             >
               <IconX size={14} />
             </button>
           </div>
 
-          <div className="swap-drawer-options">
+          <div className="drawer-options-list">
             {itinerary.alternatives.map((alt) => (
-              <div key={alt.option_id} className="swap-drawer-item">
-                <div className="swap-item-primary">
-                  <div className="swap-item-title-row">
-                    <span className="swap-item-name">{alt.name}</span>
+              <div key={alt.option_id} className="drawer-option-row">
+                <div className="option-info">
+                  <div className="option-title-row">
+                    <span className="option-name">{alt.name}</span>
                   </div>
-                  <div className="swap-item-meta">
-                    <span>{alt.category}</span>
-                    <span className="meta-sep">·</span>
+                  <div className="option-meta">
+                    <span>{alt.category.toUpperCase()}</span>
+                    <span>·</span>
                     <span>{formatCurrency(alt.cost)}</span>
-                    {alt.location && (
-                      <>
-                        <span className="meta-sep">·</span>
-                        <span>{alt.location}</span>
-                      </>
-                    )}
+                    {alt.location && <span>· {alt.location}</span>}
                   </div>
                 </div>
 
                 <button
                   type="button"
-                  className="btn-select-swap"
+                  className="btn-select-alt"
                   onClick={() => handleAdd(alt)}
                 >
-                  Add to plan
+                  ADD TO PLAN
                 </button>
               </div>
             ))}
@@ -489,43 +472,38 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
         </div>
       )}
 
-      {/* Conversational Tweak ("Something changed?") — Phase 7 Signature Product Feature */}
+      {/* Signature Adaptation Block: "SOMETHING CHANGED?" (Phase 7) */}
       {onTweakPlan && (
-        <div className="conversational-adaptation-panel">
-          <div className="tweak-panel-header">
-            <div className="tweak-header-tag">
-              <IconSparkles size={14} />
-              <span>ADAPTIVE RE-PLANNING</span>
-            </div>
-            <h4 className="tweak-panel-title">Something changed?</h4>
-            <p className="tweak-panel-subtitle">
-              Plans change. Tell Dayform what happened and it’ll rework your stops, times, and budget while keeping the rest intact.
+        <section className="magazine-adaptation-section">
+          <div className="adaptation-hero-header">
+            <span className="adaptation-kicker">ADAPTIVE RE-PLANNING</span>
+            <h3 className="adaptation-title">Something changed?</h3>
+            <p className="adaptation-lead">
+              Plans change. Dayform changes with them. Tell the engine what happened and it’ll recalculate stops, times, and budgets with minimal diff.
             </p>
           </div>
 
-          {/* Quick Adjustment Chips */}
-          <div className="tweak-quick-chips">
+          <div className="adaptation-chips-strip">
             {[
-              { label: 'Make it cheaper', icon: '💰' },
-              { label: 'Sheltered / indoor only', icon: '☔' },
-              { label: 'Add 2 people', icon: '👥' },
-              { label: 'Running 45m late', icon: '⏱️' },
-              { label: 'Shift to Sunday', icon: '📅' },
+              { label: 'MAKE IT CHEAPER', key: 'Make it cheaper' },
+              { label: 'KEEP IT INDOORS', key: 'Sheltered / indoor only' },
+              { label: 'ADD 2 PEOPLE', key: 'Add 2 people' },
+              { label: 'RUNNING 45M LATE', key: 'Running 45m late' },
+              { label: 'MOVE TO SUNDAY', key: 'Shift to Sunday' },
             ].map((chip) => (
               <button
-                key={chip.label}
+                key={chip.key}
                 type="button"
-                className="tweak-chip-button"
+                className="adaptation-preset-btn"
                 disabled={isTweaking || isSaving}
-                onClick={() => onTweakPlan(chip.label)}
+                onClick={() => onTweakPlan(chip.key)}
               >
-                <span>{chip.icon}</span>
+                <span>+</span>
                 <span>{chip.label}</span>
               </button>
             ))}
           </div>
 
-          {/* Integrated Tweak Input Form */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -534,42 +512,35 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
                 setCustomTweak('');
               }
             }}
-            className="tweak-input-form"
+            className="adaptation-command-bar"
           >
             <input
               type="text"
               value={customTweak}
               onChange={(e) => setCustomTweak(e.target.value)}
-              placeholder="e.g. Kloof Street House is fully booked, or keep it under R800..."
+              placeholder="e.g. Kloof Street House is fully booked, or keep total under R800..."
               disabled={isTweaking || isSaving}
-              className="tweak-text-input"
+              className="adaptation-input-field"
             />
             <button
               type="submit"
               disabled={!customTweak.trim() || isTweaking || isSaving}
-              className="tweak-submit-button"
+              className="adaptation-submit-btn"
             >
-              {isTweaking ? (
-                <span className="tweak-loading">
-                  <span className="loading-spinner small" />
-                  <span>Reworking...</span>
-                </span>
-              ) : (
-                'Rework plan'
-              )}
+              {isTweaking ? 'RECALCULATING...' : 'REWORK PLAN'}
             </button>
           </form>
-        </div>
+        </section>
       )}
 
-      {/* Removed Items Section if Adaptation Removed Stops */}
+      {/* Removed Stops Warning if Adaptation Removed Items */}
       {itinerary.removedItems && itinerary.removedItems.length > 0 && (
-        <div className="adaptation-removed-stops">
-          <div className="removed-stops-header">
-            <IconAlertCircle size={14} className="removed-icon" />
-            <span>Removed Stops (cannot fit revised constraints):</span>
+        <div className="adaptation-removed-banner">
+          <div className="removed-banner-title">
+            <IconAlertCircle size={15} />
+            <span>REMOVED STOPS (COULD NOT FIT REVISED CONSTRAINTS):</span>
           </div>
-          <ul className="removed-stops-list">
+          <ul className="removed-items-list">
             {itinerary.removedItems.map((rem, rIdx) => (
               <li key={rIdx}>
                 <strong>{rem.name}</strong> — {rem.reason}
@@ -579,74 +550,61 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
         </div>
       )}
 
-      {/* Bottom Primary Confirm / Actions */}
-      <div className="itinerary-bottom-actions">
+      {/* Bottom Main Confirm / Actions Strip */}
+      <div className="magazine-bottom-strip">
         {isAdaptationReview ? (
-          <div className="adaptation-review-actions">
+          <div className="adaptation-actions-duo">
             <button
               type="button"
-              className="btn-editorial-primary"
+              className="btn-magazine-primary"
               onClick={onAcceptAdaptation}
               disabled={isSaving || isTweaking}
             >
-              {isSaving ? (
-                <span className="btn-loading-wrap">
-                  <span className="loading-spinner" />
-                  <span>Applying changes...</span>
-                </span>
-              ) : (
-                <span className="btn-label-wrap">
-                  <span>Accept changes</span>
-                  <IconCheck size={16} />
-                </span>
-              )}
+              {isSaving ? 'APPLYING CHANGES...' : 'ACCEPT ADAPTATION ✓'}
             </button>
 
             <button
               type="button"
-              className="btn-editorial-secondary"
+              className="btn-magazine-secondary"
               onClick={onRejectAdaptation}
               disabled={isSaving || isTweaking}
             >
-              Keep existing plan
+              KEEP ORIGINAL PLAN
             </button>
           </div>
         ) : (
-          <div className="normal-confirm-actions">
+          <div className="normal-actions-duo">
             <button
               type="button"
-              className="btn-editorial-primary large"
+              className="btn-magazine-primary hero-size"
               onClick={handleConfirmClick}
               disabled={isSaving || isTweaking || itinerary.items.length === 0}
             >
               {isSaving ? (
-                <span className="btn-loading-wrap">
-                  <span className="loading-spinner" />
-                  <span>Saving your plan...</span>
-                </span>
+                'SAVING YOUR PLAN...'
               ) : (
-                <span className="btn-label-wrap">
-                  <span>Looks good · Save plan</span>
-                  <IconArrowRight size={17} />
-                </span>
+                <>
+                  <span>LOOKS GOOD · SAVE THIS PLAN</span>
+                  <IconArrowRight size={18} />
+                </>
               )}
             </button>
 
             <button
               type="button"
-              className="btn-editorial-ghost"
+              className="btn-magazine-ghost"
               onClick={onModifyIntent}
               disabled={isSaving}
             >
-              Try a different intention
+              TRY A DIFFERENT INTENTION
             </button>
           </div>
         )}
       </div>
 
       {itinerary.attribution && (
-        <div className="itinerary-attribution-footer">
-          Place and map information {itinerary.attribution}
+        <div className="magazine-spread-colophon">
+          Place, map, and hours data sourced from {itinerary.attribution}
         </div>
       )}
     </div>
