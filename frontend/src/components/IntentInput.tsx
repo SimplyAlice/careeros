@@ -14,47 +14,54 @@ interface IntentInputProps {
 
 interface ExamplePrompt {
   label: string;
+  category: string;
+  emoji: string;
   subtitle: string;
   prompt: string;
-  category: string;
 }
 
 const EXAMPLE_PROMPTS: ExamplePrompt[] = [
   {
-    label: 'Birthday celebration',
+    label: 'Cute birthday afternoon',
     category: 'Celebration',
-    subtitle: '5 people · Cape Town · Sat evening · ~R1500',
-    prompt: 'I want to plan a birthday dinner for 5 people in Cape Town on Saturday evening, around R1500.',
+    emoji: '🎂',
+    subtitle: '4 people · Sat afternoon · Under R1,500',
+    prompt: 'Plan a cute birthday afternoon for four under R1,500 in Cape Town.',
   },
   {
-    label: 'Plan a date',
+    label: 'Relaxed dinner date',
     category: 'Romance',
-    subtitle: '2 people · Romantic dinner & stroll under R800',
-    prompt: 'I want a nice date with my partner in Cape Town under R800, good food and unhurried pace.',
+    emoji: '🍷',
+    subtitle: '2 people · Good food & somewhere pretty · R800',
+    prompt: 'A relaxed date with good food and somewhere pretty afterwards under R800.',
   },
   {
-    label: 'Day out with friends',
-    category: 'Social',
-    subtitle: '4 people · Fun, relaxed & scenic under R500',
-    prompt: 'Something fun with 3 friends in Cape Town under R500, casual vibe with good spots.',
+    label: 'Afternoon free & bored',
+    category: 'Solo / Spontaneous',
+    emoji: '📖',
+    subtitle: '1 person · Two hours free · Coffee & read · R300',
+    prompt: 'I’m bored. I have R300 and the afternoon free tomorrow to read somewhere cozy.',
   },
   {
-    label: 'Culture & food walk',
-    category: 'Discovery',
-    subtitle: 'Solo / duo · Local art, history and bites',
-    prompt: 'An afternoon exploring local culture, historic streets, and craft food markets.',
+    label: 'Quiet dark-themed lunch',
+    category: 'Atmosphere',
+    emoji: '🕯️',
+    subtitle: '2 people · Quiet dark themed restaurant · R500',
+    prompt: 'Lunch for two in a quiet dark themed restaurant, budget R500.',
   },
   {
-    label: 'Dinner with friends',
-    category: 'Dining',
-    subtitle: '4 people · Relaxed social evening under R600',
-    prompt: 'Dinner and a relaxed social evening with friends under R600 total.',
+    label: 'Rainy Saturday with kids',
+    category: 'Family / Weather',
+    emoji: '☔',
+    subtitle: '4 people · Indoor & sheltered only · R800',
+    prompt: 'Family outing with 2 kids this Saturday, indoor activities only because of bad weather, budget R800.',
   },
   {
-    label: 'Active & scenic day',
+    label: 'Scenic morning walk & pastry',
     category: 'Outdoors',
-    subtitle: '2 people · Ocean breeze & panoramic views',
-    prompt: 'An active and scenic afternoon for 2 people in Cape Town with light food after.',
+    emoji: '🌿',
+    subtitle: 'Solo / duo · Unhurried stroll & bakery · ~R200',
+    prompt: 'Solo morning walk somewhere scenic followed by a quiet pastry, budget R200.',
   },
 ];
 
@@ -109,8 +116,9 @@ export const IntentInput = forwardRef<IntentInputHandle, IntentInputProps>(
         {/* Brand & Editorial Hero Headline */}
         <div className="hero-content">
           <div className="hero-eyebrow animate-fade-in">
-            <IconSparkles size={14} className="eyebrow-icon" />
-            <span>DAYFORM · REAL-WORLD PLANNING</span>
+            <span className="eyebrow-pill-dot" />
+            <IconSparkles size={13} className="eyebrow-icon" />
+            <span>DAYFORM · GIVE SHAPE TO YOUR DAY</span>
           </div>
 
           <h1 className="hero-heading animate-fade-up">
@@ -120,9 +128,9 @@ export const IntentInput = forwardRef<IntentInputHandle, IntentInputProps>(
           </h1>
 
           <p className="hero-description animate-fade-up delay-1">
-            No 15 open tabs. No manual spreadsheet of opening times. No guesswork on whether 5 friends
-            can actually get dinner for R1500 on a Saturday night. Describe your intention in plain words—Dayform
-            evaluates real places, verified operating hours, and live budgets to propose a coherent, timed itinerary.
+            Skip the 15 open browser tabs, the spreadsheet of opening hours, and the budget guesswork.
+            Describe your day in plain human words—Dayform evaluates real places, verified operating hours,
+            transit times, and budgets to build an unhurried, coherent itinerary.
           </p>
         </div>
 
@@ -139,7 +147,7 @@ export const IntentInput = forwardRef<IntentInputHandle, IntentInputProps>(
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
                 onKeyDown={handleKeyDown}
-                placeholder="e.g. Birthday dinner for 5 in Cape Town on Saturday evening around R1500, or a quiet date under R800..."
+                placeholder="“Plan a cute birthday afternoon for four under R1,500” or “I’m bored. I have R300 and the afternoon free...”"
                 disabled={isLoading}
               />
             </div>
@@ -158,11 +166,11 @@ export const IntentInput = forwardRef<IntentInputHandle, IntentInputProps>(
                 {isLoading ? (
                   <span className="button-loading-state">
                     <span className="loading-spinner" />
-                    <span>Thinking...</span>
+                    <span>Giving shape...</span>
                   </span>
                 ) : (
                   <span className="button-label-state">
-                    <span>Plan it</span>
+                    <span>Give it shape</span>
                     <IconArrowRight size={16} className="button-arrow" />
                   </span>
                 )}
@@ -173,7 +181,9 @@ export const IntentInput = forwardRef<IntentInputHandle, IntentInputProps>(
 
         {/* Curated Suggestion Chips */}
         <div className="suggestion-section animate-fade-up delay-3">
-          <div className="suggestion-label">Or explore an intention:</div>
+          <div className="suggestion-label-row">
+            <span className="suggestion-label">Or click an idea to start:</span>
+          </div>
           <div className="suggestion-grid">
             {EXAMPLE_PROMPTS.map((item) => {
               const isSelected = intent === item.prompt;
@@ -186,6 +196,7 @@ export const IntentInput = forwardRef<IntentInputHandle, IntentInputProps>(
                   disabled={isLoading}
                 >
                   <div className="suggestion-card-header">
+                    <span className="suggestion-emoji">{item.emoji}</span>
                     <span className="suggestion-title">{item.label}</span>
                     <span className="suggestion-category-tag">{item.category}</span>
                   </div>
@@ -198,7 +209,7 @@ export const IntentInput = forwardRef<IntentInputHandle, IntentInputProps>(
 
         {/* Scroll Cue */}
         <div className="hero-scroll-cue" onClick={handleScrollDown} role="button" tabIndex={0}>
-          <span className="cue-label">Explore how Dayform works</span>
+          <span className="cue-label">See how Dayform thinks</span>
           <IconArrowDown size={14} className="cue-arrow-icon" />
         </div>
       </div>

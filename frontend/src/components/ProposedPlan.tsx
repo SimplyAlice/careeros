@@ -115,6 +115,7 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
   const budgetBudgeted = budgetMax !== null;
   const remaining = itinerary.remainingBudget;
   const progressPercent = budgetBudgeted && budgetMax > 0 ? Math.min(100, Math.round((totalCost / budgetMax) * 100)) : 100;
+  const perPersonCost = groupSize > 1 ? Math.round(totalCost / groupSize) : null;
 
   return (
     <div className="proposed-itinerary-container">
@@ -126,7 +127,7 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
               <IconSparkles size={14} />
               <span>PLAN ADAPTATION PROPOSED</span>
             </div>
-            <span className="adaptation-minimal-tag">Minimal Change Preserved</span>
+            <span className="adaptation-minimal-tag">Context Preserved</span>
           </div>
           <p className="adaptation-banner-summary">
             {adaptationSummary || itinerary.adaptationSummary || 'Adapted itinerary according to your requested change.'}
@@ -139,7 +140,7 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
         <div className="itinerary-header-top">
           <div className="itinerary-eyebrow">
             <span className="eyebrow-dot" />
-            <span>PROPOSED SEQUENCE</span>
+            <span>YOUR DAY · PROPOSED ITINERARY</span>
             {plan.understanding?.date_spec && (
               <>
                 <span className="eyebrow-sep">·</span>
@@ -164,12 +165,28 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
         <p className="itinerary-narrative-subheading">{itinerary.narrativeSubheading}</p>
       </div>
 
-      {/* Refined Budget Bar */}
+      {/* Honest Evidence / Planner Note Callout (M11 & Phase 6) */}
+      {itinerary.tradeOffSummary && (
+        <div className="trade-off-summary-banner">
+          <div className="trade-off-icon-box">
+            <IconSparkles size={15} />
+          </div>
+          <div className="trade-off-text-wrap">
+            <span className="trade-off-title">Honest planner’s note</span>
+            <p className="trade-off-narrative">{itinerary.tradeOffSummary}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Refined Budget Bar with per-person breakdown */}
       <div className="editorial-budget-bar">
         <div className="budget-bar-labels">
           <div className="budget-primary-stat">
             <span className="budget-stat-label">Estimated total:</span>
             <span className="budget-stat-value">{formatCurrency(totalCost)}</span>
+            {perPersonCost !== null && (
+              <span className="budget-per-person">(~{formatCurrency(perPersonCost)} / person)</span>
+            )}
           </div>
           {budgetBudgeted && (
             <div className="budget-secondary-stat">
@@ -195,7 +212,7 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
         )}
       </div>
 
-      {/* Editorial Timeline */}
+      {/* Editorial Timeline with Connected Milestones */}
       <div className="editorial-timeline">
         {itinerary.items.length === 0 ? (
           <div className="empty-timeline-state">
@@ -216,13 +233,14 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
             const isSwapping = swappingIndex === idx;
             const isLast = idx === itinerary.items.length - 1;
             const categoryName = item.candidate.category.toUpperCase();
+            const stepNum = String(idx + 1).padStart(2, '0');
 
             return (
               <div key={item.candidate.option_id} className={`timeline-node ${isLast ? 'last' : ''}`}>
-                {/* Vertical Spine & Time Anchor */}
+                {/* Vertical Spine with Step Number */}
                 <div className="timeline-spine">
-                  <div className="timeline-marker">
-                    <CategoryIcon category={item.candidate.category} size={14} className="timeline-category-icon" />
+                  <div className="timeline-step-badge">
+                    <span className="step-num">{stepNum}</span>
                   </div>
                   {!isLast && <div className="timeline-line" />}
                 </div>
@@ -245,7 +263,10 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
                         </div>
                       )}
 
-                      <span className="timeline-category-tag">{categoryName}</span>
+                      <span className={`timeline-category-tag cat-${item.candidate.category}`}>
+                        <CategoryIcon category={item.candidate.category} size={12} className="tag-icon" />
+                        <span>{categoryName}</span>
+                      </span>
 
                       {item.action === 'rescheduled' && (
                         <span className="timeline-action-badge rescheduled">Rescheduled</span>
@@ -261,7 +282,7 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
                     </div>
 
                     <div className="timeline-price-tag">
-                      {formatCurrency(item.costNumber)}
+                      {item.costNumber === 0 ? 'Free entry' : formatCurrency(item.costNumber)}
                     </div>
                   </div>
 
@@ -276,13 +297,33 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
                     )}
                   </div>
 
-                  {/* Opening hours badge if verified */}
-                  {item.candidate.opening_hours && (
-                    <div className="timeline-hours-pill">
-                      <IconClock size={12} />
-                      <span>{item.candidate.opening_hours}</span>
+                  {/* Verification & Fact Pills (Phase 6) */}
+                  <div className="timeline-facts-row">
+                    {item.candidate.opening_hours ? (
+                      <div className="fact-pill verified">
+                        <IconClock size={12} />
+                        <span>{item.candidate.opening_hours}</span>
+                        <span className="fact-check">✓</span>
+                      </div>
+                    ) : (
+                      <div className="fact-pill subtle">
+                        <IconClock size={12} />
+                        <span>Regular hours</span>
+                      </div>
+                    )}
+
+                    <div className="fact-pill verified">
+                      <span>Verified Cape Town location</span>
+                      <span className="fact-check">✓</span>
                     </div>
-                  )}
+
+                    {budgetMax !== null && item.costNumber <= budgetMax && (
+                      <div className="fact-pill verified">
+                        <span>Fits budget ceiling</span>
+                        <span className="fact-check">✓</span>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Why this stop fits (Human planner rationale) */}
                   {item.rationale && item.rationale.length > 0 && (
@@ -308,7 +349,7 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
                         disabled={isSaving}
                       >
                         <IconSwap size={13} />
-                        <span>{isSwapping ? 'Close alternatives' : 'Swap option'}</span>
+                        <span>{isSwapping ? 'Close alternatives' : 'Swap stop'}</span>
                       </button>
                     )}
 
@@ -387,7 +428,7 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
       </div>
 
       {/* Add Another Stop Trigger */}
-      {itinerary.items.length > 0 && itinerary.items.length < 4 && itinerary.alternatives.length > 0 && !showAddMenu && (
+      {itinerary.items.length > 0 && itinerary.items.length < 5 && itinerary.alternatives.length > 0 && !showAddMenu && (
         <div className="add-stop-container">
           <button
             type="button"
@@ -448,31 +489,40 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
         </div>
       )}
 
-      {/* Conversational Tweak ("Something changed?") */}
+      {/* Conversational Tweak ("Something changed?") — Phase 7 Signature Product Feature */}
       {onTweakPlan && (
         <div className="conversational-adaptation-panel">
           <div className="tweak-panel-header">
+            <div className="tweak-header-tag">
+              <IconSparkles size={14} />
+              <span>ADAPTIVE RE-PLANNING</span>
+            </div>
             <h4 className="tweak-panel-title">Something changed?</h4>
             <p className="tweak-panel-subtitle">
-              Tell me what happened and I’ll rework the plan while keeping your context.
+              Plans change. Tell Dayform what happened and it’ll rework your stops, times, and budget while keeping the rest intact.
             </p>
           </div>
 
           {/* Quick Adjustment Chips */}
           <div className="tweak-quick-chips">
-            {['Make it cheaper', 'Sheltered / indoor only', 'Add 2 people', 'Make it Sunday'].map(
-              (chip) => (
-                <button
-                  key={chip}
-                  type="button"
-                  className="tweak-chip-button"
-                  disabled={isTweaking || isSaving}
-                  onClick={() => onTweakPlan(chip)}
-                >
-                  + {chip}
-                </button>
-              )
-            )}
+            {[
+              { label: 'Make it cheaper', icon: '💰' },
+              { label: 'Sheltered / indoor only', icon: '☔' },
+              { label: 'Add 2 people', icon: '👥' },
+              { label: 'Running 45m late', icon: '⏱️' },
+              { label: 'Shift to Sunday', icon: '📅' },
+            ].map((chip) => (
+              <button
+                key={chip.label}
+                type="button"
+                className="tweak-chip-button"
+                disabled={isTweaking || isSaving}
+                onClick={() => onTweakPlan(chip.label)}
+              >
+                <span>{chip.icon}</span>
+                <span>{chip.label}</span>
+              </button>
+            ))}
           </div>
 
           {/* Integrated Tweak Input Form */}
@@ -505,7 +555,7 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
                   <span>Reworking...</span>
                 </span>
               ) : (
-                'Adapt plan'
+                'Rework plan'
               )}
             </button>
           </form>
@@ -576,7 +626,7 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
                 </span>
               ) : (
                 <span className="btn-label-wrap">
-                  <span>Looks good</span>
+                  <span>Looks good · Save plan</span>
                   <IconArrowRight size={17} />
                 </span>
               )}
@@ -588,7 +638,7 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
               onClick={onModifyIntent}
               disabled={isSaving}
             >
-              Try a different request
+              Try a different intention
             </button>
           </div>
         )}

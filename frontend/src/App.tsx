@@ -432,23 +432,50 @@ export const App: React.FC = () => {
               </button>
             </div>
 
-            {/* Assembling / Thinking State */}
+            {/* Assembling / Thinking State (Phase 9) */}
             {isPlanning && (
               <div className="thinking-stage-container animate-fade-in">
                 <div className="thinking-pulse-core">
-                  <IconSparkles size={24} className="thinking-sparkle" />
+                  <IconSparkles size={28} className="thinking-sparkle" />
                 </div>
-                <h3 className="thinking-title">Assembling your plan</h3>
+                <h3 className="thinking-title">Giving shape to your day</h3>
                 <p className="thinking-subtitle">
-                  Evaluating local venues, live opening hours, and budget limits to curate a coherent sequence.
+                  Evaluating verified local spots, checking live operating hours, and balancing your budget to build a coherent sequence.
                 </p>
                 <div className="thinking-step-row">
-                  <span className="thinking-step active">Parsing context</span>
+                  <div className="thinking-step-item">
+                    <span className="step-indicator done">✓</span>
+                    <span>Understanding intent</span>
+                  </div>
                   <span className="thinking-sep">→</span>
-                  <span className="thinking-step active">Checking places</span>
+                  <div className="thinking-step-item">
+                    <span className="step-indicator pulse">●</span>
+                    <span>Verifying places</span>
+                  </div>
                   <span className="thinking-sep">→</span>
-                  <span className="thinking-step active">Sequencing timeline</span>
+                  <div className="thinking-step-item">
+                    <span className="step-indicator pulse">●</span>
+                    <span>Sequencing your day</span>
+                  </div>
                 </div>
+              </div>
+            )}
+
+            {/* Error Recovery State in Workspace (Phase 9) */}
+            {!isPlanning && errorMessage && !currentPlan && (
+              <div className="workspace-error-state animate-fade-in">
+                <div className="error-icon-box">
+                  <IconAlertCircle size={28} />
+                </div>
+                <h3 className="error-title">Couldn’t give shape to this plan</h3>
+                <p className="error-subtitle">{errorMessage}</p>
+                <button
+                  type="button"
+                  className="btn-editorial-primary"
+                  onClick={handleStartNew}
+                >
+                  <span>Try another intention</span>
+                </button>
               </div>
             )}
 
