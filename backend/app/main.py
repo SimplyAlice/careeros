@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.api.v1.router import api_router
-from app.core.config import get_settings
+from app.core.config import Environment, get_settings
 from app.core.logging import configure_logging, get_logger
 from app.infrastructure.cache.redis import dispose_redis_pool
 from app.infrastructure.db.session import dispose_engine
