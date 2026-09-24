@@ -37,6 +37,7 @@ from app.application.planning.decision_service import PlanningDecisionService
 from app.application.planning.execution_service import PlanExecutionService
 from app.application.planning.information import PlanningInformationService
 from app.application.planning.intent_interpreter import IntentInterpreter
+from app.application.planning.live_intelligence_service import LiveIntelligenceService
 from app.application.planning.planning_service import PlanningService
 from app.application.planning.ports import PlanningInformationProvider, PlanningUnderstandingPort, PlanRepository
 from app.application.planning.selection_service import PlanSelectionService
@@ -387,3 +388,10 @@ def get_plan_execution_service(
     information: Annotated[PlanningInformationService, Depends(get_planning_information_service)],
 ) -> PlanExecutionService:
     return PlanExecutionService(plans, information)
+
+
+def get_live_intelligence_service(
+    plans: Annotated[PlanningService, Depends(get_planning_service)],
+    adaptation: Annotated[PlanAdaptationService, Depends(get_plan_adaptation_service)],
+) -> LiveIntelligenceService:
+    return LiveIntelligenceService(plans, adaptation)

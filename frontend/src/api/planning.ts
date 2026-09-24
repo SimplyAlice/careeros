@@ -6,6 +6,7 @@ import type {
   ExecutionResultRead,
   PlanActionsRead,
   PlanAdaptationRead,
+  PlanHealthCheckRead,
   PlanItemRead,
   PlanRead,
   RecommendationResponse,
@@ -164,6 +165,21 @@ export async function uncompletePlanItem(
 ): Promise<PlanItemRead> {
   return apiClient<PlanItemRead>(
     `/planning/plans/${planId}/items/${itemId}/uncomplete`,
+    {
+      method: 'POST',
+    }
+  );
+}
+
+/**
+ * Evaluates live real-world intelligence and plan health.
+ * Endpoint: POST /api/v1/planning/plans/{plan_id}/health-check
+ */
+export async function checkPlanHealth(
+  planId: string
+): Promise<PlanHealthCheckRead> {
+  return apiClient<PlanHealthCheckRead>(
+    `/planning/plans/${planId}/health-check`,
     {
       method: 'POST',
     }

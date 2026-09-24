@@ -21,6 +21,8 @@ class FreshnessKind(str, Enum):
     RECENTLY_VERIFIED = "recently_verified"
     CACHED = "cached"
     FIXTURE = "fixture"
+    STALE = "stale"
+    UNKNOWN = "unknown"
 
 
 @dataclass(frozen=True)

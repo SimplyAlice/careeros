@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from app.api.deps import (
     get_intent_interpreter,
+    get_live_intelligence_service,
     get_plan_adaptation_service,
     get_plan_execution_service,
     get_plan_selection_service,
@@ -27,6 +28,7 @@ from app.application.planning.errors import OptionNotFoundError, PlanItemNotFoun
 from app.application.planning.execution_service import PlanExecutionService
 from app.application.planning.information import PlanningInformationService
 from app.application.planning.intent_interpreter import IntentInterpreter
+from app.application.planning.live_intelligence_service import LiveIntelligenceService
 from app.application.planning.planning_service import PlanningService
 from app.application.planning.ports import PlanningUnderstandingPort
 from app.application.planning.selection_service import PlanSelectionService, criteria_from_plan
@@ -41,6 +43,13 @@ from app.domain.entities.planning.execution import (
     ExecutionResult,
     PlanExecutionStatus,
     PlanItemStatus,
+)
+from app.domain.entities.planning.live_intelligence import (
+    LiveChangeType,
+    LiveSignal,
+    LiveSignalType,
+    PlanHealthCheckResult,
+    PlanHealthStatus,
 )
 from app.domain.entities.planning.plan import Plan, PlanStatus
 from app.domain.entities.planning.plan_item import PlanItem, PlanItemType
@@ -434,6 +443,56 @@ class ExecutionResultRead(BaseModel):
         )
 
 
+class LiveSignalRead(BaseModel):
+    source: str
+    signal_type: str
+    observed_at: datetime
+    freshness: str
+    target_name: str
+    target_item_id: UUID | None = None
+    change_type: str
+    is_meaningful_change: bool
+    message: str
+
+    @classmethod
+    def from_domain(cls, signal: LiveSignal) -> LiveSignalRead:
+        return cls(
+            source=signal.source,
+            signal_type=signal.signal_type.value,
+            observed_at=signal.observed_at,
+            freshness=signal.freshness.value if hasattr(signal.freshness, "value") else str(signal.freshness),
+            target_name=signal.target_name,
+            target_item_id=signal.target_item_id,
+            change_type=signal.change_type.value if hasattr(signal.change_type, "value") else str(signal.change_type),
+            is_meaningful_change=signal.is_meaningful_change,
+            message=signal.message,
+        )
+
+
+class PlanHealthCheckRead(BaseModel):
+    plan_id: UUID
+    health_status: str
+    headline: str
+    narrative: str
+    signals: list[LiveSignalRead]
+    checked_at: datetime
+    recommended_adaptation_prompt: str | None = None
+    proposed_adaptation: PlanAdaptationRead | None = None
+
+    @classmethod
+    def from_domain(cls, result: PlanHealthCheckResult) -> PlanHealthCheckRead:
+        return cls(
+            plan_id=result.plan_id,
+            health_status=result.health_status.value,
+            headline=result.headline,
+            narrative=result.narrative,
+            signals=[LiveSignalRead.from_domain(s) for s in result.signals],
+            checked_at=result.checked_at,
+            recommended_adaptation_prompt=result.recommended_adaptation_prompt,
+            proposed_adaptation=PlanAdaptationRead.from_domain(result.proposed_adaptation) if result.proposed_adaptation else None,
+        )
+
+
 
 
 def _build_plan_understanding_read(plan: Plan) -> UnderstandingRead:
@@ -778,3 +837,18 @@ async def uncomplete_item(
         return PlanItemRead.from_item(item)
     except (PlanningNotFoundError, PlanItemNotFoundError) as exc:
         raise _not_found(exc) from exc
+
+
+@router.post("/plans/{plan_id}/health-check", response_model=PlanHealthCheckRead)
+async def check_plan_health(
+    plan_id: UUID,
+    current_user: Annotated[User, Depends(get_current_user)],
+    live_service: Annotated[LiveIntelligenceService, Depends(get_live_intelligence_service)],
+) -> PlanHealthCheckRead:
+    try:
+        result = await live_service.check_plan_health(current_user.id, plan_id)
+        return PlanHealthCheckRead.from_domain(result)
+    except PlanningNotFoundError as exc:
+        raise _not_found(exc) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc

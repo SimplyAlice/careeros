@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import type {
   ExecutionActionRead,
   PlanActionsRead,
+  PlanHealthCheckRead,
   PlanRead,
 } from '../types/planning';
 import {
+  checkPlanHealth,
   completePlanItem,
   executePlanAction,
   getPlanActions,
@@ -27,6 +29,8 @@ export const PlanSummary: React.FC<PlanSummaryProps> = ({
 }) => {
   const [tweakInput, setTweakInput] = useState('');
   const [planActions, setPlanActions] = useState<PlanActionsRead | null>(null);
+  const [healthCheck, setHealthCheck] = useState<PlanHealthCheckRead | null>(null);
+  const [isCheckingHealth, setIsCheckingHealth] = useState(false);
   const [executingActionId, setExecutingActionId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{
     message: string;
@@ -54,8 +58,22 @@ export const PlanSummary: React.FC<PlanSummaryProps> = ({
     }
   };
 
+  // Evaluate live intelligence health check
+  const fetchHealth = async () => {
+    setIsCheckingHealth(true);
+    try {
+      const health = await checkPlanHealth(plan.id);
+      setHealthCheck(health);
+    } catch (err) {
+      console.error('Failed to check live plan health:', err);
+    } finally {
+      setIsCheckingHealth(false);
+    }
+  };
+
   useEffect(() => {
     fetchActions();
+    fetchHealth();
   }, [plan.id, plan.updated_at, plan.items.length]);
 
   const handleActionClick = async (itemId: string, action: ExecutionActionRead) => {
@@ -158,6 +176,31 @@ export const PlanSummary: React.FC<PlanSummaryProps> = ({
             ) : (
               <span className="status-pill ready">Active Plan</span>
             )}
+
+            {/* Live Intelligence Health Status Badge */}
+            {healthCheck && (
+              <span
+                className={`status-pill ${
+                  healthCheck.health_status === 'healthy'
+                    ? 'live-healthy'
+                    : 'live-warning'
+                }`}
+              >
+                {healthCheck.health_status === 'healthy'
+                  ? '✓ Live: All Good'
+                  : '⚡ Live: Changes Detected'}
+              </span>
+            )}
+
+            <button
+              type="button"
+              className="btn-check-live"
+              onClick={fetchHealth}
+              disabled={isCheckingHealth}
+              title="Refresh live real-world information"
+            >
+              {isCheckingHealth ? 'Checking...' : '🔄 Check live'}
+            </button>
           </div>
           <h2 className="summary-title">{plan.title || 'Your Confirmed Itinerary'}</h2>
           <p className="summary-intention">“{plan.intention}”</p>
@@ -170,6 +213,38 @@ export const PlanSummary: React.FC<PlanSummaryProps> = ({
           <span className="context-pill">👥 {groupLabel}</span>
         </div>
       </div>
+
+      {/* Live Intelligence Real-World Change Alert Banner */}
+      {healthCheck && healthCheck.health_status === 'action_required' && (
+        <div className="live-intelligence-banner">
+          <div className="live-banner-content">
+            <span className="live-banner-icon">⚡</span>
+            <div className="live-banner-text">
+              <h4 className="live-banner-title">{healthCheck.headline}</h4>
+              <p className="live-banner-narrative">{healthCheck.narrative}</p>
+            </div>
+          </div>
+          <div className="live-banner-actions">
+            {onTweakPlan && healthCheck.recommended_adaptation_prompt && (
+              <button
+                type="button"
+                className="btn-review-live-adaptation"
+                onClick={() => onTweakPlan(healthCheck.recommended_adaptation_prompt!)}
+                disabled={isTweaking}
+              >
+                {isTweaking ? 'Adapting...' : 'Review proposed adaptation →'}
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn-dismiss-live"
+              onClick={() => setHealthCheck(null)}
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Budget Overview Widget */}
       {plan.budget && (
@@ -262,6 +337,27 @@ export const PlanSummary: React.FC<PlanSummaryProps> = ({
                           <span className="item-loc">📍 {item.location}</span>
                         )}
                       </div>
+
+                      {/* Stop-level Real-World Live Signal Indicator */}
+                      {healthCheck?.signals && (() => {
+                        const stopSignal = healthCheck.signals.find(
+                          (s) =>
+                            s.target_item_id === item.id ||
+                            s.target_name.toLowerCase().includes(item.name.toLowerCase()) ||
+                            item.name.toLowerCase().includes(s.target_name.toLowerCase())
+                        );
+                        if (!stopSignal) return null;
+                        return (
+                          <div
+                            className={`stop-live-indicator ${
+                              stopSignal.is_meaningful_change ? 'alert' : 'info'
+                            }`}
+                          >
+                            <span>{stopSignal.is_meaningful_change ? '⚠️' : '✓'}</span>
+                            <span>{stopSignal.message}</span>
+                          </div>
+                        );
+                      })()}
 
                       {/* Execution Actions for this Stop */}
                       {actions.length > 0 && (

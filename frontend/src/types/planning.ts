@@ -248,3 +248,28 @@ export interface ExecutionResultRead {
   item_status: string;
   plan_status: string;
 }
+
+export type PlanHealthStatus = 'healthy' | 'warning' | 'action_required';
+
+export interface LiveSignalRead {
+  source: string;
+  signal_type: string;
+  observed_at: string;
+  freshness: string;
+  target_name: string;
+  target_item_id?: string | null;
+  change_type: string;
+  is_meaningful_change: boolean;
+  message: string;
+}
+
+export interface PlanHealthCheckRead {
+  plan_id: string;
+  health_status: PlanHealthStatus;
+  headline: string;
+  narrative: string;
+  signals: LiveSignalRead[];
+  checked_at: string;
+  recommended_adaptation_prompt?: string | null;
+  proposed_adaptation?: PlanAdaptationRead | null;
+}
