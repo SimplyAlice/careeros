@@ -3,10 +3,10 @@ import { IntentInput } from './components/IntentInput';
 import { UnderstandingCard } from './components/UnderstandingCard';
 import { ProposedPlan } from './components/ProposedPlan';
 import { PlanSummary } from './components/PlanSummary';
-import { createPlanFromIntent, getPlan, getPlanRecommendations, addOptionToPlan, modifyPlan } from './api/planning';
-import { buildProposedItinerary } from './utils/itineraryBuilder';
-import type { ProposedItinerary } from './utils/itineraryBuilder';
-import type { DecisionCandidateRead, PlanRead } from './types/planning';
+import { createPlanFromIntent, getPlan, getPlanRecommendations, addOptionToPlan, proposePlanAdaptation, applyPlanAdaptation } from './api/planning';
+import { buildProposedItinerary, getCategoryIcon, buildItemSubtitle, parseCandidateCost } from './utils/itineraryBuilder';
+import type { ProposedItinerary, ProposedItineraryItem } from './utils/itineraryBuilder';
+import type { DecisionCandidateRead, InformationCategory, PlanRead, PlanAdaptationRead } from './types/planning';
 import './styles.css';
 
 export const App: React.FC = () => {
@@ -14,6 +14,11 @@ export const App: React.FC = () => {
   const [candidates, setCandidates] = useState<DecisionCandidateRead[]>([]);
   const [proposedItinerary, setProposedItinerary] = useState<ProposedItinerary | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
+
+  const [isAdaptationReview, setIsAdaptationReview] = useState(false);
+  const [proposedAdaptation, setProposedAdaptation] = useState<PlanAdaptationRead | null>(null);
+  const [lastTweakText, setLastTweakText] = useState('');
+  const [previousItinerary, setPreviousItinerary] = useState<ProposedItinerary | null>(null);
 
   const [isPlanning, setIsPlanning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -65,45 +70,141 @@ export const App: React.FC = () => {
     }
   };
 
-  // Conversational Plan Modification ("Tweak this plan")
+  // Conversational Plan Modification & Adaptive Planning ("Tweak this plan")
   const handleTweakPlan = async (tweakText: string) => {
     if (!currentPlan) return;
     setIsTweaking(true);
     setErrorMessage(null);
 
     try {
-      // 1. Send modification delta to backend
-      const updatedPlan = await modifyPlan(currentPlan.id, tweakText);
-      setCurrentPlan(updatedPlan);
+      // 1. Propose adaptation with minimal change and diffs
+      const adaptation = await proposePlanAdaptation(currentPlan.id, tweakText);
+      setProposedAdaptation(adaptation);
+      setLastTweakText(tweakText);
+      setPreviousItinerary(proposedItinerary);
 
-      // 2. Refresh recommendations with updated context & constraints
-      const recsResponse = await getPlanRecommendations(updatedPlan.id);
+      // 2. Fetch fresh candidates in case new category/location options are needed
+      const recsResponse = await getPlanRecommendations(currentPlan.id);
       const allRecs = recsResponse.candidates || [];
       setCandidates(allRecs);
 
-      // 3. Extract updated budget
-      const budgetConstraint = updatedPlan.constraints?.find((c) => c.type === 'budget_max');
+      // 3. Assemble adapted proposed itinerary from diffs
+      const adaptedItems: ProposedItineraryItem[] = [];
+      const removedItems: Array<{ name: string; reason: string }> = [];
+
+      for (const diff of adaptation.diffs) {
+        if (diff.action === 'removed') {
+          removedItems.push({
+            name: diff.original_name || 'Stop',
+            reason: diff.reason,
+          });
+          continue;
+        }
+
+        const candidateName = diff.new_name || diff.original_name || 'Stop';
+        const candidateCategory: InformationCategory = (diff.item_type === 'food' ? 'food' : 'culture');
+        const matchingCand: DecisionCandidateRead = allRecs.find(
+          (c) => c.option_id === diff.candidate_option_id || c.name.toLowerCase() === candidateName.toLowerCase()
+        ) || {
+          option_id: diff.candidate_option_id || diff.original_item_id || 'opt-' + Math.random(),
+          option_type: 'place' as const,
+          name: candidateName,
+          is_eligible: true,
+          score: 90,
+          reasons: [],
+          category: candidateCategory,
+          cost: diff.new_cost !== undefined && diff.new_cost !== null ? String(diff.new_cost) : null,
+          duration_minutes: 60,
+          location: diff.location || null,
+          source: 'fixture',
+        };
+
+        const itemStart = diff.new_start_time ? diff.new_start_time.substring(11, 16) : undefined;
+        const itemEnd = diff.new_end_time ? diff.new_end_time.substring(11, 16) : undefined;
+
+        adaptedItems.push({
+          candidate: matchingCand,
+          icon: getCategoryIcon(matchingCand.category),
+          subtitle: buildItemSubtitle(matchingCand),
+          costNumber: parseCandidateCost(diff.new_cost ?? matchingCand.cost),
+          rationale: [diff.reason],
+          startTime: itemStart,
+          endTime: itemEnd,
+          action: diff.action,
+          changeReason: diff.reason,
+          originalName: diff.original_name || undefined,
+        });
+      }
+
+      const budgetConstraint = currentPlan.constraints?.find((c) => c.type === 'budget_max');
       const budgetMax = budgetConstraint?.numeric_value
         ? parseFloat(String(budgetConstraint.numeric_value))
         : null;
 
-      const groupSize = updatedPlan.context?.group_size || 1;
+      const adaptedProposal: ProposedItinerary = {
+        items: adaptedItems,
+        alternatives: allRecs.filter((c) => !adaptedItems.some((ai) => ai.candidate.name.toLowerCase() === c.name.toLowerCase())),
+        estimatedTotal: parseFloat(String(adaptation.new_total_cost || 0)),
+        remainingBudget: budgetMax ? budgetMax - parseFloat(String(adaptation.new_total_cost || 0)) : null,
+        isOverBudget: budgetMax ? parseFloat(String(adaptation.new_total_cost || 0)) > budgetMax : false,
+        narrativeSubheading: adaptation.narrative_summary,
+        adaptationSummary: adaptation.narrative_summary,
+        isAdaptationProposal: true,
+        removedItems,
+        attribution: proposedItinerary?.attribution,
+        freshness: proposedItinerary?.freshness,
+      };
 
-      // 4. Re-assemble itinerary with updated understanding & candidates
-      const proposal = buildProposedItinerary(
-        allRecs,
-        budgetMax,
-        updatedPlan.intention,
-        groupSize,
-        updatedPlan.understanding
-      );
-      setProposedItinerary(proposal);
+      setProposedItinerary(adaptedProposal);
+      setIsAdaptationReview(true);
+      setIsConfirmed(false); // bring user back to review proposal
+
+      setTimeout(() => {
+        proposalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
     } catch (err: unknown) {
-      console.error('Error tweaking plan:', err);
-      const msg = err instanceof Error ? err.message : 'Failed to update plan.';
+      console.error('Error adapting plan:', err);
+      const msg = err instanceof Error ? err.message : 'Failed to adapt plan.';
       setErrorMessage(msg);
     } finally {
       setIsTweaking(false);
+    }
+  };
+
+  // Flow: User accepts the proposed adaptation
+  const handleAcceptAdaptation = async () => {
+    if (!currentPlan || !lastTweakText) return;
+    setIsSaving(true);
+    setErrorMessage(null);
+
+    try {
+      const updatedPlan = await applyPlanAdaptation(currentPlan.id, lastTweakText);
+      setCurrentPlan(updatedPlan);
+      setIsAdaptationReview(false);
+      setProposedAdaptation(null);
+      setIsConfirmed(true);
+
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 100);
+    } catch (err: unknown) {
+      console.error('Error applying adaptation:', err);
+      const msg = err instanceof Error ? err.message : 'Failed to apply changes.';
+      setErrorMessage(msg);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Flow: User keeps existing plan (rejects adaptation proposal)
+  const handleRejectAdaptation = () => {
+    if (previousItinerary) {
+      setProposedItinerary(previousItinerary);
+    }
+    setIsAdaptationReview(false);
+    setProposedAdaptation(null);
+    if (currentPlan && currentPlan.items.length > 0) {
+      setIsConfirmed(true);
     }
   };
 
@@ -148,6 +249,8 @@ export const App: React.FC = () => {
     setProposedItinerary(null);
     setCandidates([]);
     setIsConfirmed(false);
+    setIsAdaptationReview(false);
+    setProposedAdaptation(null);
     setErrorMessage(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -217,7 +320,7 @@ export const App: React.FC = () => {
             />
 
             <ProposedPlan
-              key={`${currentPlan.id}-${currentPlan.updated_at || ''}-${proposedItinerary.estimatedTotal}`}
+              key={`${currentPlan.id}-${currentPlan.updated_at || ''}-${proposedItinerary.estimatedTotal}-${isAdaptationReview ? 'review' : 'normal'}`}
               plan={currentPlan}
               initialItinerary={proposedItinerary}
               allCandidates={candidates}
@@ -227,6 +330,10 @@ export const App: React.FC = () => {
               onModifyIntent={handleModifyIntent}
               onTweakPlan={handleTweakPlan}
               isTweaking={isTweaking}
+              isAdaptationReview={isAdaptationReview}
+              adaptationSummary={proposedAdaptation?.narrative_summary}
+              onAcceptAdaptation={handleAcceptAdaptation}
+              onRejectAdaptation={handleRejectAdaptation}
             />
           </div>
         )}
@@ -236,6 +343,8 @@ export const App: React.FC = () => {
           <PlanSummary
             plan={currentPlan}
             onStartNew={handleStartNew}
+            onTweakPlan={handleTweakPlan}
+            isTweaking={isTweaking}
           />
         )}
       </main>

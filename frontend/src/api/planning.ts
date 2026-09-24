@@ -4,6 +4,7 @@ import type {
   DecisionCandidateRead,
   PlanItemRead,
   PlanRead,
+  PlanAdaptationRead,
   RecommendationResponse,
   SelectOptionRequest,
 } from '../types/planning';
@@ -71,6 +72,34 @@ export async function modifyPlan(
   request: string
 ): Promise<PlanRead> {
   return apiClient<PlanRead>(`/planning/plans/${planId}/modifications`, {
+    method: 'POST',
+    body: JSON.stringify({ request }),
+  });
+}
+
+/**
+ * Proposes a non-destructive plan adaptation with diffs.
+ * Endpoint: POST /api/v1/planning/plans/{plan_id}/adapt
+ */
+export async function proposePlanAdaptation(
+  planId: string,
+  request: string
+): Promise<PlanAdaptationRead> {
+  return apiClient<PlanAdaptationRead>(`/planning/plans/${planId}/adapt`, {
+    method: 'POST',
+    body: JSON.stringify({ request }),
+  });
+}
+
+/**
+ * Commits an accepted plan adaptation.
+ * Endpoint: POST /api/v1/planning/plans/{plan_id}/adapt/apply
+ */
+export async function applyPlanAdaptation(
+  planId: string,
+  request: string
+): Promise<PlanRead> {
+  return apiClient<PlanRead>(`/planning/plans/${planId}/adapt/apply`, {
     method: 'POST',
     body: JSON.stringify({ request }),
   });

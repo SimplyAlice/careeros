@@ -161,3 +161,41 @@ export interface SelectOptionRequest {
   start_time?: string | null;
   end_time?: string | null;
 }
+
+export type ItemAction = 'kept' | 'replaced' | 'removed' | 'rescheduled' | 'added';
+
+export interface ItemDiffRead {
+  action: ItemAction;
+  original_item_id?: string | null;
+  original_name?: string | null;
+  new_name?: string | null;
+  original_start_time?: string | null;
+  new_start_time?: string | null;
+  original_end_time?: string | null;
+  new_end_time?: string | null;
+  original_cost?: number | string | null;
+  new_cost?: number | string | null;
+  location?: string | null;
+  item_type?: string | null;
+  reason: string;
+  candidate_option_id?: string | null;
+  candidate_option_type?: string | null;
+}
+
+export interface PlanAdaptationRead {
+  plan_id: string;
+  changes_detected: string[];
+  narrative_summary: string;
+  diffs: ItemDiffRead[];
+  adapted_items: PlanItemRead[];
+  new_start_time?: string | null;
+  new_end_time?: string | null;
+  new_total_cost: number | string;
+  budget_delta?: number | string | null;
+  is_feasible: boolean;
+  feasibility_note?: string | null;
+}
+
+export interface ApplyAdaptationRequest {
+  request: string;
+}

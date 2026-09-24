@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from app.api.deps import (
     get_intent_interpreter,
+    get_plan_adaptation_service,
     get_plan_selection_service,
     get_planning_decision_service,
     get_planning_information_service,
@@ -18,6 +19,7 @@ from app.api.deps import (
 )
 from app.api.v1.auth import get_current_user
 from app.api.v1.planning.information import DecisionCandidateRead, RecommendationResponse
+from app.application.planning.adaptation_service import PlanAdaptationService
 from app.application.planning.decision_service import PlanningDecisionService
 from app.application.planning.dtos import ConstraintInput, CreatePlanData, PlanItemData
 from app.application.planning.errors import OptionNotFoundError, PlanItemNotFoundError, PlanningNotFoundError
@@ -27,6 +29,7 @@ from app.application.planning.planning_service import PlanningService
 from app.application.planning.ports import PlanningUnderstandingPort
 from app.application.planning.selection_service import PlanSelectionService, criteria_from_plan
 from app.application.planning.understanding_service import DeterministicUnderstandingEngine
+from app.domain.entities.planning.adaptation import ItemAction, ItemDiff, PlanAdaptation
 from app.domain.entities.planning.constraint import ConstraintType
 from app.domain.entities.planning.decision import CandidateType
 from app.domain.entities.planning.plan import Plan, PlanStatus
@@ -282,6 +285,79 @@ class PlanRead(BaseModel):
         )
 
 
+class ItemDiffRead(BaseModel):
+    action: str
+    original_item_id: UUID | None = None
+    original_name: str | None = None
+    new_name: str | None = None
+    original_start_time: datetime | None = None
+    new_start_time: datetime | None = None
+    original_end_time: datetime | None = None
+    new_end_time: datetime | None = None
+    original_cost: Decimal | None = None
+    new_cost: Decimal | None = None
+    location: str | None = None
+    item_type: str | None = None
+    reason: str = ""
+    candidate_option_id: UUID | None = None
+    candidate_option_type: str | None = None
+
+    @classmethod
+    def from_domain(cls, diff: ItemDiff) -> ItemDiffRead:
+        return cls(
+            action=diff.action.value,
+            original_item_id=diff.original_item_id,
+            original_name=diff.original_name,
+            new_name=diff.new_name,
+            original_start_time=diff.original_start_time,
+            new_start_time=diff.new_start_time,
+            original_end_time=diff.original_end_time,
+            new_end_time=diff.new_end_time,
+            original_cost=diff.original_cost,
+            new_cost=diff.new_cost,
+            location=diff.location,
+            item_type=diff.item_type.value if diff.item_type else None,
+            reason=diff.reason,
+            candidate_option_id=diff.candidate_option_id,
+            candidate_option_type=diff.candidate_option_type.value if diff.candidate_option_type else None,
+        )
+
+
+class PlanAdaptationRead(BaseModel):
+    plan_id: UUID
+    changes_detected: list[str]
+    narrative_summary: str
+    diffs: list[ItemDiffRead]
+    adapted_items: list[PlanItemRead]
+    new_start_time: datetime | None = None
+    new_end_time: datetime | None = None
+    new_total_cost: Decimal = Decimal("0")
+    budget_delta: Decimal | None = None
+    is_feasible: bool = True
+    feasibility_note: str | None = None
+
+    @classmethod
+    def from_domain(cls, adaptation: PlanAdaptation) -> PlanAdaptationRead:
+        return cls(
+            plan_id=adaptation.plan_id,
+            changes_detected=[c.value for c in adaptation.changes_detected],
+            narrative_summary=adaptation.narrative_summary,
+            diffs=[ItemDiffRead.from_domain(d) for d in adaptation.diffs],
+            adapted_items=[PlanItemRead.from_item(i) for i in adaptation.adapted_items],
+            new_start_time=adaptation.new_start_time,
+            new_end_time=adaptation.new_end_time,
+            new_total_cost=adaptation.new_total_cost,
+            budget_delta=adaptation.budget_delta,
+            is_feasible=adaptation.is_feasible,
+            feasibility_note=adaptation.feasibility_note,
+        )
+
+
+class ApplyAdaptationRequest(BaseModel):
+    request: str = Field(..., min_length=1, max_length=5000)
+
+
+
 def _build_plan_understanding_read(plan: Plan) -> UnderstandingRead:
     engine = DeterministicUnderstandingEngine()
     try:
@@ -398,6 +474,40 @@ async def modify_plan(
         raise _not_found(exc) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/plans/{plan_id}/adapt", response_model=PlanAdaptationRead)
+async def adapt_plan(
+    plan_id: UUID,
+    body: PlanModifyRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    adaptation_service: Annotated[PlanAdaptationService, Depends(get_plan_adaptation_service)],
+) -> PlanAdaptationRead:
+    try:
+        adaptation = await adaptation_service.propose_adaptation(current_user.id, plan_id, body.request)
+        return PlanAdaptationRead.from_domain(adaptation)
+    except PlanningNotFoundError as exc:
+        raise _not_found(exc) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/plans/{plan_id}/adapt/apply", response_model=PlanRead)
+async def apply_adaptation(
+    plan_id: UUID,
+    body: ApplyAdaptationRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    adaptation_service: Annotated[PlanAdaptationService, Depends(get_plan_adaptation_service)],
+) -> PlanRead:
+    try:
+        adaptation = await adaptation_service.propose_adaptation(current_user.id, plan_id, body.request)
+        updated = await adaptation_service.apply_adaptation(current_user.id, plan_id, adaptation)
+        return PlanRead.from_plan(updated)
+    except PlanningNotFoundError as exc:
+        raise _not_found(exc) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
 
 
 @router.get("/plans", response_model=list[PlanRead])

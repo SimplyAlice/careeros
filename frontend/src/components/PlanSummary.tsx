@@ -1,13 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { PlanRead } from '../types/planning';
 import { getCategoryIcon } from '../utils/itineraryBuilder';
 
 interface PlanSummaryProps {
   plan: PlanRead;
   onStartNew?: () => void;
+  onTweakPlan?: (tweakText: string) => Promise<void>;
+  isTweaking?: boolean;
 }
 
-export const PlanSummary: React.FC<PlanSummaryProps> = ({ plan, onStartNew }) => {
+export const PlanSummary: React.FC<PlanSummaryProps> = ({
+  plan,
+  onStartNew,
+  onTweakPlan,
+  isTweaking = false,
+}) => {
+  const [tweakInput, setTweakInput] = useState('');
   const formatCurrency = (val: string | number | null | undefined) => {
     if (val === null || val === undefined) return '—';
     const num = typeof val === 'number' ? val : parseFloat(val);
@@ -114,6 +122,60 @@ export const PlanSummary: React.FC<PlanSummaryProps> = ({ plan, onStartNew }) =>
           </div>
         )}
       </div>
+
+      {/* Conversational Tweak: Something changed? */}
+      {onTweakPlan && (
+        <div style={{ marginTop: '24px', padding: '16px', background: '#fafafa', borderRadius: '12px', border: '1px solid #e4e4e7' }}>
+          <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#18181b', marginBottom: '4px' }}>
+            💬 Something changed?
+          </div>
+          <p style={{ fontSize: '0.78rem', color: '#71717a', margin: '0 0 10px 0' }}>
+            e.g. “Actually we can only leave at 2”, “Keep it under R600”, or “Two more friends are coming”
+          </p>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (tweakInput.trim() && !isTweaking) {
+                onTweakPlan(tweakInput.trim());
+              }
+            }}
+            style={{ display: 'flex', gap: '8px' }}
+          >
+            <input
+              type="text"
+              value={tweakInput}
+              onChange={(e) => setTweakInput(e.target.value)}
+              placeholder="Tell me what changed..."
+              disabled={isTweaking}
+              style={{
+                flex: 1,
+                fontSize: '0.85rem',
+                padding: '0.5rem 0.85rem',
+                borderRadius: '8px',
+                border: '1px solid #d4d4d8',
+                outline: 'none',
+              }}
+            />
+            <button
+              type="submit"
+              disabled={!tweakInput.trim() || isTweaking}
+              style={{
+                fontSize: '0.85rem',
+                padding: '0.5rem 1.1rem',
+                borderRadius: '8px',
+                border: 'none',
+                background: '#18181b',
+                color: '#fff',
+                fontWeight: 500,
+                cursor: !tweakInput.trim() || isTweaking ? 'not-allowed' : 'pointer',
+                opacity: !tweakInput.trim() || isTweaking ? 0.5 : 1,
+              }}
+            >
+              {isTweaking ? 'Adapting...' : 'Adapt plan'}
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Plan Something Else Action */}
       {onStartNew && (

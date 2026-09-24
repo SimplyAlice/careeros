@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { DecisionCandidateRead, PlanRead } from '../types/planning';
 import type { ProposedItineraryItem, ProposedItinerary } from '../utils/itineraryBuilder';
 import {
@@ -21,6 +21,10 @@ interface ProposedPlanProps {
   onModifyIntent: () => void;
   onTweakPlan?: (tweakText: string) => Promise<void>;
   isTweaking?: boolean;
+  isAdaptationReview?: boolean;
+  adaptationSummary?: string;
+  onAcceptAdaptation?: () => Promise<void>;
+  onRejectAdaptation?: () => void;
 }
 
 export const ProposedPlan: React.FC<ProposedPlanProps> = ({
@@ -33,8 +37,16 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
   onModifyIntent,
   onTweakPlan,
   isTweaking = false,
+  isAdaptationReview = false,
+  adaptationSummary,
+  onAcceptAdaptation,
+  onRejectAdaptation,
 }) => {
   const [itinerary, setItinerary] = useState<ProposedItinerary>(initialItinerary);
+
+  useEffect(() => {
+    setItinerary(initialItinerary);
+  }, [initialItinerary]);
   const [swappingIndex, setSwappingIndex] = useState<number | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [customTweak, setCustomTweak] = useState('');
@@ -89,6 +101,31 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
 
   return (
     <div className="proposed-plan-card">
+      {/* Adaptation Review Banner */}
+      {(isAdaptationReview || itinerary.isAdaptationProposal) && (
+        <div
+          style={{
+            background: '#f0fdf4',
+            border: '1px solid #86efac',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            marginBottom: '16px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              ⚡ Plan Adapted
+            </span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#15803d', background: '#dcfce7', padding: '2px 8px', borderRadius: '4px' }}>
+              Minimal Change Applied
+            </span>
+          </div>
+          <p style={{ margin: 0, fontSize: '0.875rem', color: '#14532d', fontWeight: 500, lineHeight: 1.4 }}>
+            {adaptationSummary || itinerary.adaptationSummary}
+          </p>
+        </div>
+      )}
+
       {/* Editorial Header */}
       <div className="proposal-header">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
@@ -155,6 +192,21 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                             <h3 className="step-name" style={{ margin: 0 }}>{item.candidate.name}</h3>
+                            {item.action === 'kept' && (
+                              <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#15803d', background: '#dcfce7', padding: '1px 6px', borderRadius: '4px', border: '1px solid #86efac' }}>
+                                ✓ Kept
+                              </span>
+                            )}
+                            {item.action === 'rescheduled' && (
+                              <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#4338ca', background: '#eef2ff', padding: '1px 6px', borderRadius: '4px', border: '1px solid #c7d2fe' }}>
+                                ⏱️ Rescheduled
+                              </span>
+                            )}
+                            {item.action === 'replaced' && (
+                              <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#b45309', background: '#fef3c7', padding: '1px 6px', borderRadius: '4px', border: '1px solid #fde68a' }}>
+                                ↔ Replaced {item.originalName ? `(${item.originalName})` : ''}
+                              </span>
+                            )}
                             {item.startTime && item.endTime && (
                               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#4338ca', background: '#eef2ff', padding: '1px 6px', borderRadius: '4px', border: '1px solid #c7d2fe' }}>
                                 ⏱️ {item.startTime} – {item.endTime} ({item.durationMinutes}m)
@@ -171,6 +223,11 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
                     </div>
 
                     <div className="step-subtitle">{item.subtitle}</div>
+                    {item.changeReason && (
+                      <div style={{ fontSize: '0.75rem', color: '#4b5563', marginTop: '4px', fontStyle: 'italic' }}>
+                        ℹ️ {item.changeReason}
+                      </div>
+                    )}
 
 
                     {item.candidate.opening_hours && (
@@ -458,49 +515,95 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
         </div>
       )}
 
+      {/* Removed Items Section */}
+      {itinerary.removedItems && itinerary.removedItems.length > 0 && (
+        <div style={{ marginTop: '16px', padding: '12px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px' }}>
+          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#991b1b', marginBottom: '6px' }}>
+            ✕ Removed Stops (cannot fit revised constraints):
+          </div>
+          <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.78rem', color: '#7f1d1d' }}>
+            {itinerary.removedItems.map((rem, rIdx) => (
+              <li key={rIdx} style={{ marginBottom: '2px' }}>
+                <strong>{rem.name}</strong>: {rem.reason}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Bottom Actions */}
       <div className="proposal-actions">
-        <button
-          type="button"
-          className="btn-primary-confirm"
-          onClick={handleConfirmClick}
-          disabled={isSaving || isTweaking || itinerary.items.length === 0}
-        >
-          {isSaving ? (
-            <span className="spinner-wrap">
-              <span className="spinner small" />
-              Saving your plan...
-            </span>
-          ) : (
-            'Looks good'
-          )}
-        </button>
+        {isAdaptationReview ? (
+          <>
+            <button
+              type="button"
+              className="btn-primary-confirm"
+              onClick={onAcceptAdaptation}
+              disabled={isSaving || isTweaking}
+            >
+              {isSaving ? (
+                <span className="spinner-wrap">
+                  <span className="spinner small" />
+                  Applying changes...
+                </span>
+              ) : (
+                'Accept changes'
+              )}
+            </button>
+            <button
+              type="button"
+              className="btn-secondary-custom"
+              onClick={onRejectAdaptation}
+              disabled={isSaving || isTweaking}
+            >
+              Keep existing plan
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="btn-primary-confirm"
+              onClick={handleConfirmClick}
+              disabled={isSaving || isTweaking || itinerary.items.length === 0}
+            >
+              {isSaving ? (
+                <span className="spinner-wrap">
+                  <span className="spinner small" />
+                  Saving your plan...
+                </span>
+              ) : (
+                'Looks good'
+              )}
+            </button>
 
-        {itinerary.alternatives.length > 0 && !showAddMenu && (
-          <button
-            type="button"
-            className="btn-secondary-custom"
-            onClick={() => {
-              if (swappingIndex === null && itinerary.items.length > 0) {
-                setSwappingIndex(0);
-              } else {
-                setShowAddMenu(true);
-              }
-            }}
-            disabled={isSaving}
-          >
-            Change something
-          </button>
+            {itinerary.alternatives.length > 0 && !showAddMenu && (
+              <button
+                type="button"
+                className="btn-secondary-custom"
+                onClick={() => {
+                  if (swappingIndex === null && itinerary.items.length > 0) {
+                    setSwappingIndex(0);
+                  } else {
+                    setShowAddMenu(true);
+                  }
+                }}
+                disabled={isSaving}
+              >
+                Change something
+              </button>
+            )}
+
+            <button
+              type="button"
+              className="btn-link"
+              onClick={onModifyIntent}
+              disabled={isSaving}
+            >
+              Try a different request
+            </button>
+          </>
         )}
-
-        <button
-          type="button"
-          className="btn-link"
-          onClick={onModifyIntent}
-          disabled={isSaving}
-        >
-          Try a different request
-        </button>
       </div>
 
       {itinerary.attribution && (

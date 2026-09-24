@@ -10,6 +10,9 @@ export interface ProposedItineraryItem {
   endTime?: string;
   durationMinutes?: number;
   isApproximate?: boolean;
+  action?: 'kept' | 'replaced' | 'removed' | 'rescheduled' | 'added';
+  changeReason?: string;
+  originalName?: string;
 }
 
 export interface ProposedItinerary {
@@ -23,6 +26,9 @@ export interface ProposedItinerary {
   freshness?: string | null;
   totalDurationMinutes?: number;
   timeSpanDisplay?: string;
+  adaptationSummary?: string;
+  isAdaptationProposal?: boolean;
+  removedItems?: Array<{ name: string; reason: string }>;
 }
 
 /**
