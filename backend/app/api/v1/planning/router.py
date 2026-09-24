@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from app.api.deps import (
     get_intent_interpreter,
     get_plan_adaptation_service,
+    get_plan_execution_service,
     get_plan_selection_service,
     get_planning_decision_service,
     get_planning_information_service,
@@ -23,6 +24,7 @@ from app.application.planning.adaptation_service import PlanAdaptationService
 from app.application.planning.decision_service import PlanningDecisionService
 from app.application.planning.dtos import ConstraintInput, CreatePlanData, PlanItemData
 from app.application.planning.errors import OptionNotFoundError, PlanItemNotFoundError, PlanningNotFoundError
+from app.application.planning.execution_service import PlanExecutionService
 from app.application.planning.information import PlanningInformationService
 from app.application.planning.intent_interpreter import IntentInterpreter
 from app.application.planning.planning_service import PlanningService
@@ -32,6 +34,14 @@ from app.application.planning.understanding_service import DeterministicUndersta
 from app.domain.entities.planning.adaptation import ItemAction, ItemDiff, PlanAdaptation
 from app.domain.entities.planning.constraint import ConstraintType
 from app.domain.entities.planning.decision import CandidateType
+from app.domain.entities.planning.execution import (
+    ExecutionAction,
+    ExecutionActionStatus,
+    ExecutionActionType,
+    ExecutionResult,
+    PlanExecutionStatus,
+    PlanItemStatus,
+)
 from app.domain.entities.planning.plan import Plan, PlanStatus
 from app.domain.entities.planning.plan_item import PlanItem, PlanItemType
 from app.domain.entities.planning.understanding import PlanningUnderstanding
@@ -222,12 +232,17 @@ class PlanItemRead(BaseModel):
     estimated_cost: Decimal | None
     location: str | None
     position: int
+    status: str = "planned"
 
     @classmethod
     def from_item(cls, item: PlanItem) -> PlanItemRead:
+        item_status_val = (
+            item.status.value if hasattr(item.status, "value") else str(item.status)
+        )
         return cls(id=item.id, name=item.name, item_type=item.item_type, description=item.description,
                    start_time=item.start_time, end_time=item.end_time, duration_minutes=item.duration_minutes,
-                   estimated_cost=item.estimated_cost, location=item.location, position=item.position)
+                   estimated_cost=item.estimated_cost, location=item.location, position=item.position,
+                   status=item_status_val)
 
 
 class BudgetRead(BaseModel):
@@ -355,6 +370,69 @@ class PlanAdaptationRead(BaseModel):
 
 class ApplyAdaptationRequest(BaseModel):
     request: str = Field(..., min_length=1, max_length=5000)
+
+
+class ExecutionActionRead(BaseModel):
+    id: str
+    item_id: UUID
+    action_type: str
+    label: str
+    target_url: str | None = None
+    is_available: bool = True
+    status: str = "available"
+    description: str | None = None
+
+    @classmethod
+    def from_domain(cls, action: ExecutionAction) -> ExecutionActionRead:
+        return cls(
+            id=action.id,
+            item_id=action.item_id,
+            action_type=action.action_type.value,
+            label=action.label,
+            target_url=action.target_url,
+            is_available=action.is_available,
+            status=action.status.value,
+            description=action.description,
+        )
+
+
+class PlanItemActionsRead(BaseModel):
+    item_id: UUID
+    item_name: str
+    item_status: str
+    actions: list[ExecutionActionRead]
+
+
+class PlanActionsRead(BaseModel):
+    plan_id: UUID
+    plan_status: str
+    items: list[PlanItemActionsRead]
+
+
+class ExecuteActionRequest(BaseModel):
+    action_type: ExecutionActionType
+    target_url: str | None = None
+
+
+class ExecutionResultRead(BaseModel):
+    action_type: str
+    status: str
+    message: str
+    target_url: str | None = None
+    item_status: str
+    plan_status: str
+
+    @classmethod
+    def from_domain(cls, result: ExecutionResult) -> ExecutionResultRead:
+        return cls(
+            action_type=result.action_type.value,
+            status=result.status.value,
+            message=result.message,
+            target_url=result.target_url,
+            item_status=result.item_status,
+            plan_status=result.plan_status,
+        )
+
 
 
 
@@ -628,3 +706,75 @@ async def delete_item(plan_id: UUID, item_id: UUID, current_user: Annotated[User
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/plans/{plan_id}/actions", response_model=PlanActionsRead)
+async def get_plan_actions(
+    plan_id: UUID,
+    current_user: Annotated[User, Depends(get_current_user)],
+    execution_service: Annotated[PlanExecutionService, Depends(get_plan_execution_service)],
+) -> PlanActionsRead:
+    try:
+        actions_data = await execution_service.get_plan_actions(current_user.id, plan_id)
+        return PlanActionsRead(
+            plan_id=actions_data.plan_id,
+            plan_status=actions_data.plan_status,
+            items=[
+                PlanItemActionsRead(
+                    item_id=item_acts.item_id,
+                    item_name=item_acts.item_name,
+                    item_status=item_acts.item_status,
+                    actions=[ExecutionActionRead.from_domain(a) for a in item_acts.actions],
+                )
+                for item_acts in actions_data.items
+            ],
+        )
+    except PlanningNotFoundError as exc:
+        raise _not_found(exc) from exc
+
+
+@router.post("/plans/{plan_id}/items/{item_id}/actions/execute", response_model=ExecutionResultRead)
+async def execute_plan_action(
+    plan_id: UUID,
+    item_id: UUID,
+    body: ExecuteActionRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    execution_service: Annotated[PlanExecutionService, Depends(get_plan_execution_service)],
+) -> ExecutionResultRead:
+    try:
+        result = await execution_service.execute_action(
+            current_user.id, plan_id, item_id, body.action_type, body.target_url
+        )
+        return ExecutionResultRead.from_domain(result)
+    except (PlanningNotFoundError, PlanItemNotFoundError) as exc:
+        raise _not_found(exc) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/plans/{plan_id}/items/{item_id}/complete", response_model=PlanItemRead)
+async def complete_item(
+    plan_id: UUID,
+    item_id: UUID,
+    current_user: Annotated[User, Depends(get_current_user)],
+    execution_service: Annotated[PlanExecutionService, Depends(get_plan_execution_service)],
+) -> PlanItemRead:
+    try:
+        item = await execution_service.complete_item(current_user.id, plan_id, item_id)
+        return PlanItemRead.from_item(item)
+    except (PlanningNotFoundError, PlanItemNotFoundError) as exc:
+        raise _not_found(exc) from exc
+
+
+@router.post("/plans/{plan_id}/items/{item_id}/uncomplete", response_model=PlanItemRead)
+async def uncomplete_item(
+    plan_id: UUID,
+    item_id: UUID,
+    current_user: Annotated[User, Depends(get_current_user)],
+    execution_service: Annotated[PlanExecutionService, Depends(get_plan_execution_service)],
+) -> PlanItemRead:
+    try:
+        item = await execution_service.uncomplete_item(current_user.id, plan_id, item_id)
+        return PlanItemRead.from_item(item)
+    except (PlanningNotFoundError, PlanItemNotFoundError) as exc:
+        raise _not_found(exc) from exc

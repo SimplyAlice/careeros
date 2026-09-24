@@ -120,6 +120,9 @@ def evaluate_place(place: Place, criteria: DecisionCriteria) -> DecisionCandidat
         opening_hours=place.opening_hours,
         freshness=place.freshness,
         verified_at=place.verified_at,
+        source_url=place.source_url,
+        phone=place.phone,
+        reservation_url=place.reservation_url,
     )
 
 
@@ -185,6 +188,9 @@ def evaluate_activity(activity: Activity, criteria: DecisionCriteria) -> Decisio
         address=activity.address,
         freshness=activity.freshness,
         verified_at=activity.verified_at,
+        source_url=activity.source_url,
+        phone=activity.phone,
+        reservation_url=activity.reservation_url,
     )
 
 

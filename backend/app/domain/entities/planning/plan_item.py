@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from uuid import UUID, uuid4
+
+from app.domain.entities.planning.execution import PlanItemStatus
 
 
 class PlanItemType(str, Enum):
@@ -27,6 +31,7 @@ class PlanItem:
     estimated_cost: Decimal | None = None
     location: str | None = None
     position: int = 0
+    status: PlanItemStatus = PlanItemStatus.PLANNED
 
     def __post_init__(self) -> None:
         if not self.name.strip():
@@ -41,6 +46,9 @@ class PlanItem:
         if self.start_time and self.end_time and self.end_time < self.start_time:
             raise ValueError("End time cannot be before start time.")
 
+        if isinstance(self.status, str):
+            self.status = PlanItemStatus(self.status)
+
     @property
     def duration_minutes(self) -> int | None:
         if self.start_time is None or self.end_time is None:
@@ -51,8 +59,10 @@ class PlanItem:
         for attribute, value in changes.items():
             if attribute not in {
                 "name", "item_type", "description", "start_time", "end_time",
-                "estimated_cost", "location", "position",
+                "estimated_cost", "location", "position", "status",
             }:
                 continue
+            if attribute == "status" and isinstance(value, str):
+                value = PlanItemStatus(value)
             setattr(self, attribute, value)
         self.__post_init__()

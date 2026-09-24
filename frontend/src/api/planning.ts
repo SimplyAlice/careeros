@@ -2,9 +2,12 @@ import { apiClient } from './client';
 import type {
   CreatePlanFromIntentRequest,
   DecisionCandidateRead,
+  ExecutionActionType,
+  ExecutionResultRead,
+  PlanActionsRead,
+  PlanAdaptationRead,
   PlanItemRead,
   PlanRead,
-  PlanAdaptationRead,
   RecommendationResponse,
   SelectOptionRequest,
 } from '../types/planning';
@@ -26,35 +29,38 @@ export async function createPlanFromIntent(request: string): Promise<PlanRead> {
  * Endpoint: GET /api/v1/planning/plans/{plan_id}
  */
 export async function getPlan(planId: string): Promise<PlanRead> {
-  return apiClient<PlanRead>(`/planning/plans/${planId}`, {
-    method: 'GET',
-  });
+  return apiClient<PlanRead>(`/planning/plans/${planId}`);
 }
 
 /**
- * Retrieves recommendations tailored to the specified plan.
+ * Retrieves algorithmic recommendations for a plan based on its context.
  * Endpoint: GET /api/v1/planning/plans/{plan_id}/recommendations
  */
 export async function getPlanRecommendations(
   planId: string
 ): Promise<RecommendationResponse> {
   return apiClient<RecommendationResponse>(
-    `/planning/plans/${planId}/recommendations`,
-    { method: 'GET' }
+    `/planning/plans/${planId}/recommendations`
   );
 }
 
 /**
- * Adds an authoritative recommendation candidate to the plan.
+ * Explicitly adds an option to the plan as a PlanItem.
  * Endpoint: POST /api/v1/planning/plans/{plan_id}/items/from-option
  */
 export async function addOptionToPlan(
   planId: string,
-  candidate: DecisionCandidateRead
+  candidate: DecisionCandidateRead,
+  position?: number,
+  startTime?: string,
+  endTime?: string
 ): Promise<PlanItemRead> {
   const body: SelectOptionRequest = {
     option_id: candidate.option_id,
     option_type: candidate.option_type,
+    position,
+    start_time: startTime || null,
+    end_time: endTime || null,
   };
 
   return apiClient<PlanItemRead>(`/planning/plans/${planId}/items/from-option`, {
@@ -64,7 +70,7 @@ export async function addOptionToPlan(
 }
 
 /**
- * Modifies an existing plan using a conversational request while retaining context.
+ * Modifies an existing plan using a conversational tweak.
  * Endpoint: POST /api/v1/planning/plans/{plan_id}/modifications
  */
 export async function modifyPlan(
@@ -78,7 +84,7 @@ export async function modifyPlan(
 }
 
 /**
- * Proposes a non-destructive plan adaptation with diffs.
+ * Proposes a non-destructive plan adaptation without committing it.
  * Endpoint: POST /api/v1/planning/plans/{plan_id}/adapt
  */
 export async function proposePlanAdaptation(
@@ -103,4 +109,63 @@ export async function applyPlanAdaptation(
     method: 'POST',
     body: JSON.stringify({ request }),
   });
+}
+
+/**
+ * Retrieves all available execution actions for a saved plan.
+ * Endpoint: GET /api/v1/planning/plans/{plan_id}/actions
+ */
+export async function getPlanActions(planId: string): Promise<PlanActionsRead> {
+  return apiClient<PlanActionsRead>(`/planning/plans/${planId}/actions`);
+}
+
+/**
+ * Executes a specific action on a plan item.
+ * Endpoint: POST /api/v1/planning/plans/{plan_id}/items/{item_id}/actions/execute
+ */
+export async function executePlanAction(
+  planId: string,
+  itemId: string,
+  actionType: ExecutionActionType,
+  targetUrl?: string | null
+): Promise<ExecutionResultRead> {
+  return apiClient<ExecutionResultRead>(
+    `/planning/plans/${planId}/items/${itemId}/actions/execute`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ action_type: actionType, target_url: targetUrl || null }),
+    }
+  );
+}
+
+/**
+ * Marks an individual plan item as complete.
+ * Endpoint: POST /api/v1/planning/plans/{plan_id}/items/{item_id}/complete
+ */
+export async function completePlanItem(
+  planId: string,
+  itemId: string
+): Promise<PlanItemRead> {
+  return apiClient<PlanItemRead>(
+    `/planning/plans/${planId}/items/${itemId}/complete`,
+    {
+      method: 'POST',
+    }
+  );
+}
+
+/**
+ * Uncompletes an individual plan item.
+ * Endpoint: POST /api/v1/planning/plans/{plan_id}/items/{item_id}/uncomplete
+ */
+export async function uncompletePlanItem(
+  planId: string,
+  itemId: string
+): Promise<PlanItemRead> {
+  return apiClient<PlanItemRead>(
+    `/planning/plans/${planId}/items/${itemId}/uncomplete`,
+    {
+      method: 'POST',
+    }
+  );
 }

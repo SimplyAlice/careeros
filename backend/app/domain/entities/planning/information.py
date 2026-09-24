@@ -62,6 +62,8 @@ class Place:
     freshness: str = "fixture"
     verified_at: str | None = None
     source_url: str | None = None
+    phone: str | None = None
+    reservation_url: str | None = None
 
     def __post_init__(self) -> None:
         if not self.name.strip():
@@ -97,6 +99,8 @@ class Activity:
     freshness: str = "fixture"
     verified_at: str | None = None
     source_url: str | None = None
+    phone: str | None = None
+    reservation_url: str | None = None
 
     def __post_init__(self) -> None:
         if not self.name.strip():

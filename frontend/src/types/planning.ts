@@ -101,6 +101,7 @@ export interface PlanItemRead {
   estimated_cost: string | number | null;
   location: string | null;
   position: number;
+  status?: string;
 }
 
 export interface BudgetRead {
@@ -198,4 +199,52 @@ export interface PlanAdaptationRead {
 
 export interface ApplyAdaptationRequest {
   request: string;
+}
+
+export type ExecutionActionType =
+  | 'open_website'
+  | 'directions'
+  | 'call'
+  | 'reserve'
+  | 'add_to_calendar'
+  | 'mark_complete';
+
+export type ExecutionActionStatus =
+  | 'available'
+  | 'in_progress'
+  | 'completed'
+  | 'failed'
+  | 'unavailable';
+
+export interface ExecutionActionRead {
+  id: string;
+  item_id: string;
+  action_type: ExecutionActionType;
+  label: string;
+  target_url?: string | null;
+  is_available: boolean;
+  status: ExecutionActionStatus;
+  description?: string | null;
+}
+
+export interface PlanItemActionsRead {
+  item_id: string;
+  item_name: string;
+  item_status: string;
+  actions: ExecutionActionRead[];
+}
+
+export interface PlanActionsRead {
+  plan_id: string;
+  plan_status: string;
+  items: PlanItemActionsRead[];
+}
+
+export interface ExecutionResultRead {
+  action_type: string;
+  status: string;
+  message: string;
+  target_url?: string | null;
+  item_status: string;
+  plan_status: string;
 }

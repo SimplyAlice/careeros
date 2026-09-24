@@ -34,6 +34,7 @@ from app.application.operations.incident_investigation import IncidentInvestigat
 from app.application.operations.operations_service import OperationsService
 from app.application.planning.adaptation_service import PlanAdaptationService
 from app.application.planning.decision_service import PlanningDecisionService
+from app.application.planning.execution_service import PlanExecutionService
 from app.application.planning.information import PlanningInformationService
 from app.application.planning.intent_interpreter import IntentInterpreter
 from app.application.planning.planning_service import PlanningService
@@ -322,6 +323,7 @@ __all__ = [
     "get_plan_selection_service",
     "get_planning_understanding_service",
     "get_plan_adaptation_service",
+    "get_plan_execution_service",
 ]
 def get_planning_understanding_service() -> PlanningUnderstandingPort:
     return DeterministicUnderstandingEngine()
@@ -378,3 +380,10 @@ def get_plan_adaptation_service(
     information: Annotated[PlanningInformationService, Depends(get_planning_information_service)],
 ) -> PlanAdaptationService:
     return PlanAdaptationService(plans, decision, information)
+
+
+def get_plan_execution_service(
+    plans: Annotated[PlanningService, Depends(get_planning_service)],
+    information: Annotated[PlanningInformationService, Depends(get_planning_information_service)],
+) -> PlanExecutionService:
+    return PlanExecutionService(plans, information)

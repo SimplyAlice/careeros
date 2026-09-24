@@ -60,6 +60,7 @@ PLACES_CATALOG: tuple[Place, ...] = (
         freshness=FreshnessKind.RECENTLY_VERIFIED,
         verified_at="2026-09",
         source_url="https://www.sanbi.org/gardens/kirstenbosch/",
+        phone="+27 21 799 8783",
     ),
     Place(
         id=UUID("30000000-0000-0000-0000-000000000002"),
@@ -79,6 +80,7 @@ PLACES_CATALOG: tuple[Place, ...] = (
         freshness=FreshnessKind.RECENTLY_VERIFIED,
         verified_at="2026-09",
         source_url="https://tablemountain.net/",
+        phone="+27 21 424 8181",
     ),
     Place(
         id=UUID("30000000-0000-0000-0000-000000000003"),
@@ -157,6 +159,7 @@ PLACES_CATALOG: tuple[Place, ...] = (
         freshness=FreshnessKind.RECENTLY_VERIFIED,
         verified_at="2026-09",
         source_url="https://zeitzmocaa.museum/",
+        phone="+27 87 350 4777",
     ),
     Place(
         id=UUID("30000000-0000-0000-0000-000000000007"),
@@ -235,6 +238,8 @@ PLACES_CATALOG: tuple[Place, ...] = (
         freshness=FreshnessKind.RECENTLY_VERIFIED,
         verified_at="2026-09",
         source_url="https://www.kloofstreethouse.co.za/",
+        phone="+27 21 423 1260",
+        reservation_url="https://www.kloofstreethouse.co.za/reservations",
     ),
     Place(
         id=UUID("30000000-0000-0000-0000-000000000011"),
@@ -254,6 +259,7 @@ PLACES_CATALOG: tuple[Place, ...] = (
         freshness=FreshnessKind.RECENTLY_VERIFIED,
         verified_at="2026-09",
         source_url="https://truth.capetown/",
+        phone="+27 21 200 0440",
     ),
     Place(
         id=UUID("30000000-0000-0000-0000-000000000012"),
@@ -273,6 +279,7 @@ PLACES_CATALOG: tuple[Place, ...] = (
         freshness=FreshnessKind.RECENTLY_VERIFIED,
         verified_at="2026-09",
         source_url="https://marias.org.za/",
+        phone="+27 21 461 3333",
     ),
     Place(
         id=UUID("30000000-0000-0000-0000-000000000013"),
@@ -311,6 +318,8 @@ PLACES_CATALOG: tuple[Place, ...] = (
         freshness=FreshnessKind.RECENTLY_VERIFIED,
         verified_at="2026-09",
         source_url="https://grandpavilion.co.za/",
+        phone="+27 21 206 6360",
+        reservation_url="https://grandpavilion.co.za/reservations",
     ),
     Place(
         id=UUID("30000000-0000-0000-0000-000000000015"),
@@ -330,6 +339,8 @@ PLACES_CATALOG: tuple[Place, ...] = (
         freshness=FreshnessKind.RECENTLY_VERIFIED,
         verified_at="2026-09",
         source_url="https://thepotluckclub.co.za/",
+        phone="+27 21 447 0804",
+        reservation_url="https://thepotluckclub.co.za/booking",
     ),
     Place(
         id=UUID("30000000-0000-0000-0000-000000000016"),
@@ -349,6 +360,8 @@ PLACES_CATALOG: tuple[Place, ...] = (
         freshness=FreshnessKind.RECENTLY_VERIFIED,
         verified_at="2026-09",
         source_url="https://lacolombe.restaurant/",
+        phone="+27 21 794 2390",
+        reservation_url="https://lacolombe.restaurant/booking",
     ),
 
     # --- ENTERTAINMENT & LEISURE ------------------------------------------------
@@ -370,6 +383,7 @@ PLACES_CATALOG: tuple[Place, ...] = (
         freshness=FreshnessKind.RECENTLY_VERIFIED,
         verified_at="2026-09",
         source_url="https://www.thelabia.co.za/",
+        phone="+27 21 424 5927",
     ),
     Place(
         id=UUID("30000000-0000-0000-0000-000000000018"),
@@ -389,6 +403,7 @@ PLACES_CATALOG: tuple[Place, ...] = (
         freshness=FreshnessKind.RECENTLY_VERIFIED,
         verified_at="2026-09",
         source_url="https://www.aquarium.co.za/",
+        phone="+27 21 418 3823",
     ),
 
     # --- SHOPPING & MARKETS -----------------------------------------------------

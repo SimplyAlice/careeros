@@ -97,6 +97,7 @@ class SqlAlchemyPlanRepository(PlanRepository):
         row.name, row.item_type, row.description = item.name, item.item_type, item.description
         row.start_time, row.end_time = item.start_time, item.end_time
         row.estimated_cost, row.location, row.position = item.estimated_cost, item.location, item.position
+        row.status = item.status.value if hasattr(item.status, "value") else str(item.status)
         await self._session.flush()
         return _to_item(row)
 
@@ -145,10 +146,19 @@ def _constraint_to_model(item: Constraint) -> ConstraintModel:
 
 
 def _item_to_model(item: PlanItem, position: int | None = None) -> PlanItemModel:
-    return PlanItemModel(id=item.id, plan_id=item.plan_id, name=item.name, item_type=item.item_type,
-                         description=item.description, start_time=item.start_time, end_time=item.end_time,
-                         estimated_cost=item.estimated_cost, location=item.location,
-                         position=item.position if position is None else position)
+    return PlanItemModel(
+        id=item.id,
+        plan_id=item.plan_id,
+        name=item.name,
+        item_type=item.item_type,
+        description=item.description,
+        start_time=item.start_time,
+        end_time=item.end_time,
+        estimated_cost=item.estimated_cost,
+        location=item.location,
+        position=item.position if position is None else position,
+        status=item.status.value if hasattr(item.status, "value") else str(item.status),
+    )
 
 
 def _to_plan(row: PlanModel) -> Plan:
@@ -164,6 +174,16 @@ def _to_plan(row: PlanModel) -> Plan:
 
 
 def _to_item(row: PlanItemModel) -> PlanItem:
-    return PlanItem(id=row.id, plan_id=row.plan_id, name=row.name, item_type=row.item_type,
-                    description=row.description, start_time=row.start_time, end_time=row.end_time,
-                    estimated_cost=row.estimated_cost, location=row.location, position=row.position)
+    return PlanItem(
+        id=row.id,
+        plan_id=row.plan_id,
+        name=row.name,
+        item_type=row.item_type,
+        description=row.description,
+        start_time=row.start_time,
+        end_time=row.end_time,
+        estimated_cost=row.estimated_cost,
+        location=row.location,
+        position=row.position,
+        status=row.status,
+    )

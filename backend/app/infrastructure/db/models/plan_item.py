@@ -76,6 +76,13 @@ class PlanItemModel(UUIDPrimaryKeyMixin, Base):
         server_default="0",
     )
 
+    status: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="planned",
+        server_default="planned",
+    )
+
     plan: Mapped[PlanModel] = relationship(
         back_populates="items",
         lazy="selectin",
