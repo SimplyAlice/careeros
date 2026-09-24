@@ -23,6 +23,8 @@ build/
 node_modules/
 frontend/dist/
 frontend/.vite/
+.vercel/
+frontend/.vercel/
 
 # --- Docker --------------------------------------------------------------
 *.pid

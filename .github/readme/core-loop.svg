@@ -1,0 +1,82 @@
+<svg width="1000" height="220" viewBox="0 0 1000 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="loop-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a0f1d"/>
+      <stop offset="100%" stop-color="#0d1424"/>
+    </linearGradient>
+    <linearGradient id="node-line" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="20%" stop-color="#60a5fa"/>
+      <stop offset="40%" stop-color="#818cf8"/>
+      <stop offset="60%" stop-color="#a78bfa"/>
+      <stop offset="80%" stop-color="#c084fc"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&amp;family=JetBrains+Mono:wght@500;600;700&amp;display=swap');
+      .step-num { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; }
+      .step-title { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; fill: #f8fafc; }
+      .step-desc { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; font-weight: 500; fill: #94a3b8; }
+    </style>
+  </defs>
+
+  <!-- Container -->
+  <rect width="1000" height="220" rx="14" fill="url(#loop-bg)" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1.5"/>
+
+  <!-- Connecting Pathway -->
+  <line x1="80" y1="90" x2="920" y2="90" stroke="url(#node-line)" stroke-width="2.5" stroke-dasharray="6 6"/>
+
+  <!-- Step 1: Intention -->
+  <g transform="translate(80, 45)">
+    <circle cx="0" cy="45" r="22" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+    <text x="0" y="50" text-anchor="middle" class="step-num" fill="#38bdf8">01</text>
+    <text x="0" y="92" text-anchor="middle" class="step-title">INTENTION</text>
+    <text x="0" y="110" text-anchor="middle" class="step-desc">Natural voice or text</text>
+    <text x="0" y="126" text-anchor="middle" class="step-desc">No rigid filter forms</text>
+  </g>
+
+  <!-- Step 2: Understand -->
+  <g transform="translate(245, 45)">
+    <circle cx="0" cy="45" r="22" fill="#0f172a" stroke="#60a5fa" stroke-width="2"/>
+    <text x="0" y="50" text-anchor="middle" class="step-num" fill="#60a5fa">02</text>
+    <text x="0" y="92" text-anchor="middle" class="step-title">UNDERSTAND</text>
+    <text x="0" y="110" text-anchor="middle" class="step-desc">Time, budget, guests</text>
+    <text x="0" y="126" text-anchor="middle" class="step-desc">Hard exclusions</text>
+  </g>
+
+  <!-- Step 3: Research -->
+  <g transform="translate(415, 45)">
+    <circle cx="0" cy="45" r="22" fill="#0f172a" stroke="#818cf8" stroke-width="2"/>
+    <text x="0" y="50" text-anchor="middle" class="step-num" fill="#818cf8">03</text>
+    <text x="0" y="92" text-anchor="middle" class="step-title">RESEARCH</text>
+    <text x="0" y="110" text-anchor="middle" class="step-desc">OpenStreetMap spatial</text>
+    <text x="0" y="126" text-anchor="middle" class="step-desc">Operating hours verify</text>
+  </g>
+
+  <!-- Step 4: Plan -->
+  <g transform="translate(585, 45)">
+    <circle cx="0" cy="45" r="22" fill="#0f172a" stroke="#a78bfa" stroke-width="2"/>
+    <text x="0" y="50" text-anchor="middle" class="step-num" fill="#a78bfa">04</text>
+    <text x="0" y="92" text-anchor="middle" class="step-title">PLAN</text>
+    <text x="0" y="110" text-anchor="middle" class="step-desc">Paced transit &amp; dwell</text>
+    <text x="0" y="126" text-anchor="middle" class="step-desc">Budget headroom lock</text>
+  </g>
+
+  <!-- Step 5: Adapt -->
+  <g transform="translate(755, 45)">
+    <circle cx="0" cy="45" r="22" fill="#0f172a" stroke="#c084fc" stroke-width="2"/>
+    <text x="0" y="50" text-anchor="middle" class="step-num" fill="#c084fc">05</text>
+    <text x="0" y="92" text-anchor="middle" class="step-title">ADAPT</text>
+    <text x="0" y="110" text-anchor="middle" class="step-desc">Rain &amp; delay signals</text>
+    <text x="0" y="126" text-anchor="middle" class="step-desc">Non-destructive diff</text>
+  </g>
+
+  <!-- Step 6: Execute -->
+  <g transform="translate(920, 45)">
+    <circle cx="0" cy="45" r="22" fill="#0f172a" stroke="#34d399" stroke-width="2"/>
+    <text x="0" y="50" text-anchor="middle" class="step-num" fill="#34d399">06</text>
+    <text x="0" y="92" text-anchor="middle" class="step-title">EXECUTE</text>
+    <text x="0" y="110" text-anchor="middle" class="step-desc">Google Maps routing</text>
+    <text x="0" y="126" text-anchor="middle" class="step-desc">Calls &amp; .ics sync</text>
+  </g>
+</svg>

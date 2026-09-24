@@ -1,0 +1,111 @@
+<svg width="1000" height="360" viewBox="0 0 1000 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="trans-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a0d17"/>
+      <stop offset="100%" stop-color="#0f1626"/>
+    </linearGradient>
+    <linearGradient id="trans-accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#818cf8"/>
+    </linearGradient>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap');
+      .t-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; fill: #f8fafc; }
+      .t-sub { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 500; fill: #94a3b8; }
+      .t-mono { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; fill: #cbd5e1; }
+      .t-tag { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; fill: #38bdf8; }
+      .t-accent { fill: #38bdf8; }
+      .t-success { fill: #34d399; }
+      .t-amber { fill: #fbbf24; }
+    </style>
+  </defs>
+
+  <!-- Container -->
+  <rect width="1000" height="360" rx="14" fill="url(#trans-bg)" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1.5"/>
+
+  <!-- Left Column: Unstructured Human Input -->
+  <g transform="translate(30, 25)">
+    <rect width="450" height="310" rx="10" fill="#0d1322" stroke="#38bdf8" stroke-opacity="0.25" stroke-width="1.2"/>
+    
+    <!-- Header -->
+    <rect x="18" y="16" width="130" height="22" rx="11" fill="#0f2137"/>
+    <text x="28" y="31" class="t-tag">HUMAN INTENTION</text>
+    
+    <text x="18" y="68" class="t-title">Natural-Language Speech or Text</text>
+    
+    <!-- User Quote Box -->
+    <rect x="18" y="86" width="414" height="64" rx="8" fill="#141c2e" stroke="#ffffff" stroke-opacity="0.06"/>
+    <text x="32" y="112" class="t-mono" fill="#f1f5f9">“I want a cute birthday day out in</text>
+    <text x="32" y="132" class="t-mono" fill="#f1f5f9">Cape Town for 4 people, under R2000.”</text>
+    
+    <!-- Understanding Parsing Breakdown -->
+    <text x="18" y="176" class="t-tag">EXTRACTED CONTEXT &amp; CONSTRAINTS</text>
+    
+    <g transform="translate(18, 192)">
+      <!-- Line 1 -->
+      <circle cx="6" cy="10" r="3" fill="#38bdf8"/>
+      <text x="18" y="14" class="t-mono"><tspan fill="#64748b">Occasion:</tspan> Birthday Celebration</text>
+      <!-- Line 2 -->
+      <circle cx="6" cy="34" r="3" fill="#38bdf8"/>
+      <text x="18" y="38" class="t-mono"><tspan fill="#64748b">Group Size:</tspan> 4 People (Confirmed)</text>
+      <!-- Line 3 -->
+      <circle cx="6" cy="58" r="3" fill="#38bdf8"/>
+      <text x="18" y="62" class="t-mono"><tspan fill="#64748b">Budget Ceiling:</tspan> R2,000 Total (R500 / person)</text>
+      <!-- Line 4 -->
+      <circle cx="6" cy="82" r="3" fill="#38bdf8"/>
+      <text x="18" y="86" class="t-mono"><tspan fill="#64748b">Window:</tspan> Afternoon to Sunset (13:30 – 19:45)</text>
+    </g>
+  </g>
+
+  <!-- Arrow Divider -->
+  <g transform="translate(498, 170)">
+    <circle cx="0" cy="0" r="16" fill="#0f1b2d" stroke="#38bdf8" stroke-opacity="0.4"/>
+    <path d="M-5 -6L3 0L-5 6" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Right Column: Sequenced Living Plan -->
+  <g transform="translate(520, 25)">
+    <rect width="450" height="310" rx="10" fill="#0d1322" stroke="#818cf8" stroke-opacity="0.25" stroke-width="1.2"/>
+    
+    <!-- Header -->
+    <rect x="18" y="16" width="135" height="22" rx="11" fill="#181e3d"/>
+    <text x="28" y="31" class="t-tag" fill="#818cf8">DAYFORM ITINERARY</text>
+    
+    <text x="18" y="68" class="t-title">Coherent Real-World Execution</text>
+
+    <!-- Stop 1 -->
+    <g transform="translate(18, 86)">
+      <rect width="414" height="48" rx="6" fill="#131929" stroke="#ffffff" stroke-opacity="0.05"/>
+      <text x="14" y="22" class="t-mono t-accent">13:30 – 15:00</text>
+      <text x="120" y="22" class="t-mono" fill="#f8fafc" font-weight="600">Truth Coffee Roasting</text>
+      <text x="14" y="38" class="t-mono" fill="#64748b">Buitenkant St · Artisanal Lunch · R680 (Est)</text>
+      <text x="350" y="28" class="t-mono t-success">DIRECTIONS</text>
+    </g>
+
+    <!-- Stop 2 -->
+    <g transform="translate(18, 142)">
+      <rect width="414" height="48" rx="6" fill="#131929" stroke="#ffffff" stroke-opacity="0.05"/>
+      <text x="14" y="22" class="t-mono t-accent">15:30 – 17:15</text>
+      <text x="120" y="22" class="t-mono" fill="#f8fafc" font-weight="600">Kirstenbosch Gardens</text>
+      <text x="14" y="38" class="t-mono" fill="#64748b">Rhodes Dr · Scenic Walkway · R400 (4 tkts)</text>
+      <text x="350" y="28" class="t-mono t-success">DIRECTIONS</text>
+    </g>
+
+    <!-- Stop 3 -->
+    <g transform="translate(18, 198)">
+      <rect width="414" height="48" rx="6" fill="#131929" stroke="#ffffff" stroke-opacity="0.05"/>
+      <text x="14" y="22" class="t-mono t-accent">17:45 – 19:30</text>
+      <text x="120" y="22" class="t-mono" fill="#f8fafc" font-weight="600">The Bungalow Clifton</text>
+      <text x="14" y="38" class="t-mono" fill="#64748b">Victoria Rd · Sunset Drinks &amp; Cake · R570</text>
+      <text x="365" y="28" class="t-mono t-accent">CALL</text>
+    </g>
+
+    <!-- Bottom Ledger -->
+    <g transform="translate(18, 260)">
+      <rect width="414" height="36" rx="6" fill="#08281d" stroke="#10b981" stroke-opacity="0.3"/>
+      <text x="14" y="23" class="t-mono t-success" font-weight="600">TOTAL: R1,650</text>
+      <text x="140" y="23" class="t-mono" fill="#94a3b8">|  Headroom: R350 under budget</text>
+      <text x="348" y="23" class="t-mono t-success">EXPORT .ICS</text>
+    </g>
+  </g>
+</svg>

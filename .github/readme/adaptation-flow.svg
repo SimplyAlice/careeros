@@ -1,0 +1,83 @@
+<svg width="1000" height="200" viewBox="0 0 1000 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="adapt-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a0d18"/>
+      <stop offset="100%" stop-color="#101524"/>
+    </linearGradient>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&amp;family=JetBrains+Mono:wght@500;600;700&amp;display=swap');
+      .ad-num { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; }
+      .ad-title { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; fill: #f8fafc; }
+      .ad-desc { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; fill: #94a3b8; }
+    </style>
+  </defs>
+
+  <rect width="1000" height="200" rx="14" fill="url(#adapt-bg)" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1.5"/>
+
+  <!-- Step 1: Real-World Shift -->
+  <g transform="translate(35, 35)">
+    <rect width="165" height="130" rx="8" fill="#1b1319" stroke="#f43f5e" stroke-opacity="0.4" stroke-width="1.2"/>
+    <circle cx="24" cy="24" r="10" fill="#e11d48"/>
+    <text x="24" y="28" text-anchor="middle" class="ad-num" fill="#ffffff">1</text>
+    <text x="20" y="58" class="ad-title" fill="#f43f5e">SIGNAL SHIFT</text>
+    <text x="20" y="80" class="ad-desc">“Running 45m late”</text>
+    <text x="20" y="96" class="ad-desc">or sudden rain via</text>
+    <text x="20" y="112" class="ad-desc">Open-Meteo alerts</text>
+  </g>
+
+  <!-- Arrow 1 -->
+  <path d="M210 100L228 100" stroke="#f43f5e" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Step 2: Re-evaluation -->
+  <g transform="translate(235, 35)">
+    <rect width="165" height="130" rx="8" fill="#13192c" stroke="#38bdf8" stroke-opacity="0.4" stroke-width="1.2"/>
+    <circle cx="24" cy="24" r="10" fill="#0284c7"/>
+    <text x="24" y="28" text-anchor="middle" class="ad-num" fill="#ffffff">2</text>
+    <text x="20" y="58" class="ad-title" fill="#38bdf8">RE-EVALUATE</text>
+    <text x="20" y="80" class="ad-desc">Deterministic</text>
+    <text x="20" y="96" class="ad-desc">schedule shift</text>
+    <text x="20" y="112" class="ad-desc">without wiping plan</text>
+  </g>
+
+  <!-- Arrow 2 -->
+  <path d="M410 100L428 100" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Step 3: Identify Affected -->
+  <g transform="translate(435, 35)">
+    <rect width="165" height="130" rx="8" fill="#131b26" stroke="#fbbf24" stroke-opacity="0.4" stroke-width="1.2"/>
+    <circle cx="24" cy="24" r="10" fill="#d97706"/>
+    <text x="24" y="28" text-anchor="middle" class="ad-num" fill="#ffffff">3</text>
+    <text x="20" y="58" class="ad-title" fill="#fbbf24">IMPACT DIFF</text>
+    <text x="20" y="80" class="ad-desc">Identifies affected</text>
+    <text x="20" y="96" class="ad-desc">stops (e.g. closing</text>
+    <text x="20" y="112" class="ad-desc">hours buffer check)</text>
+  </g>
+
+  <!-- Arrow 3 -->
+  <path d="M610 100L628 100" stroke="#fbbf24" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Step 4: User Review -->
+  <g transform="translate(635, 35)">
+    <rect width="165" height="130" rx="8" fill="#19162e" stroke="#c084fc" stroke-opacity="0.4" stroke-width="1.2"/>
+    <circle cx="24" cy="24" r="10" fill="#9333ea"/>
+    <text x="24" y="28" text-anchor="middle" class="ad-num" fill="#ffffff">4</text>
+    <text x="20" y="58" class="ad-title" fill="#c084fc">USER REVIEW</text>
+    <text x="20" y="80" class="ad-desc">User reviews</text>
+    <text x="20" y="96" class="ad-desc">diff before</text>
+    <text x="20" y="112" class="ad-desc">applying changes</text>
+  </g>
+
+  <!-- Arrow 4 -->
+  <path d="M810 100L828 100" stroke="#c084fc" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Step 5: Plan Continues -->
+  <g transform="translate(835, 35)">
+    <rect width="130" height="130" rx="8" fill="#0c2419" stroke="#34d399" stroke-opacity="0.4" stroke-width="1.2"/>
+    <circle cx="24" cy="24" r="10" fill="#059669"/>
+    <text x="24" y="28" text-anchor="middle" class="ad-num" fill="#ffffff">5</text>
+    <text x="20" y="58" class="ad-title" fill="#34d399">CONTINUE</text>
+    <text x="20" y="80" class="ad-desc">Day continues</text>
+    <text x="20" y="96" class="ad-desc">with adjusted</text>
+    <text x="20" y="112" class="ad-desc">itinerary</text>
+  </g>
+</svg>

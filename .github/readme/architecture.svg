@@ -1,0 +1,87 @@
+<svg width="1000" height="420" viewBox="0 0 1000 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="arch-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#080c16"/>
+      <stop offset="100%" stop-color="#0c1220"/>
+    </linearGradient>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&amp;family=JetBrains+Mono:wght@500;600;700&amp;display=swap');
+      .a-tier { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.14em; }
+      .a-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13.5px; font-weight: 700; fill: #f8fafc; }
+      .a-sub { font-family: 'JetBrains Mono', monospace; font-size: 11px; fill: #94a3b8; }
+      .a-box { rx: 8px; stroke-width: 1.2px; }
+    </style>
+  </defs>
+
+  <rect width="1000" height="420" rx="14" fill="url(#arch-bg)" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1.5"/>
+
+  <!-- Tier 1: Client Layer -->
+  <g transform="translate(40, 20)">
+    <rect width="920" height="60" class="a-box" fill="#0f172a" stroke="#38bdf8" stroke-opacity="0.35"/>
+    <text x="24" y="24" class="a-tier" fill="#38bdf8">CLIENT PRESENTATION TIER</text>
+    <text x="24" y="46" class="a-title">Dayform Editorial Frontend (React 18 · TypeScript · Vite · Scrollytelling Stage · Adaptation Diffs)</text>
+  </g>
+
+  <!-- Connect 1 -->
+  <line x1="500" y1="80" x2="500" y2="105" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 4"/>
+
+  <!-- Tier 2: API Gateway / FastAPI -->
+  <g transform="translate(40, 105)">
+    <rect width="920" height="58" class="a-box" fill="#0c1a2e" stroke="#60a5fa" stroke-opacity="0.35"/>
+    <text x="24" y="24" class="a-tier" fill="#60a5fa">FASTAPI APPLICATION INTERFACE</text>
+    <text x="24" y="45" class="a-title">REST API Endpoints: /api/v1/auth · /api/v1/planning/requests · /api/v1/planning/adapt · /api/v1/planning/actions</text>
+  </g>
+
+  <!-- Connect 2 -->
+  <line x1="500" y1="163" x2="500" y2="188" stroke="#60a5fa" stroke-width="2" stroke-dasharray="4 4"/>
+
+  <!-- Tier 3: Core Domain & Services (Split 4 columns) -->
+  <g transform="translate(40, 188)">
+    <rect width="920" height="120" class="a-box" fill="#11192e" stroke="#818cf8" stroke-opacity="0.35"/>
+    <text x="24" y="24" class="a-tier" fill="#818cf8">DOMAIN &amp; APPLICATION PLANNING CORE</text>
+
+    <!-- Sub box 1: Understanding -->
+    <g transform="translate(20, 36)">
+      <rect width="205" height="70" rx="6" fill="#18233c" stroke="#ffffff" stroke-opacity="0.08"/>
+      <text x="14" y="24" class="a-title" font-size="12">Intent Interpreter</text>
+      <text x="14" y="44" class="a-sub">Constraint extraction</text>
+      <text x="14" y="58" class="a-sub">Exclusion &amp; party size</text>
+    </g>
+
+    <!-- Sub box 2: Decision Engine -->
+    <g transform="translate(245, 36)">
+      <rect width="205" height="70" rx="6" fill="#18233c" stroke="#ffffff" stroke-opacity="0.08"/>
+      <text x="14" y="24" class="a-title" font-size="12">Decision Engine</text>
+      <text x="14" y="44" class="a-sub">Candidate ranking</text>
+      <text x="14" y="58" class="a-sub">Cost trade-off notes</text>
+    </g>
+
+    <!-- Sub box 3: Temporal & Budget -->
+    <g transform="translate(470, 36)">
+      <rect width="205" height="70" rx="6" fill="#18233c" stroke="#ffffff" stroke-opacity="0.08"/>
+      <text x="14" y="24" class="a-title" font-size="12">Temporal &amp; Budget</text>
+      <text x="14" y="44" class="a-sub">Transit &amp; dwell buffers</text>
+      <text x="14" y="58" class="a-sub">Headroom invariants</text>
+    </g>
+
+    <!-- Sub box 4: Adaptation & Exec -->
+    <g transform="translate(695, 36)">
+      <rect width="205" height="70" rx="6" fill="#18233c" stroke="#ffffff" stroke-opacity="0.08"/>
+      <text x="14" y="24" class="a-title" font-size="12">Adaptation &amp; Exec</text>
+      <text x="14" y="44" class="a-sub">Non-destructive diffs</text>
+      <text x="14" y="58" class="a-sub">Maps, phone, calendar</text>
+    </g>
+  </g>
+
+  <!-- Connect 3 -->
+  <line x1="500" y1="308" x2="500" y2="333" stroke="#818cf8" stroke-width="2" stroke-dasharray="4 4"/>
+
+  <!-- Tier 4: Infrastructure & External Providers -->
+  <g transform="translate(40, 333)">
+    <rect width="920" height="66" class="a-box" fill="#0d1822" stroke="#34d399" stroke-opacity="0.35"/>
+    <text x="24" y="22" class="a-tier" fill="#34d399">INFRASTRUCTURE &amp; EXTERNAL PROVIDERS</text>
+    <text x="24" y="46" class="a-sub" fill="#e2e8f0">
+      PostgreSQL 15+ (asyncpg/Alembic) · Redis 7+ Cache · OpenStreetMap (Overpass spatial + Nominatim) · Open-Meteo API
+    </text>
+  </g>
+</svg>

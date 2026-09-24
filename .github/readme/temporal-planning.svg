@@ -1,0 +1,61 @@
+<svg width="1000" height="180" viewBox="0 0 1000 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="time-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a0e1a"/>
+      <stop offset="100%" stop-color="#0e1424"/>
+    </linearGradient>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&amp;family=JetBrains+Mono:wght@500;600;700&amp;display=swap');
+      .time-label { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; fill: #38bdf8; }
+      .stop-name { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 700; fill: #f8fafc; }
+      .stop-meta { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; fill: #94a3b8; }
+      .buffer-text { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; fill: #f59e0b; }
+    </style>
+  </defs>
+
+  <rect width="1000" height="180" rx="14" fill="url(#time-bg)" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1.5"/>
+
+  <!-- Timeline Bar Background -->
+  <line x1="60" y1="90" x2="940" y2="90" stroke="#ffffff" stroke-opacity="0.1" stroke-width="3"/>
+
+  <!-- Stop 1: 13:00 - 14:30 Lunch -->
+  <g transform="translate(60, 40)">
+    <rect width="210" height="100" rx="8" fill="#11182c" stroke="#38bdf8" stroke-opacity="0.3" stroke-width="1.2"/>
+    <text x="14" y="26" class="time-label">13:00 – 14:30</text>
+    <text x="14" y="52" class="stop-name">Artisanal Lunch</text>
+    <text x="14" y="74" class="stop-meta">Dwell: 90 mins</text>
+    <text x="14" y="90" class="stop-meta">Verified Kitchen Hours</text>
+  </g>
+
+  <!-- Buffer 1: Transit 20m -->
+  <g transform="translate(285, 68)">
+    <rect width="70" height="44" rx="6" fill="#2d1c08" stroke="#f59e0b" stroke-opacity="0.4" stroke-width="1"/>
+    <text x="35" y="22" text-anchor="middle" class="buffer-text">TRANSIT</text>
+    <text x="35" y="36" text-anchor="middle" class="buffer-text">+20 MINS</text>
+  </g>
+
+  <!-- Stop 2: 14:50 - 16:30 Activity -->
+  <g transform="translate(370, 40)">
+    <rect width="210" height="100" rx="8" fill="#11182c" stroke="#818cf8" stroke-opacity="0.3" stroke-width="1.2"/>
+    <text x="14" y="26" class="time-label" fill="#818cf8">14:50 – 16:30</text>
+    <text x="14" y="52" class="stop-name">Botanical Garden Walk</text>
+    <text x="14" y="74" class="stop-meta">Dwell: 100 mins</text>
+    <text x="14" y="90" class="stop-meta">Daylight Operating Window</text>
+  </g>
+
+  <!-- Buffer 2: Transit 25m -->
+  <g transform="translate(595, 68)">
+    <rect width="70" height="44" rx="6" fill="#2d1c08" stroke="#f59e0b" stroke-opacity="0.4" stroke-width="1"/>
+    <text x="35" y="22" text-anchor="middle" class="buffer-text">TRANSIT</text>
+    <text x="35" y="36" text-anchor="middle" class="buffer-text">+25 MINS</text>
+  </g>
+
+  <!-- Stop 3: 16:55 - 18:30 Sunset Drinks -->
+  <g transform="translate(680, 40)">
+    <rect width="240" height="100" rx="8" fill="#11182c" stroke="#c084fc" stroke-opacity="0.3" stroke-width="1.2"/>
+    <text x="14" y="26" class="time-label" fill="#c084fc">16:55 – 18:30</text>
+    <text x="14" y="52" class="stop-name">Coastal Sunset Drinks</text>
+    <text x="14" y="74" class="stop-meta">Dwell: 95 mins</text>
+    <text x="14" y="90" class="stop-meta">Synced with Sunset (18:14)</text>
+  </g>
+</svg>
