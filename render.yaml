@@ -24,7 +24,7 @@ services:
           name: dayform-redis
           property: connectionString
       - key: BACKEND_CORS_ORIGINS
-        value: '["https://dayform-live.vercel.app"]'
+        value: '["http://localhost:5173", "https://dayform-live.vercel.app"]'
       - key: LOG_LEVEL
         value: INFO
       - key: PLANNING_PROVIDER
