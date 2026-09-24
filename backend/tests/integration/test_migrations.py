@@ -32,7 +32,19 @@ import pytest
 from app.core.config import get_settings
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
+import socket
+
 TEST_DB_NAME = "careeros_alembic_migration_test"
+
+
+def _resolve_host(url: str) -> str:
+    if "@postgres:" in url:
+        try:
+            socket.gethostbyname("postgres")
+            return url
+        except socket.gaierror:
+            return url.replace("@postgres:", "@localhost:")
+    return url
 
 
 def _admin_dsn(settings_database_url: str) -> str:
@@ -46,8 +58,9 @@ def _admin_dsn(settings_database_url: str) -> str:
 async def migration_test_database_url() -> str:
     """Creates a disposable database for this test only, and drops it afterward."""
     settings = get_settings()
-    admin_dsn = _admin_dsn(settings.database_url)
-
+    admin_dsn = _admin_dsn(
+        _resolve_host(settings.database_url)
+    )
     admin_conn = await asyncpg.connect(admin_dsn + "/postgres")
     try:
         await admin_conn.execute(f'DROP DATABASE IF EXISTS "{TEST_DB_NAME}" WITH (FORCE)')

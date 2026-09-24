@@ -31,8 +31,24 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
+import socket
+
 settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.database_url)
+
+
+def _resolve_db_url(url: str) -> str:
+    if "@postgres:" in url:
+        try:
+            socket.gethostbyname("postgres")
+            return url
+        except socket.gaierror:
+            return url.replace("@postgres:", "@localhost:")
+    return url
+
+
+alembic_database_url = _resolve_db_url(settings.database_url)
+
+config.set_main_option("sqlalchemy.url", alembic_database_url)
 
 
 def run_migrations_offline() -> None:
@@ -56,7 +72,7 @@ def do_run_migrations(connection) -> None:  # type: ignore[no-untyped-def]
 
 async def run_migrations_online() -> None:
     """Run migrations in 'online' mode against a live async database connection."""
-    connectable: AsyncEngine = create_async_engine(settings.database_url)
+    connectable: AsyncEngine = create_async_engine(alembic_database_url)
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)

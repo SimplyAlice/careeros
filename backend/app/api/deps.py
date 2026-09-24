@@ -32,6 +32,16 @@ from app.application.jobs.ports import JobRepository, JobSourceAdapter
 from app.application.operations.action_recommendation import ActionRecommendationService
 from app.application.operations.incident_investigation import IncidentInvestigationService
 from app.application.operations.operations_service import OperationsService
+from app.application.planning.adaptation_service import PlanAdaptationService
+from app.application.planning.decision_service import PlanningDecisionService
+from app.application.planning.execution_service import PlanExecutionService
+from app.application.planning.information import PlanningInformationService
+from app.application.planning.intent_interpreter import IntentInterpreter
+from app.application.planning.live_intelligence_service import LiveIntelligenceService
+from app.application.planning.planning_service import PlanningService
+from app.application.planning.ports import PlanningInformationProvider, PlanningUnderstandingPort, PlanRepository
+from app.application.planning.selection_service import PlanSelectionService
+from app.application.planning.understanding_service import DeterministicUnderstandingEngine
 from app.application.profile.ports import ProfileRepository
 from app.application.profile.profile_service import ProfileService
 from app.application.scoring.ports import JobMatchRepository, LLMProvider
@@ -54,12 +64,17 @@ from app.infrastructure.db.repositories.operations_repositories import (
     SqlAlchemyEventRepository,
     SqlAlchemyIncidentRepository,
 )
+from app.infrastructure.db.repositories.plan_repository import SqlAlchemyPlanRepository
 from app.infrastructure.db.repositories.profile_repository import SqlAlchemyProfileRepository
 from app.infrastructure.db.repositories.refresh_token_repository import SqlAlchemyRefreshTokenRepository
 from app.infrastructure.db.repositories.service_repository import SqlAlchemyServiceRepository
 from app.infrastructure.db.repositories.user_repository import SqlAlchemyUserRepository
 from app.infrastructure.db.session import get_db_session
 from app.infrastructure.job_sources.adzuna import AdzunaJobSourceAdapter
+from app.infrastructure.planning import (
+    CapeTownFixtureInformationProvider,
+    OpenStreetMapInformationProvider,
+)
 from app.infrastructure.rendering.pdf_renderer import FpdfPdfRenderer
 from app.infrastructure.security.bcrypt_password_hasher import BcryptPasswordHasher
 from app.infrastructure.security.jwt_token_service import JwtTokenService
@@ -300,4 +315,83 @@ __all__ = [
     "get_password_hasher",
     "get_token_service",
     "get_auth_service",
+    "get_intent_interpreter",
+    "get_plan_repository",
+    "get_planning_service",
+    "get_planning_information_provider",
+    "get_planning_information_service",
+    "get_planning_decision_service",
+    "get_plan_selection_service",
+    "get_planning_understanding_service",
+    "get_plan_adaptation_service",
+    "get_plan_execution_service",
 ]
+def get_planning_understanding_service() -> PlanningUnderstandingPort:
+    return DeterministicUnderstandingEngine()
+
+
+def get_intent_interpreter() -> IntentInterpreter:
+    return IntentInterpreter()
+
+
+def get_plan_repository(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> PlanRepository:
+    return SqlAlchemyPlanRepository(session)
+
+
+def get_planning_service(
+    repository: Annotated[PlanRepository, Depends(get_plan_repository)],
+) -> PlanningService:
+    return PlanningService(repository)
+
+
+def get_planning_information_provider(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> PlanningInformationProvider:
+    if settings.planning_provider.lower() == "fixture":
+        return CapeTownFixtureInformationProvider()
+    return OpenStreetMapInformationProvider(
+        timeout_seconds=settings.openstreetmap_timeout_seconds,
+    )
+
+
+def get_planning_information_service(
+    provider: Annotated[PlanningInformationProvider, Depends(get_planning_information_provider)],
+) -> PlanningInformationService:
+    return PlanningInformationService(provider)
+
+
+def get_planning_decision_service(
+    information: Annotated[PlanningInformationService, Depends(get_planning_information_service)],
+) -> PlanningDecisionService:
+    return PlanningDecisionService(information)
+
+
+def get_plan_selection_service(
+    plans: Annotated[PlanningService, Depends(get_planning_service)],
+    information: Annotated[PlanningInformationService, Depends(get_planning_information_service)],
+) -> PlanSelectionService:
+    return PlanSelectionService(plans, information)
+
+
+def get_plan_adaptation_service(
+    plans: Annotated[PlanningService, Depends(get_planning_service)],
+    decision: Annotated[PlanningDecisionService, Depends(get_planning_decision_service)],
+    information: Annotated[PlanningInformationService, Depends(get_planning_information_service)],
+) -> PlanAdaptationService:
+    return PlanAdaptationService(plans, decision, information)
+
+
+def get_plan_execution_service(
+    plans: Annotated[PlanningService, Depends(get_planning_service)],
+    information: Annotated[PlanningInformationService, Depends(get_planning_information_service)],
+) -> PlanExecutionService:
+    return PlanExecutionService(plans, information)
+
+
+def get_live_intelligence_service(
+    plans: Annotated[PlanningService, Depends(get_planning_service)],
+    adaptation: Annotated[PlanAdaptationService, Depends(get_plan_adaptation_service)],
+) -> LiveIntelligenceService:
+    return LiveIntelligenceService(plans, adaptation)

@@ -94,6 +94,13 @@ class Settings(BaseSettings):
     # --- CORS ------------------------------------------------------------------
     backend_cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173"])
 
+    # --- Planning information provider (Milestone 3) ---------------------------
+    # Configures the active real-world planning information provider.
+    # Defaults to "openstreetmap" for live product operation.
+    # Set to "fixture" for deterministic test and demo catalogs.
+    planning_provider: str = Field(default="openstreetmap", description="Active planning information provider ('openstreetmap' or 'fixture').")
+    openstreetmap_timeout_seconds: float = Field(default=3.0, description="HTTP timeout for live OSM geocoder queries.")
+
     # --- Job sources (Milestone 3) --------------------------------------------
     # Optional (default None) so an environment without real Adzuna
     # credentials still starts up normally — the ingestion endpoint returns
