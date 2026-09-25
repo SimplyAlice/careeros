@@ -32,6 +32,8 @@ from app.application.jobs.ports import JobRepository, JobSourceAdapter
 from app.application.operations.action_recommendation import ActionRecommendationService
 from app.application.operations.incident_investigation import IncidentInvestigationService
 from app.application.operations.operations_service import OperationsService
+from app.application.mobility.registry import MobilityProviderRegistry
+from app.application.mobility.service import MobilityService
 from app.application.planning.adaptation_service import PlanAdaptationService
 from app.application.planning.decision_service import PlanningDecisionService
 from app.application.planning.execution_service import PlanExecutionService
@@ -395,3 +397,23 @@ def get_live_intelligence_service(
     adaptation: Annotated[PlanAdaptationService, Depends(get_plan_adaptation_service)],
 ) -> LiveIntelligenceService:
     return LiveIntelligenceService(plans, adaptation)
+
+
+_default_mobility_registry: MobilityProviderRegistry | None = None
+
+
+def get_mobility_registry() -> MobilityProviderRegistry:
+    """Singleton mobility provider registry instance."""
+    global _default_mobility_registry
+    if _default_mobility_registry is None:
+        from app.infrastructure.mobility.providers import create_default_mobility_registry
+
+        _default_mobility_registry = create_default_mobility_registry()
+    return _default_mobility_registry
+
+
+def get_mobility_service(
+    registry: Annotated[MobilityProviderRegistry, Depends(get_mobility_registry)],
+) -> MobilityService:
+    return MobilityService(registry)
+

@@ -10,6 +10,7 @@ from app.api.v1 import (
     health,
     jobs,
     matches,
+    mobility,
     operations,
     planning,
     profile,
@@ -29,3 +30,5 @@ api_router.include_router(services.router)
 api_router.include_router(operations.router)
 api_router.include_router(planning.router)
 api_router.include_router(planning.information_router, prefix="/planning")
+api_router.include_router(mobility.router)
+
