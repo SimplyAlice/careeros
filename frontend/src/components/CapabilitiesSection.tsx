@@ -16,42 +16,42 @@ interface CapabilitiesSectionProps {
 export const CapabilitiesSection: React.FC<CapabilitiesSectionProps> = ({ onStartPlanning }) => {
   const capabilities = [
     {
-      icon: <IconSparkles size={20} className="cap-icon-cognac" />,
+      icon: <IconSparkles size={20} className="cap-icon-coral" />,
       tag: 'PARSING',
       title: 'Implicit Context Extraction',
       description:
         'Plain text intention becomes structured reality. Dayform parses dates, time-of-day, group sizes, and budget constraints without making you click through dropdown forms.',
     },
     {
-      icon: <IconClock size={20} className="cap-icon-cognac" />,
+      icon: <IconClock size={20} className="cap-icon-coral" />,
       tag: 'SEQUENCING',
       title: 'Temporal & Spatial Logic',
       description:
         'Stops aren’t just recommended—they are sequenced logically. Dayform checks travel buffers, realistic stop durations, and verified operating hours so you never face a locked door.',
     },
     {
-      icon: <IconRefresh size={20} className="cap-icon-cognac" />,
+      icon: <IconRefresh size={20} className="cap-icon-coral" />,
       tag: 'ADAPTIVE',
       title: 'Conversational Replanning',
       description:
         'Life changes. Running 45 minutes late? Need a cheaper alternative? Tell Dayform conversationally and the engine recalibrates your plan while keeping intact stops preserved.',
     },
     {
-      icon: <IconWallet size={20} className="cap-icon-cognac" />,
+      icon: <IconWallet size={20} className="cap-icon-coral" />,
       tag: 'BUDGETS',
       title: 'Deterministic Budget Tracking',
       description:
         'Never get surprised by the bill. Dayform tallies real venue price levels and tracks remaining headroom against your strict ceiling, showing transparent per-person breakdowns.',
     },
     {
-      icon: <IconNavigation size={20} className="cap-icon-cognac" />,
+      icon: <IconNavigation size={20} className="cap-icon-coral" />,
       tag: 'EXECUTION',
       title: 'Real-World Execution',
       description:
         'One tap opens directions in Google Maps, initiates direct phone calls, or opens venue websites. Check off stops as you complete them to keep your active day organized.',
     },
     {
-      icon: <IconActivity size={20} className="cap-icon-cognac" />,
+      icon: <IconActivity size={20} className="cap-icon-coral" />,
       tag: 'MONITORING',
       title: 'Live Intelligence & Health',
       description:
