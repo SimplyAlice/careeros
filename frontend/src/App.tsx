@@ -334,15 +334,17 @@ export const App: React.FC = () => {
           <div className="landing-view-container">
             {/* Active Plan Resumption Banner (if user navigated to overview while a plan is active) */}
             {hasActivePlan && (
-              <div className="active-plan-banner" onClick={() => setViewMode('workspace')}>
-                <div className="active-plan-banner-text">
-                  <span className="live-status-dot" />
-                  <span>You have an active plan in progress: <strong>“{submittedIntent}”</strong></span>
+              <div className="landing-banner-wrap">
+                <div className="active-plan-banner" onClick={() => setViewMode('workspace')}>
+                  <div className="active-plan-banner-text">
+                    <span className="live-status-dot" />
+                    <span>You have an active plan in progress: <strong>“{submittedIntent}”</strong></span>
+                  </div>
+                  <button type="button" className="active-plan-banner-btn">
+                    <span>Resume plan</span>
+                    <span className="banner-arrow">→</span>
+                  </button>
                 </div>
-                <button type="button" className="active-plan-banner-btn">
-                  <span>Resume plan</span>
-                  <span className="banner-arrow">→</span>
-                </button>
               </div>
             )}
 

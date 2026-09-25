@@ -106,118 +106,125 @@ export const IntentInput = forwardRef<IntentInputHandle, IntentInputProps>(
 
     return (
       <section id="hero-input" className="hero-editorial-stage">
-        {/* Massive Brand Watermark */}
-        <div className="hero-brand-masthead">
-          <span className="masthead-name">DAYFORM</span>
-          <span className="masthead-edition">EDITION 2026 · ISSUE NO. 12</span>
-        </div>
-
-        {/* Dramatic Hero Content Block */}
-        <div className="hero-headline-block">
-          <div className="hero-tag-row">
-            <span className="hero-tag-pill">REAL-WORLD PLANNING ENGINE</span>
-            <span className="hero-tag-location">CAPE TOWN & SURROUNDS</span>
+        <div className="hero-stage-container">
+          {/* Massive Brand Masthead */}
+          <div className="hero-brand-masthead">
+            <span className="masthead-name">DAYFORM</span>
+            <span className="masthead-edition">EDITION 2026 · ISSUE NO. 12</span>
           </div>
 
-          <h1 className="hero-editorial-title">
-            Give shape <br />
-            <em>to your day.</em>
-          </h1>
-
-          <div className="hero-promise-callout">
-            <p className="hero-promise-lead">
-              Tell me what you want to do. <br />
-              <span className="hero-promise-accent">I’ll figure out the rest.</span>
-            </p>
-            <p className="hero-promise-sub">
-              No 15 open tabs. No manual spreadsheet of closing times. No budget guesswork.
-              Describe your day in human words—Dayform evaluates real places, verified operating hours,
-              transit times, and budgets to compose an unhurried, coherent journey.
-            </p>
-          </div>
-        </div>
-
-        {/* High-Contrast Command Surface */}
-        <div className={`hero-command-container ${isFocused ? 'focused' : ''}`}>
-          <form onSubmit={handleSubmit} className="hero-command-form">
-            <div className="command-input-slot">
-              <label htmlFor="intent-input" className="command-input-label">
-                ENTER INTENTION / MOOD / CONSTRAINTS:
-              </label>
-              <textarea
-                id="intent-input"
-                ref={textareaRef}
-                className="hero-command-textarea"
-                rows={3}
-                value={intent}
-                onChange={(e) => setIntent(e.target.value)}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                onKeyDown={handleKeyDown}
-                placeholder="“Plan a cute birthday afternoon for four under R1,500” or “I’m bored. I have R300 and the afternoon free...”"
-                disabled={isLoading}
-              />
+          {/* Dramatic Hero Content Block */}
+          <div className="hero-headline-block">
+            <div className="hero-tag-row">
+              <span className="hero-tag-pill">REAL-WORLD PLANNING ENGINE</span>
+              <span className="hero-tag-location">CAPE TOWN & SURROUNDS</span>
             </div>
 
-            <div className="command-footer-strip">
-              <span className="command-key-hint">PRESS ↵ ENTER TO GENERATE</span>
+            <h1 className="hero-editorial-title">
+              Give shape <br />
+              <em>to your day.</em>
+            </h1>
 
-              <button
-                type="submit"
-                className="hero-command-cta"
-                disabled={isLoading || !intent.trim()}
-                aria-label="Generate itinerary"
-              >
-                {isLoading ? (
-                  <span className="cta-loading-state">
-                    <span className="cta-spinner" />
-                    <span>COMPOSING ITINERARY...</span>
-                  </span>
-                ) : (
-                  <span className="cta-label-state">
-                    <span>GIVE IT SHAPE</span>
-                    <IconArrowRight size={16} className="cta-arrow" />
-                  </span>
-                )}
-              </button>
+            <div className="hero-promise-callout">
+              <p className="hero-promise-lead">
+                Tell me what you want to do. <br />
+                <span className="hero-promise-accent">I’ll figure out the rest.</span>
+              </p>
+              <p className="hero-promise-sub">
+                No 15 open tabs. No manual spreadsheet of closing times. No budget guesswork.
+                Describe your day in human words—Dayform evaluates real places, verified operating hours,
+                transit times, and budgets to compose an unhurried, coherent journey.
+              </p>
             </div>
-          </form>
-        </div>
-
-        {/* Editorial Intention Prompts Grid */}
-        <div className="hero-curated-prompts">
-          <div className="curated-prompts-header">
-            <span className="prompts-kicker">CURATED STARTING POINTS</span>
-            <span className="prompts-rule" />
           </div>
 
-          <div className="prompts-editorial-grid">
-            {EDITORIAL_PROMPTS.map((item) => {
-              const isSelected = intent === item.prompt;
-              return (
-                <button
-                  key={item.title}
-                  type="button"
-                  className={`editorial-prompt-node ${isSelected ? 'active' : ''}`}
-                  onClick={() => handleSelectPrompt(item.prompt)}
+          {/* High-Contrast Command Surface */}
+          <div className={`hero-command-container ${isFocused ? 'focused' : ''}`}>
+            <form onSubmit={handleSubmit} className="hero-command-form">
+              <div className="hero-command-box command-input-slot">
+                <label htmlFor="intent-input" className="command-input-label">
+                  ENTER INTENTION / MOOD / CONSTRAINTS:
+                </label>
+                <textarea
+                  id="intent-input"
+                  ref={textareaRef}
+                  className="hero-command-textarea"
+                  rows={3}
+                  value={intent}
+                  onChange={(e) => setIntent(e.target.value)}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="“Plan a cute birthday afternoon for four under R1,500” or “I’m bored. I have R300 and the afternoon free...”"
                   disabled={isLoading}
-                >
-                  <div className="prompt-node-top">
-                    <span className="prompt-node-tag">{item.tag}</span>
-                    <span className="prompt-node-arrow">→</span>
-                  </div>
-                  <h3 className="prompt-node-title">{item.title}</h3>
-                  <span className="prompt-node-meta">{item.meta}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+                />
+              </div>
 
-        {/* Scroll Cue to Engine Mechanics */}
-        <div className="hero-scroll-trigger" onClick={handleScrollDown} role="button" tabIndex={0}>
-          <span className="scroll-label">HOW THE ENGINE THINKS</span>
-          <IconArrowDown size={14} className="scroll-icon" />
+              <div className="hero-command-action-row command-footer-strip">
+                <span className="command-key-hint">PRESS ↵ ENTER TO GENERATE</span>
+
+                <button
+                  type="submit"
+                  className="hero-command-cta"
+                  disabled={isLoading || !intent.trim()}
+                  aria-label="Generate itinerary"
+                >
+                  {isLoading ? (
+                    <span className="cta-loading-state">
+                      <span className="cta-spinner" />
+                      <span>COMPOSING ITINERARY...</span>
+                    </span>
+                  ) : (
+                    <span className="cta-label-state">
+                      <span>GIVE IT SHAPE</span>
+                      <IconArrowRight size={16} className="cta-arrow" />
+                    </span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Discovery & Plan Ideas Matrix Grid (2-column on desktop, structured matrix) */}
+          <div className="hero-curated-prompts">
+            <div className="curated-prompts-header">
+              <span className="prompts-kicker">DISCOVERY & PLAN IDEAS</span>
+              <span className="prompts-hint">Select a starting point to compose your plan</span>
+            </div>
+
+            <div className="discovery-matrix-grid">
+              {EDITORIAL_PROMPTS.map((item) => {
+                const isSelected = intent === item.prompt;
+                return (
+                  <button
+                    key={item.title}
+                    type="button"
+                    className={`discovery-matrix-cell ${isSelected ? 'active' : ''}`}
+                    onClick={() => handleSelectPrompt(item.prompt)}
+                    disabled={isLoading}
+                  >
+                    <div className="discovery-cell-top">
+                      <span className="discovery-cell-tag">{item.tag}</span>
+                      <span className="discovery-cell-cue">Use idea ↗</span>
+                    </div>
+                    <h3 className="discovery-cell-title">{item.title}</h3>
+                    <p className="discovery-cell-meta">{item.meta}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Scroll Cue to Engine Mechanics */}
+          <button
+            type="button"
+            className="hero-scroll-invite hero-scroll-trigger"
+            onClick={handleScrollDown}
+            aria-label="Scroll to how it works"
+          >
+            <span className="invite-label scroll-label">HOW THE ENGINE THINKS</span>
+            <IconArrowDown size={14} className="invite-arrow-icon scroll-icon" />
+          </button>
         </div>
       </section>
     );
