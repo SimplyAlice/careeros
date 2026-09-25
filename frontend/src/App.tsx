@@ -296,7 +296,7 @@ export const App: React.FC = () => {
   const hasActivePlan = Boolean(currentPlan || isPlanning);
 
   return (
-    <div className="product-canvas">
+    <div className={`product-canvas ${viewMode === 'workspace' ? 'workspace-canvas' : ''}`}>
       {/* Top Floating Navigation */}
       <Navigation
         hasActivePlan={hasActivePlan}
