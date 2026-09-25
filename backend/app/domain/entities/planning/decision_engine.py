@@ -605,13 +605,34 @@ def _assess_exclusions(
                     )
                 )
                 is_eligible = False
-        elif ex in {"no_clubs", "no_club", "no_party"}:
-            if "club" in combined_text or "nightclub" in combined_text:
+        elif ex in {"no_loud_bars", "no_clubs", "no_club", "no_party"}:
+            is_loud = "club" in combined_text or "nightclub" in combined_text or "bar" in combined_text.split() or "pub" in combined_text.split()
+            if is_loud:
                 reasons.append(
                     DecisionReason(
                         ReasonType.EXCLUSION,
                         ReasonOutcome.VIOLATED,
-                        "Excluded: clubs or party venues violate constraint",
+                        "Excluded: loud bar or club venue violates constraint",
+                    )
+                )
+                is_eligible = False
+        elif ex in {"nothing_expensive", "not_expensive"}:
+            if cost is not None and cost >= Decimal("350"):
+                reasons.append(
+                    DecisionReason(
+                        ReasonType.EXCLUSION,
+                        ReasonOutcome.VIOLATED,
+                        "Excluded: high-cost venue violates budget constraint",
+                    )
+                )
+                is_eligible = False
+        elif ex in {"minimal_walking", "no_walking"}:
+            if "hike" in combined_text or "walking loop" in combined_text:
+                reasons.append(
+                    DecisionReason(
+                        ReasonType.EXCLUSION,
+                        ReasonOutcome.VIOLATED,
+                        "Excluded: extended walking activity violates mobility preference",
                     )
                 )
                 is_eligible = False
@@ -804,6 +825,7 @@ def _assess_semantic_descriptors(
                     ReasonType.SEMANTIC_MATCH,
                     ReasonOutcome.SUPPORTED,
                     f"Supports requested '{descriptor}' vibe",
+                    evidence_status="probable",
                 )
             )
             continue
@@ -816,6 +838,7 @@ def _assess_semantic_descriptors(
                     ReasonType.SEMANTIC_MATCH,
                     ReasonOutcome.SUPPORTED,
                     f"Supports requested '{descriptor}' vibe ({', '.join(tokens)})",
+                    evidence_status="probable",
                 )
             )
         else:
@@ -824,6 +847,7 @@ def _assess_semantic_descriptors(
                     ReasonType.SEMANTIC_MATCH,
                     ReasonOutcome.NEUTRAL,
                     f"'{descriptor}' aesthetic could not be verified from public registry",
+                    evidence_status="unknown",
                 )
             )
     return matched_count
@@ -837,13 +861,52 @@ def _generate_trade_off_summary(
         return None
     eligible = [c for c in candidates if c.is_eligible]
     if not eligible:
-        return None
-    top_candidates = eligible[:3]
+        budget_violators = [c for c in candidates if any(r.type is ReasonType.BUDGET and r.outcome is ReasonOutcome.VIOLATED for r in c.reasons)]
+        if budget_violators and criteria.maximum_cost is not None:
+            return (
+                f"No verified options meet your strict ceiling of R{criteria.maximum_cost:.0f}. "
+                "Higher-cost alternatives are available if you are flexible on budget."
+            )
+        return "No options could be verified meeting all criteria. Explore alternatives below."
 
+    top_candidates = eligible[:3]
     notes: list[str] = []
+
+    # 1. Budget vs Upscale/Fancy trade-off
+    has_fancy_requested = (
+        any(d.casefold() in {"fancy", "fine dining", "upscale", "luxury"} for d in criteria.semantic_descriptors)
+        or "fancy" in criteria.preferences
+    )
+    ineligible_due_to_budget = [
+        c for c in candidates if not c.is_eligible and any(r.type is ReasonType.BUDGET and r.outcome is ReasonOutcome.VIOLATED for r in c.reasons)
+    ]
+    upscale_budget_conflict = has_fancy_requested and any(
+        "fine dining" in f"{c.name} {c.address or ''}".casefold() or (c.cost is not None and c.cost >= Decimal("400"))
+        for c in ineligible_due_to_budget
+    )
+    if upscale_budget_conflict:
+        cost_str = f"R{criteria.maximum_cost:.0f}" if criteria.maximum_cost is not None else "your budget"
+        for_two_str = " for two" if criteria.group_size == 2 else ""
+        notes.append(
+            f"I couldn't verify a dinner option that is both upscale and within {cost_str}{for_two_str}. "
+            f"I kept the {cost_str} ceiling and prioritised a verified quality dining option, with one higher-cost alternative if you're willing to stretch."
+        )
+
+    # 2. Weather vs Outdoor trade-off
+    if criteria.weather_context == "raining" and (
+        "outdoors" in criteria.preferences
+        or any(d.casefold() in {"scenic", "nature", "walk", "outdoors"} for d in criteria.semantic_descriptors)
+    ):
+        notes.append(
+            "Rain is expected during your requested window, so sheltered and indoor options were prioritised to keep you dry."
+        )
+
+    # 3. Soft preference relaxation (e.g. "quiet", "pretty")
     if criteria.semantic_descriptors:
         unverified: list[str] = []
         for desc in criteria.semantic_descriptors:
+            if upscale_budget_conflict and desc.casefold() in {"fancy", "fine dining", "upscale", "luxury"}:
+                continue
             supported = any(
                 any(
                     r.type is ReasonType.SEMANTIC_MATCH
@@ -860,6 +923,12 @@ def _generate_trade_off_summary(
             notes.append(
                 f"Public registry listings do not currently verify {desc_str} decor/ambiance; recommendations were prioritized for quality and constraints in Cape Town."
             )
+
+    # 4. Deadline / timing trade-off note
+    if criteria.deadline:
+        notes.append(
+            f"Your itinerary is scoped to comfortably conclude before your {criteria.deadline} deadline with realistic travel buffers."
+        )
 
     if notes:
         return " ".join(notes)

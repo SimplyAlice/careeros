@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from enum import Enum
 
+from app.domain.entities.planning.constraints import BudgetConstraint, BudgetStyle, TemporalConstraint
 from app.domain.entities.planning.information import InformationCategory
 
 
@@ -34,12 +35,15 @@ class PlanningUnderstanding:
     time_window: str | None = None
     start_time: str | None = None
     end_time: str | None = None
+    deadline: str | None = None
     time_confidence: str = "unknown"
     duration_limit_minutes: int | None = None
     location: str | None = None
     location_is_inferred: bool = False
     budget_amount: Decimal | None = None
     budget_kind: BudgetKind = BudgetKind.NONE
+    budget_model: BudgetConstraint | None = None
+    temporal_model: TemporalConstraint | None = None
     preferences: tuple[str, ...] = field(default_factory=tuple)
     exclusions: tuple[str, ...] = field(default_factory=tuple)
     activity_types: tuple[InformationCategory, ...] = field(default_factory=tuple)

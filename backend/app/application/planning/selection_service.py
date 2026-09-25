@@ -101,8 +101,11 @@ def criteria_from_plan(plan: Plan) -> DecisionCriteria:
         day_of_week=_day_of_week_from_constraints(plan),
         start_time=_start_time_from_constraints(plan),
         end_time=_end_time_from_constraints(plan),
+        deadline=_deadline_from_constraints(plan),
         time_window=_time_window_from_constraints(plan),
         duration_limit_minutes=_duration_limit_from_constraints(plan),
+        stretch_amount=_stretch_amount_from_constraints(plan),
+        priority_note=_priority_note_from_constraints(plan),
     )
 
 
@@ -130,6 +133,27 @@ def _end_time_from_constraints(plan: Plan) -> str | None:
             return constraint.value.split(":", 1)[1]
     if plan.context and plan.context.end_time:
         return plan.context.end_time.strftime("%H:%M")
+    return None
+
+
+def _deadline_from_constraints(plan: Plan) -> str | None:
+    for constraint in plan.constraints:
+        if constraint.type is ConstraintType.REQUIREMENT and constraint.value.startswith("deadline:"):
+            return constraint.value.split(":", 1)[1]
+    return None
+
+
+def _stretch_amount_from_constraints(plan: Plan) -> Decimal | None:
+    for constraint in plan.constraints:
+        if constraint.type is ConstraintType.REQUIREMENT and constraint.value.startswith("budget_stretch:"):
+            return constraint.numeric_value
+    return None
+
+
+def _priority_note_from_constraints(plan: Plan) -> str | None:
+    for constraint in plan.constraints:
+        if constraint.type is ConstraintType.PREFERENCE and constraint.value.startswith("budget_priority:"):
+            return constraint.value.split(":", 1)[1]
     return None
 
 

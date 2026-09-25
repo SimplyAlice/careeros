@@ -356,7 +356,7 @@ export function buildProposedItinerary(
     if (understanding.exclusions.includes('no_outdoors')) {
       eligible = eligible.filter((c) => c.category !== 'nature');
     }
-    if (understanding.exclusions.includes('no_alcohol')) {
+    if (understanding.exclusions.includes('no_alcohol') || understanding.exclusions.includes('no_loud_bars')) {
       eligible = eligible.filter((c) => {
         const nameLower = c.name.toLowerCase();
         return !nameLower.includes('bar') && !nameLower.includes('cocktail') && !nameLower.includes('pub') && !nameLower.includes('brewery');
@@ -496,7 +496,8 @@ export function recalculateItinerary(
   items: ProposedItineraryItem[],
   allEligibleCandidates: DecisionCandidateRead[],
   budgetMax: number | null,
-  understanding?: UnderstandingRead | null
+  understanding?: UnderstandingRead | null,
+  tradeOffSummary?: string | null
 ): ProposedItinerary {
   const slottedItems = assignTimeSlots(items, understanding);
   const currentCost = slottedItems.reduce((sum, item) => sum + item.costNumber, 0);
@@ -523,5 +524,6 @@ export function recalculateItinerary(
     freshness,
     totalDurationMinutes,
     timeSpanDisplay,
+    tradeOffSummary: tradeOffSummary || null,
   };
 }

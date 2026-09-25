@@ -5,6 +5,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from app.application.planning.ports import PlanningUnderstandingPort
+from app.domain.entities.planning.constraints import BudgetConstraint, BudgetStyle, TemporalConstraint
 from app.domain.entities.planning.information import InformationCategory
 from app.domain.entities.planning.understanding import BudgetKind, PlanningUnderstanding, ProvenanceKind
 
@@ -52,6 +53,7 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
             time_window,
             start_time,
             end_time,
+            deadline,
             time_confidence,
             duration_limit,
             date_prov,
@@ -79,7 +81,7 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
         provenance["location"] = loc_prov.value
 
         # 5. Budget semantics
-        budget_amount, budget_kind, budget_prov = self._extract_budget(normalized)
+        budget_amount, budget_kind, budget_prov, budget_model = self._extract_budget(normalized)
         provenance["budget"] = budget_prov.value
 
         # 6. Exclusions (hard negative constraints)
@@ -106,6 +108,20 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
         # 11. Goal synthesis
         goal = self._extract_goal(normalized, occasion, rel_context)
 
+        day_of_week = (
+            date_spec if date_spec in {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"} else None
+        )
+        temporal_model = TemporalConstraint(
+            date_spec=date_spec,
+            day_of_week=day_of_week,
+            start_time=start_time,
+            end_time=end_time,
+            deadline=deadline,
+            time_window=time_window,
+            duration_limit_minutes=duration_limit,
+            confidence=time_confidence,
+        )
+
         return PlanningUnderstanding(
             raw_request=request,
             goal=goal,
@@ -116,12 +132,15 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
             time_window=time_window,
             start_time=start_time,
             end_time=end_time,
+            deadline=deadline,
             time_confidence=time_confidence,
             duration_limit_minutes=duration_limit,
             location=location,
             location_is_inferred=is_inferred,
             budget_amount=budget_amount,
             budget_kind=budget_kind,
+            budget_model=budget_model,
+            temporal_model=temporal_model,
             preferences=tuple(preferences),
             exclusions=tuple(exclusions),
             activity_types=tuple(activity_types),
@@ -141,7 +160,7 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
     @staticmethod
     def _extract_occasion(text: str) -> tuple[str | None, ProvenanceKind]:
         lower = text.lower()
-        if re.search(r"\b(?:date night|romantic|anniversary|on a date|for a date)\b", lower):
+        if re.search(r"\b(?:date night|romantic|anniversary|on a date|for a date|cheap date|cute date|dinner date|a date|good date)\b", lower):
             return "date", ProvenanceKind.EXPLICIT
         if re.search(r"\b(?:take|taking|with|for)\s+my\s+(?:boyfriend|girlfriend|partner|husband|wife)\b", lower):
             return "date", ProvenanceKind.INFERRED
@@ -231,11 +250,16 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
             k_cnt = word_to_num.get(k_raw, int(k_raw) if k_raw.isdigit() else 2) or 2
             return 2 + k_cnt, "family", ProvenanceKind.EXPLICIT, ambiguities
 
-        # 6. Friend + we: "my friend doesn't drink and we want..."
+        # 7. Explicit pair / couple / friend visiting references
+        if re.search(r"\b(?:neither of us|both of us|the two of us|the 2 of us)\b", lower):
+            return 2, "couple" if occasion == "date" else ("friends" if "friend" in lower else "pair"), ProvenanceKind.EXPLICIT, ambiguities
+
+        if re.search(r"\b(?:my friend is visiting|friend is visiting|visiting cape town.*we)\b", lower):
+            return 2, "friends", ProvenanceKind.EXPLICIT, ambiguities
+
         if re.search(r"\bmy friend\b.*\bwe\b", lower) or re.search(r"\b(?:with a friend|and a friend)\b", lower):
             return 2, "friends", ProvenanceKind.EXPLICIT, ambiguities
 
-        # 7. Explicit couple / pair references
         if re.search(r"\b(?:me and my (?:boyfriend|girlfriend|partner|husband|wife|friend))\b", lower):
             pair_rel = "boyfriend" if "boyfriend" in lower else "partner"
             if "girlfriend" in lower:
@@ -244,7 +268,7 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
                 pair_rel = "friends"
             return 2, pair_rel, ProvenanceKind.EXPLICIT, ambiguities
 
-        if re.search(r"\b(?:the two of us|both of us|for two|for 2)\b", lower):
+        if re.search(r"\b(?:for two|for 2)\b", lower):
             return 2, "couple" if occasion == "date" else "pair", ProvenanceKind.EXPLICIT, ambiguities
 
         # 8. Partner or family inferred pair (default to 2 if no explicit count given)
@@ -271,7 +295,7 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
         return None, None, ProvenanceKind.UNKNOWN, ambiguities
 
     @staticmethod
-    def _normalize_clock_time(time_val: str, meridiem: str | None = None, is_deadline: bool = False) -> str:
+    def _normalize_clock_time(time_val: str, meridiem: str | None = None, is_deadline: bool = False, is_evening: bool = False) -> str:
         if ":" in time_val:
             parts = time_val.split(":")
             h, m = int(parts[0]), int(parts[1])
@@ -286,6 +310,9 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
             if is_deadline:
                 if 1 <= h <= 11:
                     h += 12
+            elif is_evening:
+                if 1 <= h <= 11:
+                    h += 12
             else:
                 if 1 <= h <= 6:
                     h += 12
@@ -296,6 +323,7 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
     def _extract_date_and_time(
         text: str,
     ) -> tuple[
+        str | None,
         str | None,
         str | None,
         str | None,
@@ -313,10 +341,12 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
         time_window: str | None = None
         start_time: str | None = None
         end_time: str | None = None
+        deadline: str | None = None
         time_confidence = "unknown"
         duration_limit_minutes: int | None = None
         date_prov = ProvenanceKind.UNKNOWN
         time_prov = ProvenanceKind.UNKNOWN
+        is_evening_ctx = bool(re.search(r"\b(?:dinner|evening|night|tonight|after work)\b", lower))
 
         # 1. Days of week / relative dates
         for day in ("saturday", "sunday", "friday", "thursday", "wednesday", "tuesday", "monday"):
@@ -344,7 +374,7 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
             "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
             "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6,
         }
-        m_dur = re.search(r"\b(?:only have|have|for)\s+(\d+|one|two|three|four|five|six)\s+hours?\b", lower)
+        m_dur = re.search(r"\b(?:only have|have|for|in)\s+(\d+|one|two|three|four|five|six)\s+hours?\b", lower)
         if not m_dur:
             m_dur = re.search(r"\b(\d+|one|two|three|four|five|six)\s+hours?\b", lower)
         if m_dur:
@@ -353,6 +383,8 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
             if hours_count:
                 duration_limit_minutes = hours_count * 60
                 ambiguities.append(f"Itinerary time constraint: limited to approximately {hours_count} hours.")
+        elif re.search(r"\b(?:whole afternoon|all afternoon)\b", lower):
+            duration_limit_minutes = 240
 
         # 3. Time spans and start/end clock times
         m_span = re.search(
@@ -360,8 +392,9 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
             lower,
         )
         if m_span:
-            start_time = DeterministicUnderstandingEngine._normalize_clock_time(m_span.group(1), m_span.group(2))
-            end_time = DeterministicUnderstandingEngine._normalize_clock_time(m_span.group(3), m_span.group(4), is_deadline=True)
+            start_time = DeterministicUnderstandingEngine._normalize_clock_time(m_span.group(1), m_span.group(2), is_evening=is_evening_ctx)
+            end_time = DeterministicUnderstandingEngine._normalize_clock_time(m_span.group(3), m_span.group(4), is_deadline=True, is_evening=is_evening_ctx)
+            deadline = end_time
             time_confidence = "exact"
             time_prov = ProvenanceKind.EXPLICIT
             time_window = f"{start_time}-{end_time}"
@@ -371,23 +404,29 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
                 lower,
             )
             m_start_exact = re.search(r"\b(?:start\s+at|at)\s+(\d{1,2}(?::\d{2})?)\s*(am|pm)?\b", lower)
+            m_start_after = re.search(r"\b(?:after|from)\s+(\d{1,2}(?::\d{2})?)\s*(am|pm)?\b", lower)
 
             if m_start_approx:
-                start_time = DeterministicUnderstandingEngine._normalize_clock_time(m_start_approx.group(1), m_start_approx.group(2))
+                start_time = DeterministicUnderstandingEngine._normalize_clock_time(m_start_approx.group(1), m_start_approx.group(2), is_evening=is_evening_ctx)
                 time_confidence = "approximate"
                 time_prov = ProvenanceKind.EXPLICIT
                 ambiguities.append(f"Start time is approximate (~{start_time}); scheduled with flexibility.")
             elif m_start_exact:
-                start_time = DeterministicUnderstandingEngine._normalize_clock_time(m_start_exact.group(1), m_start_exact.group(2))
+                start_time = DeterministicUnderstandingEngine._normalize_clock_time(m_start_exact.group(1), m_start_exact.group(2), is_evening=is_evening_ctx)
+                time_confidence = "exact"
+                time_prov = ProvenanceKind.EXPLICIT
+            elif m_start_after:
+                start_time = DeterministicUnderstandingEngine._normalize_clock_time(m_start_after.group(1), m_start_after.group(2), is_evening=is_evening_ctx)
                 time_confidence = "exact"
                 time_prov = ProvenanceKind.EXPLICIT
 
             m_end = re.search(
-                r"\b(?:until|to|home by|be home by|finish by|by)\s+(\d{1,2}(?::\d{2})?)\s*(am|pm)?\b",
+                r"\b(?:until|to|home by|be home by|finish by|leave by|need to leave by|back by|done by|by|before)\s+(\d{1,2}(?::\d{2})?)\s*(am|pm)?\b",
                 lower,
             )
             if m_end:
-                end_time = DeterministicUnderstandingEngine._normalize_clock_time(m_end.group(1), m_end.group(2), is_deadline=True)
+                end_time = DeterministicUnderstandingEngine._normalize_clock_time(m_end.group(1), m_end.group(2), is_deadline=True, is_evening=is_evening_ctx)
+                deadline = end_time
                 time_prov = ProvenanceKind.EXPLICIT
                 ambiguities.append(f"Requested end time: home/done by {end_time}.")
 
@@ -438,6 +477,14 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
                 end_time = "17:30"
             elif period in {"evening", "night"}:
                 end_time = "22:00"
+        elif period and not start_time and end_time:
+            time_window = period
+            if period == "evening":
+                start_time = "18:00"
+            elif period == "dinner":
+                start_time = "19:00"
+            elif period == "afternoon":
+                start_time = "13:00"
         elif start_time and not time_window:
             time_window = f"from_{start_time}"
 
@@ -449,6 +496,7 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
             time_window,
             start_time,
             end_time,
+            deadline,
             time_confidence,
             duration_limit_minutes,
             date_prov,
@@ -517,35 +565,90 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
         return "Cape Town", True, ProvenanceKind.DEFAULTED, extracted_descriptors
 
     @staticmethod
-    def _extract_budget(text: str) -> tuple[Decimal | None, BudgetKind, ProvenanceKind]:
+    def _extract_budget(text: str) -> tuple[Decimal | None, BudgetKind, ProvenanceKind, BudgetConstraint]:
         lower = text.lower()
 
-        # 1. Explicit numeric budget extraction (R800, R2,000, R 800, 800 rand, 800 bucks) takes precedence
-        match = re.search(r"\bR\s?(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)\b", text, re.IGNORECASE)
-        if not match:
-            match = re.search(r"\b(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)\s*(?:rand|bucks)\b", text, re.IGNORECASE)
+        # Check per-person vs total markers
+        is_per_person = bool(re.search(r"\b(?:each|per person|a person|per head|a head)\b", lower))
+        priority_note: str | None = None
+        if re.search(r"\b(?:spend most (?:of it )?on dinner|most on dinner|most of the budget on dinner)\b", lower):
+            priority_note = "spend_most_on_dinner"
 
-        if match:
-            amount = Decimal(match.group(1).replace(",", ""))
-            if re.search(r"\b(?:under|max|maximum|at most|up to|cap at|limit)\s*(?:r|rand|bucks)?\s*[\d,]+", lower):
-                return amount, BudgetKind.HARD_MAX, ProvenanceKind.EXPLICIT
+        # Check for flexible stretch budget: "can stretch to R700", "stretch to R700", "up to R700 if needed"
+        stretch_amount: Decimal | None = None
+        m_stretch = re.search(r"\b(?:stretch to|can stretch to|stretch up to)\s*(?:r|rand|bucks)?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)\b", lower)
+        if m_stretch:
+            stretch_amount = Decimal(m_stretch.group(1).replace(",", ""))
+
+        # 1. Explicit numeric budget extraction (R800, R2,000, R 800, 800 rand, 800 bucks) takes precedence
+        base_match = None
+        for m in re.finditer(r"\bR\s?(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)\b|\b(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)\s*(?:rand|bucks)\b", text, re.IGNORECASE):
+            raw_val = m.group(1) or m.group(2)
+            val = Decimal(raw_val.replace(",", ""))
+            if stretch_amount is not None and val == stretch_amount:
+                continue
+            base_match = val
+            break
+
+        if base_match is None and stretch_amount is not None:
+            base_match = stretch_amount
+
+        if base_match is not None:
+            amount = base_match
+            if stretch_amount is not None:
+                b_model = BudgetConstraint(
+                    amount=amount,
+                    style=BudgetStyle.FLEXIBLE_STRETCH,
+                    stretch_amount=stretch_amount,
+                    per_person=is_per_person,
+                    priority_note=priority_note,
+                )
+                return amount, BudgetKind.HARD_MAX, ProvenanceKind.EXPLICIT, b_model
+
+            if re.search(r"\b(?:under|max|maximum|at most|up to|cap at|limit|less than)\s*(?:r|rand|bucks)?\s*[\d,]+", lower):
+                b_model = BudgetConstraint(
+                    amount=amount,
+                    style=BudgetStyle.HARD_CEILING,
+                    per_person=is_per_person,
+                    priority_note=priority_note,
+                )
+                return amount, BudgetKind.HARD_MAX, ProvenanceKind.EXPLICIT, b_model
+
             if re.search(r"\b(?:maybe|around|about|roughly|approx|approx\.|~)\s*(?:r|rand|bucks)?\s*[\d,]+", lower):
-                return amount, BudgetKind.APPROXIMATE, ProvenanceKind.EXPLICIT
-            return amount, BudgetKind.APPROXIMATE, ProvenanceKind.EXPLICIT
+                b_model = BudgetConstraint(
+                    amount=amount,
+                    style=BudgetStyle.APPROXIMATE,
+                    per_person=is_per_person,
+                    priority_note=priority_note,
+                )
+                return amount, BudgetKind.APPROXIMATE, ProvenanceKind.EXPLICIT, b_model
+
+            style = BudgetStyle.PER_PERSON if is_per_person else BudgetStyle.TOTAL
+            b_model = BudgetConstraint(
+                amount=amount,
+                style=style,
+                per_person=is_per_person,
+                priority_note=priority_note,
+            )
+            return amount, BudgetKind.APPROXIMATE, ProvenanceKind.EXPLICIT, b_model
 
         # 2. Free / zero cost financial check (ensuring 'free' is not referring to time: 'hours free', 'free time', 'free tomorrow')
         is_temporal_free = bool(re.search(r"\b(?:hours?\s+free|free\s+time|time\s+free|free\s+(?:tomorrow|tonight|today|this|saturday|sunday|friday|morning|afternoon|evening)|(?:are|we're|i'm|i\s+am)\s+free)\b", lower))
         if not is_temporal_free:
             if re.search(r"\b(?:free of charge|zero cost|no cost|no money|no budget|zero budget|for free|cost nothing)\b", lower):
-                return Decimal("0"), BudgetKind.HARD_MAX, ProvenanceKind.EXPLICIT
+                b_model = BudgetConstraint(amount=Decimal("0"), style=BudgetStyle.HARD_CEILING)
+                return Decimal("0"), BudgetKind.HARD_MAX, ProvenanceKind.EXPLICIT, b_model
             if re.search(r"\bfree\b", lower) and not re.search(r"\b(?:smoke|sugar|gluten|care|duty|hands)[ -]free\b", lower):
-                return Decimal("0"), BudgetKind.HARD_MAX, ProvenanceKind.EXPLICIT
+                b_model = BudgetConstraint(amount=Decimal("0"), style=BudgetStyle.HARD_CEILING)
+                return Decimal("0"), BudgetKind.HARD_MAX, ProvenanceKind.EXPLICIT, b_model
 
         # 3. Qualitative budget preference without exact number
-        if re.search(r"\b(?:cheap|affordable|budget[ -]friendly|on a budget|not expensive|not too expensive|nothing too expensive|nothing expensive)\b", lower):
-            return None, BudgetKind.PREFERENCE, ProvenanceKind.EXPLICIT
+        if re.search(r"\b(?:cheap|affordable|budget[ -]friendly|on a budget|not expensive|not too expensive|nothing too expensive|nothing expensive|keep it cheap)\b", lower):
+            b_model = BudgetConstraint(amount=None, style=BudgetStyle.PRIORITY_CHEAP, priority_note=priority_note)
+            return None, BudgetKind.PREFERENCE, ProvenanceKind.EXPLICIT, b_model
 
-        return None, BudgetKind.NONE, ProvenanceKind.UNKNOWN
+        b_model = BudgetConstraint(amount=None, style=BudgetStyle.NONE)
+        return None, BudgetKind.NONE, ProvenanceKind.UNKNOWN, b_model
 
     @staticmethod
     def _extract_exclusions(text: str) -> list[str]:
@@ -556,17 +659,22 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
             exclusions.append("not_too_fancy")
 
         # Alcohol exclusions
-        if re.search(r"\b(?:doesn't drink|don't drink|does not drink|do not drink|no alcohol|non[ -]alcoholic|sober|no booze|no wine|no beer)\b", lower):
+        if re.search(r"\b(?:doesn't drink|don't drink|does not drink|do not drink|neither of us drinks|none of us drinks|no alcohol|non[ -]alcoholic|sober|no booze|no wine|no beer)\b", lower):
             exclusions.append("no_alcohol")
 
         # Outdoor exclusions (explicit or weather-driven)
-        if re.search(r"\b(?:no outdoor|no outdoors|nothing outdoors|not outdoors|avoid outdoors|no nature|indoors?|inside|raining|rainy|sheltered|bad weather)\b", lower):
+        if re.search(r"\b(?:no outdoor|no outdoors|nothing outdoors|not outdoors|avoid outdoors|no nature|indoors?|inside|rain|raining|rainy|sheltered|bad weather|don't want to get wet|don't want to be outside|not outside)\b", lower):
             exclusions.append("no_outdoors")
 
-        if re.search(r"\b(?:no clubs|no clubbing|no nightlife|no party|no parties)\b", lower):
+        # Nightlife & loud venue exclusions
+        if re.search(r"\b(?:no clubs|no clubbing|no nightlife|no party|no parties|except clubs)\b", lower):
             exclusions.append("no_clubs")
 
-        if re.search(r"\b(?:not too expensive|nothing expensive|no expensive places)\b", lower):
+        if re.search(r"\b(?:except loud bars|no loud bars|no loud music|no noisy places|avoid loud)\b", lower):
+            exclusions.append("no_loud_bars")
+            exclusions.append("no_clubs")
+
+        if re.search(r"\b(?:not too expensive|nothing expensive|no expensive places|not ridiculously expensive)\b", lower):
             exclusions.append("nothing_expensive")
 
         if re.search(r"\b(?:no walking|minimal walking|avoid walking)\b", lower):
@@ -580,13 +688,15 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
         setting: str | None = None
         weather: str | None = None
 
-        if re.search(r"\b(?:indoors?|inside|sheltered|bad weather|raining|rainy)\b", lower):
+        if re.search(r"\b(?:indoors?|inside|sheltered|bad weather|rain|raining|rainy|stay dry|don't want to get wet|don't want to be outside|not outside)\b", lower):
             setting = "indoor"
-        elif re.search(r"\b(?:outdoors?|outside|in the sun|open air)\b", lower):
+        elif re.search(r"\b(?:outdoors?|outside|in the sun|open air|sunny)\b", lower):
             setting = "outdoor"
 
-        if re.search(r"\b(?:raining|rainy|rain|bad weather|storm|stormy)\b", lower):
+        if re.search(r"\b(?:raining|rainy|rain|bad weather|storm|stormy|wet)\b", lower):
             weather = "raining"
+        elif re.search(r"\b(?:sunny|sunshine|clear skies|good weather)\b", lower):
+            weather = "sunny"
 
         return setting, weather
 
@@ -608,6 +718,10 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
             (r"\b(?:games|board games|arcade|entertainment)\b", "games"),
             (r"\b(?:culture|museum|art gallery|heritage)\b", "culture"),
             (r"\b(?:tasting|wine tasting|food tasting)\b", "tasting"),
+            (r"\b(?:fancy|fine dining|upscale|luxury)\b", "fancy"),
+            (r"\b(?:pretty|aesthetic|cute)\b", "pretty"),
+            (r"\b(?:doesn't feel cheap|quality)\b", "quality"),
+            (r"\b(?:bored|fun)\b", "fun"),
         ]
         for pattern, label in patterns:
             if re.search(pattern, lower) and label not in descriptors:
@@ -636,8 +750,11 @@ class DeterministicUnderstandingEngine(PlanningUnderstandingPort):
         if re.search(r"\b(?:romantic|intimate|cozy|cute)\b", lower):
             preferences.append("romantic")
 
-        if re.search(r"\b(?:food[ -]focused|foodie|good food|great food|delicious|tasting)\b", lower):
+        if re.search(r"\b(?:food[ -]focused|foodie|good food|great food|delicious|tasting|dinner|lunch|breakfast)\b", lower):
             preferences.append("food_focused")
+
+        if re.search(r"\b(?:spend most (?:of it )?on dinner|most on dinner)\b", lower):
+            preferences.append("prioritize_dinner")
 
         if re.search(r"\b(?:aesthetic|scenic|pretty|view)\b", lower):
             preferences.append("aesthetic")

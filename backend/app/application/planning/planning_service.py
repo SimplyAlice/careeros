@@ -214,6 +214,29 @@ class PlanningService:
                     numeric_value=Decimal(understanding.duration_limit_minutes),
                 )
             )
+        if understanding.deadline:
+            constraints.append(
+                ConstraintInput(
+                    type=ConstraintType.REQUIREMENT,
+                    value=f"deadline:{understanding.deadline}",
+                )
+            )
+        if understanding.budget_model:
+            if understanding.budget_model.stretch_amount is not None:
+                constraints.append(
+                    ConstraintInput(
+                        type=ConstraintType.REQUIREMENT,
+                        value=f"budget_stretch:{understanding.budget_model.stretch_amount}",
+                        numeric_value=understanding.budget_model.stretch_amount,
+                    )
+                )
+            if understanding.budget_model.priority_note:
+                constraints.append(
+                    ConstraintInput(
+                        type=ConstraintType.PREFERENCE,
+                        value=f"budget_priority:{understanding.budget_model.priority_note}",
+                    )
+                )
 
         start_dt = _resolve_iso_datetime(understanding.date_spec, understanding.start_time)
         end_dt = _resolve_iso_datetime(understanding.date_spec, understanding.end_time)

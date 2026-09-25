@@ -73,7 +73,7 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
       rationale: humanizeCandidateReasons(newCandidate, budgetMax, groupSize, plan.understanding),
     };
 
-    const recalculated = recalculateItinerary(updatedItems, allCandidates, budgetMax, plan.understanding);
+    const recalculated = recalculateItinerary(updatedItems, allCandidates, budgetMax, plan.understanding, itinerary.tradeOffSummary);
     setItinerary(recalculated);
     setSwappingIndex(null);
   };
@@ -81,7 +81,7 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
   // Remove an item from the proposed itinerary
   const handleRemove = (slotIndex: number) => {
     const updatedItems = itinerary.items.filter((_, idx) => idx !== slotIndex);
-    const recalculated = recalculateItinerary(updatedItems, allCandidates, budgetMax, plan.understanding);
+    const recalculated = recalculateItinerary(updatedItems, allCandidates, budgetMax, plan.understanding, itinerary.tradeOffSummary);
     setItinerary(recalculated);
     if (swappingIndex === slotIndex) {
       setSwappingIndex(null);
@@ -98,7 +98,7 @@ export const ProposedPlan: React.FC<ProposedPlanProps> = ({
       rationale: humanizeCandidateReasons(candidate, budgetMax, groupSize, plan.understanding),
     };
     const updatedItems = [...itinerary.items, newItem];
-    const recalculated = recalculateItinerary(updatedItems, allCandidates, budgetMax, plan.understanding);
+    const recalculated = recalculateItinerary(updatedItems, allCandidates, budgetMax, plan.understanding, itinerary.tradeOffSummary);
     setItinerary(recalculated);
     setShowAddMenu(false);
   };

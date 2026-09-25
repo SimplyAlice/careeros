@@ -28,6 +28,8 @@ class ReasonType(str, Enum):
     SEMANTIC_MATCH = "semantic_match"
     EXCLUSION = "exclusion"
     SETTING = "setting"
+    WEATHER = "weather"
+    TRADE_OFF = "trade_off"
 
 
 class ReasonOutcome(str, Enum):
@@ -43,6 +45,7 @@ class DecisionReason:
     type: ReasonType
     outcome: ReasonOutcome
     message: str
+    evidence_status: str = "verified"
 
     def __post_init__(self) -> None:
         if not self.message.strip():
@@ -123,8 +126,11 @@ class DecisionCriteria:
     day_of_week: str | None = None
     start_time: str | None = None
     end_time: str | None = None
+    deadline: str | None = None
     time_window: str | None = None
     duration_limit_minutes: int | None = None
+    stretch_amount: Decimal | None = None
+    priority_note: str | None = None
 
     def __post_init__(self) -> None:
         if self.maximum_cost is not None and self.maximum_cost < 0:
