@@ -339,7 +339,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: 10000;
-  background: rgba(25, 24, 23, 0.45);
+  background: rgba(13, 9, 20, 0.5);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex;
@@ -1071,8 +1071,8 @@ body {
 }
 
 @keyframes pulseCore {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(160, 67, 50, 0.2); }
-  50% { transform: scale(1.08); box-shadow: 0 0 0 10px rgba(160, 67, 50, 0); }
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 77, 54, 0.25); }
+  50% { transform: scale(1.08); box-shadow: 0 0 0 10px rgba(255, 77, 54, 0); }
 }
 
 .thinking-sparkle {
@@ -2991,7 +2991,7 @@ body {
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 24px;
-  background: rgba(250, 248, 245, 0.92);
+  background: rgba(247, 244, 238, 0.95);
   backdrop-filter: blur(10px);
   padding: 10px 0;
   border-bottom: 1px solid var(--border-hairline);
@@ -3141,7 +3141,7 @@ body {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: 22px;
-  box-shadow: 0 20px 48px rgba(25, 24, 23, 0.08);
+  box-shadow: 0 20px 48px rgba(13, 9, 20, 0.08);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -3186,7 +3186,7 @@ body {
   height: 6px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 0 3px rgba(160, 67, 50, 0.15);
+  box-shadow: 0 0 0 3px rgba(255, 77, 54, 0.25);
   animation: pulseDot 2s infinite;
 }
 
@@ -3527,7 +3527,7 @@ body {
   height: 10px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 0 3px rgba(160, 67, 50, 0.2);
+  box-shadow: 0 0 0 3px rgba(255, 77, 54, 0.25);
   flex-shrink: 0;
 }
 
